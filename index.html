@@ -4,1216 +4,308 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Dynasties">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#17110c">
-<link rel="manifest" href="./manifest.webmanifest">
-<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
-<title>Dynasties</title>
+<meta name="theme-color" content="#0d0b09">
+<title>Dynasties — Premium Reference Style v1</title>
 <style>
-:root{
-  --gold:#d7ad5f;
-  --cream:#f2dfb4;
-  --ink:#25190f;
-  --blue:#285f9f;
-  --red:#993c36;
-  --panel:rgba(31,21,13,.94);
-}
-*{box-sizing:border-box}
-html,body{
-  margin:0;height:100%;overflow:hidden;background:#17110c;
-  font-family:Georgia,"Times New Roman",serif;
-  overscroll-behavior:none;-webkit-user-select:none;user-select:none;
-  -webkit-touch-callout:none;
-}
-button,.unit,.roster-unit,.barracks-marker{-webkit-tap-highlight-color:transparent}
-#game{position:relative;width:100vw;height:100vh;background:#17110c}
-#viewport{position:absolute;inset:0;overflow:hidden;cursor:grab;touch-action:none}
-#viewport.dragging{cursor:grabbing}
-#board{
-  position:absolute;left:0;top:0;width:1152px;height:1280px;
-  transform-origin:0 0;user-select:none;
-}
-#map{position:absolute;inset:0;width:1152px;height:1280px;image-rendering:pixelated;pointer-events:none}
-#grid{position:absolute;inset:0;pointer-events:none}
-.cell{position:absolute;width:64px;height:64px;border:0;pointer-events:none}
-.cell.reachable{
-  background:rgba(75,180,255,.24);
-  box-shadow:inset 0 0 0 3px rgba(175,230,255,.80);
-  pointer-events:auto;cursor:pointer
-}
-.cell.path{
-  background:rgba(255,226,105,.20);
-  box-shadow:inset 0 0 0 3px rgba(255,238,150,.88)
-}
-.cell.attackable{
-  background:rgba(255,75,75,.25);
-  box-shadow:inset 0 0 0 3px rgba(255,215,215,.92);
-  pointer-events:auto;cursor:crosshair
-}
-
-.unit{
-  position:absolute;width:88px;height:108px;transform:translate(-12px,-38px);
-  z-index:9;pointer-events:auto;cursor:pointer;
-  transition:left .14s linear,top .14s linear,filter .15s ease;
-}
-.unit img{
-  width:100%;height:100%;object-fit:contain;image-rendering:pixelated;
-  filter:drop-shadow(0 4px 2px rgba(0,0,0,.4));pointer-events:none
-}
-.unit.soldier{width:80px;height:100px;transform:translate(-8px,-34px)}
-.unit.selected::after{
-  content:"";position:absolute;left:15px;right:15px;bottom:4px;height:11px;
-  border:3px solid #fff2aa;border-radius:50%;
-  box-shadow:0 0 0 2px rgba(35,105,190,.95),0 0 12px rgba(255,234,120,.8)
-}
-.unit.done{filter:saturate(.66) brightness(.8)}
-.unit.dead{display:none}
-.hpbar{
-  position:absolute;left:14px;top:2px;width:60px;height:8px;
-  background:#301510;border:2px solid #f2ddb0;z-index:2
-}
-.hpfill{height:100%;width:100%;background:#4eaf4e}
-.enemy .hpfill{background:#cc4747}
-
-.barracks-marker{
-  position:absolute;z-index:7;width:128px;height:128px;cursor:pointer;
-  pointer-events:auto;
-}
-.barracks-marker .tag{
-  position:absolute;top:-13px;left:50%;transform:translateX(-50%);
-  min-width:78px;padding:4px 7px;border:2px solid #e3c37a;
-  color:#fff1c9;background:rgba(30,21,14,.94);
-  font:bold 11px "Courier New",monospace;text-align:center;white-space:nowrap;
-  box-shadow:0 2px 4px rgba(0,0,0,.4)
-}
-.barracks-marker.player .tag{border-color:#86bff1;background:rgba(27,55,88,.94)}
-.barracks-marker.enemy .tag{border-color:#ec9388;background:rgba(91,34,30,.94)}
-.barracks-marker.selected::after{
-  content:"";position:absolute;inset:4px;border:3px dashed #fff0a8;
-  border-radius:10px;box-shadow:0 0 12px rgba(255,232,125,.75)
-}
-
-#economyBar{
-  position:absolute;top:14px;left:50%;transform:translateX(-50%);
-  z-index:24;display:flex;gap:5px;padding:5px;
-  background:rgba(24,17,12,.92);border:2px solid #9b743b;
-  color:#f0dfb7;font:12px "Courier New",monospace;
-}
-.money{
-  min-width:126px;padding:6px 9px;border:1px solid #74552c;
-  text-align:center;white-space:nowrap
-}
-.money.player{border-color:#4d79aa}.money.enemy{border-color:#9b5149}
-.money b{font-size:14px}.income{opacity:.74;font-size:10px}
-
-#roster,#enemyRoster{
-  position:absolute;z-index:20;background:var(--panel);padding:8px;
-  font:12px "Courier New",monospace
-}
-#roster{left:18px;top:18px;width:280px;border:3px solid #a67b3e}
-#enemyRoster{right:18px;top:18px;width:250px;border:3px solid #86463b}
-.roster-title{color:#ead6a9;font-weight:bold;margin:0 0 6px;text-transform:uppercase;letter-spacing:1px}
-.roster-unit{
-  display:grid;grid-template-columns:1fr auto auto;gap:7px;align-items:center;
-  width:100%;padding:7px 8px;margin:4px 0;border:2px solid #6f5431;
-  background:#3a2819;color:#f1dfb9;cursor:pointer
-}
-#enemyRoster .roster-unit{cursor:default}
-.roster-unit.active{border-color:#f0d47b;background:#4c351f}
-.roster-unit.exhausted{opacity:.58}
-.roster-unit.deadrow{opacity:.35;text-decoration:line-through}
-.unit-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#4f95dc;border:1px solid #dceeff}
-.unit-dot.red{background:#c94d4d;border-color:#ffe1d7}
-.small{font-size:10px;color:#bba77d}
-
-#hud{
-  position:absolute;left:18px;bottom:18px;z-index:22;width:380px;padding:12px;
-  color:var(--ink);background:linear-gradient(#ead8a7,#d3b77d);
-  border:4px solid #60401f;box-shadow:0 0 0 3px #c89d54 inset,0 8px 22px rgba(0,0,0,.3)
-}
-#hud h2{margin:0 0 3px;font-size:22px}
-#hud .sub{margin-bottom:9px;font-style:italic;color:#6c5737}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:14px}
-.objective{margin-top:9px;padding-top:8px;border-top:2px solid rgba(84,58,30,.35);font-size:13px;line-height:1.35}
-#status{margin-top:7px;font-weight:bold;color:#5f2d22;min-height:32px}
-#recruitPanel{display:none;margin-top:7px}
-#recruitPanel.show{display:block}
-#recruitBtn{
-  width:100%;margin-top:7px;padding:10px 12px;
-  color:#fff0ca;background:linear-gradient(#356ba3,#274b70);
-  border:3px solid #8b5e2e;font:bold 14px Georgia,serif;cursor:pointer
-}
-#recruitBtn:disabled{opacity:.48;cursor:not-allowed}
-#barracksInfo{font-size:12px;line-height:1.35}
-
-#controls{position:absolute;right:18px;bottom:18px;z-index:22;display:flex;gap:8px;align-items:flex-end}
-.stack{display:flex;flex-direction:column;gap:6px}
-button{
-  font:700 15px Georgia,serif;color:#f7e8c1;background:linear-gradient(#304b70,#203450);
-  border:3px solid #d1ae63;padding:10px 15px;cursor:pointer;box-shadow:0 0 0 2px #152236 inset
-}
-button:hover{filter:brightness(1.1)}
-button:disabled{opacity:.45;cursor:not-allowed}
-.zoom,#focusBattle{width:44px;height:40px;padding:0;font-size:22px}
-#turnBadge{background:#ead8a7;color:#2f2013;border:3px solid #6d4b27;padding:8px 11px;text-align:center;min-width:120px;font-weight:bold}
-#newGame{font-size:12px;padding:8px 10px}
-
-#instructions{
-  position:absolute;top:190px;right:18px;z-index:19;width:265px;padding:10px 12px;
-  background:rgba(30,20,12,.88);color:#f2dfb4;border:2px solid #a47a3e;
-  font:12px/1.4 "Courier New",monospace
-}
-.overlay{
-  display:none;position:absolute;inset:0;z-index:50;background:rgba(17,10,6,.68);
-  align-items:center;justify-content:center
-}
-.overlay.show{display:flex}
-.modal{
-  width:min(430px,90vw);padding:24px;text-align:center;
-  background:linear-gradient(#f0dda9,#d8bd83);color:#2c1d10;border:5px solid #6a4521;
-  box-shadow:0 0 0 4px #d6aa58 inset,0 20px 60px rgba(0,0,0,.5)
-}
-.modal h1{margin:0 0 8px}.modal p{margin:0 0 18px}
-#rotateHint{display:none}
-#version{
-  position:absolute;right:calc(8px + env(safe-area-inset-right));
-  top:calc(8px + env(safe-area-inset-top));z-index:3;
-  color:rgba(255,255,255,.45);font:10px "Courier New",monospace;pointer-events:none
-}
-
-@media (hover:none) and (pointer:coarse){
-  button{min-width:44px;min-height:44px}
-  .unit,.cell.reachable,.cell.attackable,.barracks-marker{cursor:default}
-}
-
-@media (max-width:1000px) and (max-height:600px) and (orientation:landscape){
-  #economyBar{
-    top:calc(5px + env(safe-area-inset-top));
-    padding:3px;gap:3px;font-size:10px
+  :root {
+    --gold: #d7b67a;
+    --cream: #f4e7c7;
+    --green: #84d46c;
   }
-  .money{min-width:100px;padding:4px 6px}
-  .money b{font-size:12px}.income{font-size:9px}
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; width: 100%; height: 100%; overflow: hidden;
+    background: radial-gradient(circle at 50% 35%, #352d22 0%, #16120e 48%, #090807 100%);
+    font-family: Georgia, "Times New Roman", serif; color: var(--cream);
+  }
+  #app { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+  #wrap { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+  #stage {
+    position: relative; width: 1672px; height: 941px; transform-origin:center center;
+    border-radius:10px; overflow:hidden; box-shadow:0 28px 80px rgba(0,0,0,.48);
+  }
+  #bg {
+    position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+    user-select:none; -webkit-user-drag:none; pointer-events:none;
+  }
+  .hotspot {
+    position:absolute; z-index:12; border:0; padding:0; background:rgba(255,255,255,0.001); cursor:pointer;
+  }
+  .selectRing {
+    position:absolute; z-index:18; pointer-events:none; border-radius:18px; display:none;
+  }
+  .selectRing.blue {
+    border:3px solid rgba(216,246,255,.92);
+    box-shadow:0 0 0 4px rgba(38,107,196,.55), 0 0 22px rgba(137,223,255,.72);
+  }
+  .selectRing.red {
+    border:3px solid rgba(255,234,224,.92);
+    box-shadow:0 0 0 4px rgba(157,58,43,.58), 0 0 22px rgba(255,183,167,.76);
+  }
+  .moveTile {
+    position:absolute; z-index:10; border:2px solid rgba(192,239,255,.62);
+    background:rgba(121,216,255,.20); border-radius:8px; display:none; pointer-events:none;
+  }
+  .hudPatch {
+    position:absolute; z-index:22; pointer-events:none; display:flex; align-items:center; justify-content:flex-start;
+    color:#f5e7c6; text-shadow:0 1px 2px rgba(0,0,0,.68); font-variant-numeric: tabular-nums;
+  }
+  #pFlorins { left:96px; top:58px; width:235px; height:34px; font-size:24px; }
+  #pUnits   { left:95px; top:103px; width:155px; height:30px; font-size:28px; }
+  #eFlorins { left:1158px; top:58px; width:235px; height:34px; font-size:24px; }
+  #eUnits   { left:1158px; top:103px; width:155px; height:30px; font-size:28px; }
+  #turnNo   { left:794px; top:23px; width:86px; height:40px; justify-content:center; font-size:28px; color:#2d1c0f; text-shadow:none; font-weight:bold; }
 
-  #roster{
-    left:calc(6px + env(safe-area-inset-left));
-    top:calc(5px + env(safe-area-inset-top));
-    width:38vw;max-width:330px;padding:4px 5px;border-width:2px;
-    background:rgba(31,21,13,.90)
-  }
-  #roster .roster-title{display:none}
-  #playerRosterRows{
-    display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;
-  }
-  #playerRosterRows::-webkit-scrollbar{display:none}
-  #roster .roster-unit{
-    flex:0 0 auto;width:128px;min-height:46px;margin:0;padding:5px 6px;
-    grid-template-columns:1fr auto;grid-template-areas:"name hp" "name mov";
-    gap:1px 5px;border-width:2px;border-radius:4px;font-size:10px
-  }
-  #roster .roster-unit>span:nth-child(1){grid-area:name}
-  #roster .roster-unit>span:nth-child(2){grid-area:hp}
-  #roster .roster-unit>span:nth-child(3){grid-area:mov}
-  #enemyRoster,#instructions{display:none!important}
+  #selName  { left:119px; top:797px; width:364px; height:40px; font-size:31px; font-weight:600; }
+  #selHP    { left:118px; top:847px; width:348px; height:30px; font-size:26px; }
+  #selStats { left:116px; top:885px; width:384px; height:28px; font-size:24px; letter-spacing:.2px; }
 
-  #hud{
-    left:calc(6px + env(safe-area-inset-left));
-    bottom:calc(5px + env(safe-area-inset-bottom));
-    width:min(395px,47vw);padding:7px 9px;border-width:3px
-  }
-  #hud h2{font-size:17px;margin:0}
-  #hud .sub{display:none}
-  #hud .stats{display:flex;gap:10px;font-size:11px;margin-top:2px}
-  #hud .objective{margin-top:4px;padding-top:4px;font-size:10px;line-height:1.2}
-  #hud .objective>b{display:none}
-  #status{margin-top:2px;min-height:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  #recruitPanel{margin-top:3px}
-  #barracksInfo{font-size:10px}
-  #recruitBtn{min-height:42px;margin-top:4px;padding:6px 8px;font-size:12px}
+  #terrainTitle { left:1460px; top:808px; width:175px; height:30px; font-size:29px; }
+  #terrainDesc  { left:1460px; top:847px; width:184px; height:56px; font-size:22px; line-height:1.22; align-items:flex-start; white-space:pre-line; }
 
-  #controls{
-    right:calc(6px + env(safe-area-inset-right));
-    bottom:calc(5px + env(safe-area-inset-bottom));gap:5px
+  #barracksPopup {
+    position:absolute; left:352px; top:374px; width:210px; height:210px; z-index:30;
+    display:none; pointer-events:none;
   }
-  #controls .stack:first-child{flex-direction:row;gap:4px}
-  .zoom,#focusBattle{width:44px;height:44px;min-width:44px;min-height:44px}
-  #turnBadge{display:none}
-  #endTurn{min-height:46px;padding:8px 11px;font-size:13px;white-space:nowrap}
-  #newGame{display:none}
+  #barracksTitle { left:360px; top:392px; width:188px; height:30px; font-size:25px; z-index:31; display:none; }
+  #barracksCost  { left:430px; top:474px; width:96px; height:32px; font-size:26px; z-index:31; display:none; }
+  #barracksAction{ left:413px; top:522px; width:112px; height:34px; font-size:23px; z-index:31; justify-content:center; display:none; }
 
-  .barracks-marker .tag{font-size:9px;min-width:65px;padding:3px 5px}
-  #version{display:none}
-}
+  #toast {
+    position:absolute; left:50%; bottom:26px; transform:translateX(-50%); z-index:50;
+    min-width:340px; max-width:860px; padding:14px 18px; border-radius:12px;
+    background:linear-gradient(180deg, rgba(18,14,12,.94), rgba(6,5,4,.92));
+    border:2px solid rgba(209,173,102,.56); box-shadow:0 14px 34px rgba(0,0,0,.38);
+    text-align:center; font-size:24px; opacity:0; pointer-events:none; transition:opacity .18s ease;
+  }
+  #toast.show { opacity:1; }
 
-@media (max-width:600px) and (orientation:portrait){
-  #rotateHint{
-    display:flex;position:absolute;z-index:80;inset:0;align-items:center;justify-content:center;
-    padding:calc(20px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right))
-            calc(20px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
-    background:rgba(19,13,8,.9);color:#f4e6bf;text-align:center
+  #helper {
+    position:absolute; right:18px; bottom:18px; z-index:60; width:290px; padding:12px 13px;
+    border-radius:14px; background:rgba(8,7,6,.74); border:1px solid rgba(201,161,92,.5);
+    box-shadow:0 12px 30px rgba(0,0,0,.3); font-size:15px; line-height:1.35; color:#eadbbc;
   }
-  #rotateHint.dismissed{display:none}
-  #rotateCard{max-width:340px;padding:20px;border:3px solid #d1ae63;background:#322116}
-  #rotateCard strong{display:block;font-size:21px;margin-bottom:8px}
-  #rotateCard p{margin:0 0 15px;line-height:1.35}
-  #enemyRoster,#instructions{display:none!important}
-  #economyBar{top:calc(74px + env(safe-area-inset-top));font-size:9px}
-  .money{min-width:90px;padding:4px}
-  #roster{
-    left:calc(8px + env(safe-area-inset-left));right:calc(8px + env(safe-area-inset-right));
-    top:calc(8px + env(safe-area-inset-top));width:auto;padding:5px
+  #helper b { color:#fff0c7; }
+  #titleBubble {
+    position:absolute; left:50%; top:12px; transform:translateX(-50%); z-index:60;
+    padding:10px 16px; border-radius:999px; background:rgba(8,7,6,.62);
+    border:1px solid rgba(214,177,106,.40); font-size:14px; letter-spacing:.3px; color:#eddcbb; text-align:center;
   }
-  #roster .roster-title{display:none}
-  #playerRosterRows{display:flex;overflow-x:auto}
-  #roster .roster-unit{flex:0 0 120px;padding:6px 4px;font-size:10px}
-  #hud{
-    left:calc(8px + env(safe-area-inset-left));right:calc(8px + env(safe-area-inset-right));
-    bottom:calc(8px + env(safe-area-inset-bottom));width:auto;padding:8px
+  .gold { color: var(--gold); }
+  .green { color: var(--green); }
+
+  @media (max-width: 960px), (max-height: 620px) {
+    #helper { width:230px; font-size:12px; padding:9px 10px; }
+    #titleBubble { top:8px; font-size:12px; padding:8px 12px; }
+    #toast { bottom:12px; min-width:220px; max-width:84vw; font-size:16px; padding:10px 12px; }
   }
-  #hud .sub{display:none}#hud h2{font-size:17px}
-  #hud .stats{display:flex;gap:10px;font-size:12px}
-  #hud .objective{font-size:11px}
-  #controls{right:calc(10px + env(safe-area-inset-right));bottom:calc(148px + env(safe-area-inset-bottom))}
-  #turnBadge,#newGame{display:none}
-}
 </style>
 </head>
 <body>
-<div id="game">
-  <div id="rotateHint">
-    <div id="rotateCard">
-      <strong>Best played sideways ↻</strong>
-      <p>Rotate your iPhone for the tactical map layout.</p>
-      <button id="rotateDismiss" type="button">Play in portrait anyway</button>
+<div id="app">
+  <div id="wrap">
+    <div id="stage">
+      <img id="bg" src="./assets/reference_bg.png" alt="Dynasties premium reference style">
+
+      <div class="moveTile" style="left:286px; top:267px; width:87px; height:77px;"></div>
+      <div class="moveTile" style="left:286px; top:347px; width:87px; height:77px;"></div>
+      <div class="moveTile" style="left:198px; top:426px; width:87px; height:77px;"></div>
+      <div class="moveTile" style="left:286px; top:426px; width:87px; height:77px;"></div>
+      <div class="moveTile" style="left:374px; top:426px; width:87px; height:77px;"></div>
+      <div class="moveTile" style="left:198px; top:506px; width:87px; height:77px;"></div>
+      <div class="moveTile" style="left:286px; top:506px; width:87px; height:77px;"></div>
+      <div class="moveTile" style="left:374px; top:506px; width:87px; height:77px;"></div>
+      <div class="moveTile" style="left:286px; top:586px; width:87px; height:77px;"></div>
+
+      <div id="roweHeroRing" class="selectRing blue" style="left:249px; top:451px; width:58px; height:110px;"></div>
+      <div id="harperHeroRing" class="selectRing red" style="left:1233px; top:496px; width:58px; height:110px;"></div>
+      <div id="roweBarracksRing" class="selectRing blue" style="left:180px; top:239px; width:206px; height:248px;"></div>
+      <div id="harperBarracksRing" class="selectRing red" style="left:1270px; top:283px; width:240px; height:236px;"></div>
+
+      <img id="barracksPopup" src="./assets/reference_bg.png" alt="">
+      <div id="pFlorins" class="hudPatch"></div>
+      <div id="pUnits" class="hudPatch"></div>
+      <div id="eFlorins" class="hudPatch"></div>
+      <div id="eUnits" class="hudPatch"></div>
+      <div id="turnNo" class="hudPatch"></div>
+
+      <div id="selName" class="hudPatch"></div>
+      <div id="selHP" class="hudPatch"></div>
+      <div id="selStats" class="hudPatch"></div>
+      <div id="terrainTitle" class="hudPatch"></div>
+      <div id="terrainDesc" class="hudPatch"></div>
+      <div id="barracksTitle" class="hudPatch"></div>
+      <div id="barracksCost" class="hudPatch"></div>
+      <div id="barracksAction" class="hudPatch"></div>
+
+      <button class="hotspot" id="roweHero" style="left:236px; top:437px; width:86px; height:138px;"></button>
+      <button class="hotspot" id="harperHero" style="left:1221px; top:482px; width:84px; height:142px;"></button>
+      <button class="hotspot" id="roweBarracks" style="left:153px; top:224px; width:258px; height:280px;"></button>
+      <button class="hotspot" id="harperBarracks" style="left:1247px; top:264px; width:287px; height:276px;"></button>
+      <button class="hotspot" id="roweRecruit" style="left:366px; top:515px; width:175px; height:58px;"></button>
+      <button class="hotspot" id="endTurn" style="left:756px; top:86px; width:165px; height:78px;"></button>
+
+      <div id="titleBubble">Only using your preferred reference image as the visual target</div>
+      <div id="toast"></div>
     </div>
   </div>
 
-  <div id="viewport">
-    <div id="board">
-      <img id="map" src="./assets/map.png" alt="">
-      <div id="grid"></div>
-      <div id="unitLayer"></div>
-
-      <div class="barracks-marker player" id="barracks-player" aria-label="House Rowe Barracks">
-        <span class="tag">ROWE BARRACKS</span>
-      </div>
-      <div class="barracks-marker enemy" id="barracks-enemy" aria-label="House Harper Barracks">
-        <span class="tag">HARPER BARRACKS</span>
-      </div>
-    </div>
+  <div id="helper">
+    <b>Reference-style shell</b><br>
+    • 1 hero per house<br>
+    • 300 florins each<br>
+    • +100 florins per turn<br>
+    • Recruit Soldier at Rowe Barracks for 300<br>
+    • Harper auto-recruits when able<br>
+    • Tap heroes / barracks / End Turn
   </div>
-
-  <div id="economyBar">
-    <div class="money player">Rowe <b id="playerFlorins">300 fl.</b> <span class="income">+100/turn</span></div>
-    <div class="money enemy">Harper <b id="enemyFlorins">300 fl.</b> <span class="income">+100/turn</span></div>
-  </div>
-
-  <div id="roster">
-    <div class="roster-title">House Rowe</div>
-    <div id="playerRosterRows"></div>
-  </div>
-  <div id="enemyRoster">
-    <div class="roster-title">House Harper</div>
-    <div id="enemyRosterRows"></div>
-  </div>
-
-  <div id="hud">
-    <h2 id="unitName">Rufus Rowe</h2>
-    <div class="sub" id="unitTitle">Lord of House Rowe</div>
-
-    <div class="stats" id="unitStats">
-      <div>HP <b id="hpText">12/12</b></div>
-      <div>ATK <b id="atkText">5</b></div>
-      <div>DEF <b id="defText">3</b></div>
-      <div>MOV <b id="movText">6/6</b></div>
-    </div>
-
-    <div id="recruitPanel">
-      <div id="barracksInfo"></div>
-      <button id="recruitBtn" type="button">Recruit Basic Soldier · 300 florins</button>
-    </div>
-
-    <div class="objective">
-      <b>Prototype objective:</b> defeat every enemy unit.
-      <div id="status">Turn 1. Each house begins with one character and 300 florins.</div>
-    </div>
-  </div>
-
-  <div id="instructions">
-    <b>Economy test</b><br>
-    • Each house starts with 300 florins<br>
-    • Both receive +100 each new turn<br>
-    • Tap your Barracks to recruit<br>
-    • Basic Soldier costs 300<br>
-    • One recruit per Barracks per turn<br>
-    • New recruits act from the following turn
-  </div>
-
-  <div id="controls">
-    <div class="stack">
-      <button class="zoom" id="zoomIn" type="button" aria-label="Zoom in">+</button>
-      <button class="zoom" id="zoomOut" type="button" aria-label="Zoom out">−</button>
-      <button id="focusBattle" type="button" aria-label="Recenter battlefield">◎</button>
-    </div>
-    <div class="stack">
-      <div id="turnBadge">Turn <span id="turnNo">1</span><br>Spring 1066</div>
-      <button id="endTurn" type="button">END TURN</button>
-      <button id="newGame" type="button">NEW GAME</button>
-    </div>
-  </div>
-
-  <div id="version">Dynasties v0.2</div>
-
-  <div class="overlay" id="victory"><div class="modal">
-    <h1>Victory</h1><p>House Harper has no units remaining.</p>
-    <button class="restart" type="button">New Battle</button>
-  </div></div>
-  <div class="overlay" id="defeat"><div class="modal">
-    <h1>Defeat</h1><p>House Rowe has no units remaining.</p>
-    <button class="restart" type="button">Try Again</button>
-  </div></div>
 </div>
 
 <script>
 (() => {
-  const COLS=18, ROWS=20, CELL=64, RECRUIT_COST=300;
-  const viewport=document.getElementById('viewport');
-  const board=document.getElementById('board');
-  const grid=document.getElementById('grid');
-  const unitLayer=document.getElementById('unitLayer');
-  const endTurnBtn=document.getElementById('endTurn');
-
-  const state={
-    selectedUnitId:'rufus',
-    selectedBarracksTeam:null,
-    turn:1,
-    zoom:.72,panX:0,panY:0,
-    dragging:false,dragMoved:false,dragStartX:0,dragStartY:0,panStartX:0,panStartY:0,
-    busy:false,suppressClick:false,pointers:new Map(),
-    pinching:false,pinchStartDist:0,pinchStartZoom:.72,pinchMapX:0,pinchMapY:0,
-    nextRecruitId:1
+  const state = {
+    turn: 1,
+    player: { florins: 300, units: 1 },
+    enemy: { florins: 300, units: 1 },
+    selected: 'roweHero'
   };
 
-  const teamState={
-    player:{name:'House Rowe',florins:300,income:100,recruitedThisTurn:false},
-    enemy:{name:'House Harper',florins:300,income:100,recruitedThisTurn:false}
-  };
-
-  const barracks={
-    player:{
-      team:'player',x:5,y:7,w:2,h:2,
-      spawn:[{x:7,y:8},{x:7,y:7},{x:7,y:9},{x:6,y:9},{x:5,y:9},{x:4,y:8},{x:4,y:7}]
+  const entities = {
+    roweHero: {
+      name: 'Lord Robert Rowe',
+      hp: 'HP 10/10',
+      stats: 'Move 3    Range 1    Atk 3    Def 2',
+      terrainTitle: 'Grassland',
+      terrainDesc: 'Move cost: 1\nNo effect'
     },
-    enemy:{
-      team:'enemy',x:15,y:8,w:2,h:2,
-      spawn:[{x:14,y:8},{x:14,y:9},{x:15,y:10},{x:16,y:10},{x:17,y:9},{x:17,y:8}]
+    harperHero: {
+      name: 'Lady Harper',
+      hp: 'HP 10/10',
+      stats: 'Move 3    Range 1    Atk 3    Def 2',
+      terrainTitle: 'Grassland',
+      terrainDesc: 'Move cost: 1\nNo effect'
+    },
+    roweBarracks: {
+      name: 'Barracks (Rowe)',
+      hp: 'Recruit Soldier',
+      stats: 'Cost 300 florins',
+      terrainTitle: 'Keep',
+      terrainDesc: 'Recruits basic units\nFriendly structure'
+    },
+    harperBarracks: {
+      name: 'Barracks (Harper)',
+      hp: 'Recruit Soldier',
+      stats: 'Cost 300 florins',
+      terrainTitle: 'Keep',
+      terrainDesc: 'Recruits basic units\nEnemy structure'
     }
   };
 
-  const spriteFor=u=>{
-    if(u.team==='player') return u.kind==='hero'?'./assets/rowe_hero.png':'./assets/rowe_soldier.png';
-    return u.kind==='hero'?'./assets/harper_hero.png':'./assets/harper_soldier.png';
-  };
+  const $ = id => document.getElementById(id);
+  const toast = $('toast');
+  const moveTiles = Array.from(document.querySelectorAll('.moveTile'));
 
-  let units={};
-  function resetStartingUnits(){
-    units={
-      rufus:{
-        id:'rufus',team:'player',kind:'hero',
-        name:'Rufus Rowe',title:'Lord of House Rowe',
-        x:6,y:14,hp:12,maxHp:12,atk:5,def:3,move:6,maxMove:6,
-        alive:true,attacked:false
-      },
-      henry:{
-        id:'henry',team:'enemy',kind:'hero',
-        name:'Henry Harper',title:'Count of Yorkshire',
-        x:13,y:8,hp:11,maxHp:11,atk:5,def:3,move:4,maxMove:4,
-        alive:true,attacked:false
-      }
-    };
-  }
-  resetStartingUnits();
-
-  const SAVE_KEY='dynasties-save-v2';
-
-  const cost=Array.from({length:ROWS},()=>Array(COLS).fill(1));
-  const block=cells=>cells.forEach(([x,y])=>{
-    if(x>=0&&x<COLS&&y>=0&&y<ROWS) cost[y][x]=Infinity;
-  });
-  const rough=cells=>cells.forEach(([x,y])=>{
-    if(x>=0&&x<COLS&&y>=0&&y<ROWS&&cost[y][x]!==Infinity) cost[y][x]=2;
-  });
-
-  block([
-    [9,0],[10,0],[11,0],[12,0],[13,0],[14,0],[15,0],[16,0],[17,0],
-    [9,1],[10,1],[11,1],[12,1],[13,1],[14,1],[15,1],[16,1],[17,1],
-    [10,2],[11,2],[12,2],[13,2],[14,2],[15,2],[16,2],[17,2],
-    [11,3],[12,3],[13,3],[14,3],[15,3],[16,3],[17,3],
-    [12,4],[13,4],[14,4],[15,4],[16,4],[17,4],
-
-    [10,17],[11,17],[12,17],[13,17],
-    [9,18],[10,18],[11,18],[12,18],[13,18],[14,18],
-    [9,19],[10,19],[11,19],[12,19],[13,19],[14,19],
-
-    [0,0],[1,0],[0,1],[1,1],[2,1],[0,2],[1,2],
-    [2,4],[3,4],[2,5],[3,5],[2,6],[3,6],
-    [3,12],[4,12],[3,13],[4,13],[3,14],[4,14],
-    [14,13],[15,13],[16,13],[14,14],[15,14],[16,14],[15,15],[16,15],
-
-    [5,7],[6,7],[5,8],[6,8],
-    [9,6],[10,6],
-    [15,8],[16,8],[15,9],[16,9]
-  ]);
-
-  rough([
-    [2,0],[3,0],[4,0],[5,0],[6,0],[7,0],
-    [2,1],[3,1],[4,1],[5,1],[6,1],[7,1],
-    [1,3],[2,3],[3,3],[4,3],[5,3],
-    [4,9],[5,9],[6,9],[7,9],
-    [4,10],[5,10],[6,10],[7,10],
-    [5,11],[6,11],[7,11],
-    [8,15],[9,15],[8,16],[9,16]
-  ]);
-
-  const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
-  const key=(x,y)=>`${x},${y}`;
-  const inside=(x,y)=>x>=0&&y>=0&&x<COLS&&y<ROWS;
-  const manhattan=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
-  const living=team=>Object.values(units).filter(u=>u.team===team&&u.alive);
-  const unitAt=(x,y)=>Object.values(units).find(u=>u.alive&&u.x===x&&u.y===y)||null;
-  const selectedUnit=()=>state.selectedUnitId?units[state.selectedUnitId]:null;
-
-  const cells=[];
-  for(let y=0;y<ROWS;y++){
-    for(let x=0;x<COLS;x++){
-      const c=document.createElement('div');
-      c.className='cell';
-      c.style.left=(x*CELL)+'px';
-      c.style.top=(y*CELL)+'px';
-      c.addEventListener('click',e=>{
-        e.stopPropagation();
-        onCellClick(x,y);
-      });
-      c.addEventListener('mouseenter',()=>previewTo(x,y));
-      grid.appendChild(c);
-      cells.push(c);
-    }
-  }
-  const cellAt=(x,y)=>cells[y*COLS+x];
-
-  function positionBarracks(){
-    Object.entries(barracks).forEach(([team,b])=>{
-      const el=document.getElementById('barracks-'+team);
-      el.style.left=(b.x*CELL)+'px';
-      el.style.top=(b.y*CELL)+'px';
-      el.style.width=(b.w*CELL)+'px';
-      el.style.height=(b.h*CELL)+'px';
-    });
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(window.__toastTimer);
+    window.__toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
   }
 
-  function ensureUnitElement(u){
-    let el=document.getElementById('unit-'+u.id);
-    if(el)return el;
-    el=document.createElement('div');
-    el.id='unit-'+u.id;
-    el.className=`unit ${u.team==='player'?'player':'enemy'} ${u.kind==='soldier'?'soldier':''}`;
-    el.innerHTML='<div class="hpbar"><div class="hpfill"></div></div><img alt="">';
-    el.querySelector('img').src=spriteFor(u);
-    el.querySelector('img').alt=u.name;
-    el.addEventListener('click',e=>{
-      e.stopPropagation();
-      if(state.suppressClick){state.suppressClick=false;return}
-      if(state.busy||!u.alive)return;
-      if(u.team==='player'){
-        selectUnit(u.id);
-      }else{
-        const p=selectedUnit();
-        if(!p){
-          setStatus(`${u.name} is an enemy unit.`);
-        }else if(p.attacked){
-          setStatus(`${p.name} has already attacked this turn.`);
-        }else if(manhattan(p,u)===1){
-          attack(p,u);
-        }else{
-          setStatus(`${u.name} is out of range.`);
-        }
-      }
-    });
-    unitLayer.appendChild(el);
-    return el;
+  function setBarracksPopup(show, house='rowe') {
+    $('barracksPopup').style.display = show ? 'block' : 'none';
+    $('barracksTitle').style.display = show ? 'flex' : 'none';
+    $('barracksCost').style.display = show ? 'flex' : 'none';
+    $('barracksAction').style.display = show ? 'flex' : 'none';
+    $('barracksTitle').textContent = show ? `Barracks (${house === 'rowe' ? 'Rowe' : 'Harper'})` : '';
+    $('barracksCost').textContent = show ? '300' : '';
+    $('barracksAction').textContent = show ? 'Recruit' : '';
   }
 
-  function removeUnusedUnitElements(){
-    unitLayer.querySelectorAll('.unit').forEach(el=>{
-      const id=el.id.replace('unit-','');
-      if(!units[id])el.remove();
-    });
-  }
+  function render() {
+    $('pFlorins').innerHTML = `Florins: <span class="gold">${state.player.florins}</span> <span class="green">(+100/turn)</span>`;
+    $('pUnits').textContent = `Units: ${state.player.units}`;
+    $('eFlorins').innerHTML = `Florins: <span class="gold">${state.enemy.florins}</span> <span class="green">(+100/turn)</span>`;
+    $('eUnits').textContent = `Units: ${state.enemy.units}`;
+    $('turnNo').textContent = state.turn;
 
-  function setPos(u){
-    const el=ensureUnitElement(u);
-    el.style.left=(u.x*CELL)+'px';
-    el.style.top=(u.y*CELL)+'px';
-  }
+    $('roweHeroRing').style.display = state.selected === 'roweHero' ? 'block' : 'none';
+    $('harperHeroRing').style.display = state.selected === 'harperHero' ? 'block' : 'none';
+    $('roweBarracksRing').style.display = state.selected === 'roweBarracks' ? 'block' : 'none';
+    $('harperBarracksRing').style.display = state.selected === 'harperBarracks' ? 'block' : 'none';
 
-  function dijkstra(u,maxCost){
-    const best=new Map([[key(u.x,u.y),0]]);
-    const prev=new Map();
-    const q=[{x:u.x,y:u.y,c:0}];
-    while(q.length){
-      q.sort((a,b)=>a.c-b.c);
-      const cur=q.shift(),ck=key(cur.x,cur.y);
-      if(cur.c!==best.get(ck))continue;
-      for(const [dx,dy] of dirs){
-        const nx=cur.x+dx,ny=cur.y+dy;
-        if(!inside(nx,ny)||cost[ny][nx]===Infinity)continue;
-        const occ=unitAt(nx,ny);
-        if(occ&&occ.id!==u.id)continue;
-        const nc=cur.c+cost[ny][nx];
-        if(nc>maxCost)continue;
-        const nk=key(nx,ny);
-        if(!best.has(nk)||nc<best.get(nk)){
-          best.set(nk,nc);
-          prev.set(nk,ck);
-          q.push({x:nx,y:ny,c:nc});
-        }
-      }
-    }
-    return {best,prev};
-  }
+    moveTiles.forEach(tile => tile.style.display = state.selected === 'roweHero' ? 'block' : 'none');
 
-  function reconstruct(prev,start,target){
-    const sk=key(start.x,start.y),tk=key(target.x,target.y);
-    if(tk===sk)return[];
-    if(!prev.has(tk))return null;
-    const rev=[tk];
-    let cur=tk;
-    while(cur!==sk){
-      cur=prev.get(cur);
-      if(!cur)return null;
-      rev.push(cur);
-    }
-    rev.reverse();
-    return rev.slice(1).map(k=>{
-      const[x,y]=k.split(',').map(Number);
-      return{x,y};
-    });
-  }
+    const selected = entities[state.selected];
+    $('selName').textContent = selected.name;
+    $('selHP').textContent = selected.hp;
+    $('selStats').textContent = selected.stats;
+    $('terrainTitle').textContent = selected.terrainTitle;
+    $('terrainDesc').textContent = selected.terrainDesc;
 
-  function clearHighlights(){
-    cells.forEach(c=>c.classList.remove('reachable','path','attackable'));
-  }
-
-  function updateHighlights(){
-    clearHighlights();
-    const u=selectedUnit();
-    if(!u||!u.alive||u.team!=='player'||state.busy||state.selectedBarracksTeam)return;
-    const data=dijkstra(u,u.move);
-    for(const[k,cst]of data.best){
-      if(cst===0)continue;
-      const[x,y]=k.split(',').map(Number);
-      cellAt(x,y).classList.add('reachable');
-    }
-    if(!u.attacked){
-      living('enemy').forEach(e=>{
-        if(manhattan(u,e)===1)cellAt(e.x,e.y).classList.add('attackable');
-      });
+    if(state.selected === 'roweBarracks') {
+      setBarracksPopup(true, 'rowe');
+    } else if(state.selected === 'harperBarracks') {
+      setBarracksPopup(true, 'harper');
+    } else {
+      setBarracksPopup(false);
     }
   }
 
-  function previewTo(x,y){
-    cells.forEach(c=>c.classList.remove('path'));
-    const u=selectedUnit();
-    if(!u||u.team!=='player'||state.busy||state.selectedBarracksTeam)return;
-    const data=dijkstra(u,u.move);
-    if(!data.best.has(key(x,y)))return;
-    const path=reconstruct(data.prev,u,{x,y});
-    if(path)path.forEach(p=>cellAt(p.x,p.y).classList.add('path'));
+  function select(id) {
+    state.selected = id;
+    render();
   }
 
-  async function onCellClick(x,y){
-    if(state.suppressClick){state.suppressClick=false;return}
-    if(state.busy)return;
-
-    const clicked=unitAt(x,y);
-    if(clicked){
-      if(clicked.team==='player'){selectUnit(clicked.id);return}
-      const u=selectedUnit();
-      if(u&&u.team==='player'&&manhattan(u,clicked)===1){attack(u,clicked);return}
-      setStatus(`${clicked.name} is out of range.`);
-      return;
-    }
-
-    const u=selectedUnit();
-    if(!u||u.team!=='player'||!u.alive||state.selectedBarracksTeam)return;
-
-    const data=dijkstra(u,u.move),k=key(x,y);
-    if(!data.best.has(k)||data.best.get(k)===0)return;
-    const path=reconstruct(data.prev,u,{x,y});
-    if(!path)return;
-
-    setStatus(`${u.name} moves ${path.length} tile${path.length===1?'':'s'}.`);
-    await animatePath(u,path);
-  }
-
-  async function animatePath(u,path){
-    state.busy=true;
-    updateAll();
-    for(const step of path){
-      u.move=Math.max(0,u.move-cost[step.y][step.x]);
-      u.x=step.x;u.y=step.y;
-      setPos(u);
-      await new Promise(r=>setTimeout(r,145));
-    }
-    state.busy=false;
-    updateAll();
-  }
-
-  function damage(a,d){
-    return Math.max(1,a.atk-Math.floor(d.def/2));
-  }
-
-  function attack(a,d){
-    if(state.busy||!a.alive||!d.alive||manhattan(a,d)!==1)return;
-    if(a.attacked){
-      setStatus(`${a.name} has already attacked this turn.`);
-      return;
-    }
-    const dmg=damage(a,d);
-    d.hp=Math.max(0,d.hp-dmg);
-    a.attacked=true;
-    a.move=0;
-    setStatus(`${a.name} hits ${d.name} for ${dmg} damage.`);
-    if(d.hp<=0){
-      d.alive=false;
-      setStatus(`${d.name} has fallen.`);
-    }
-    updateAll();
-    checkEnd();
-  }
-
-  function selectUnit(id){
-    const u=units[id];
-    if(!u||!u.alive||u.team!=='player'||state.busy)return;
-    state.selectedUnitId=id;
-    state.selectedBarracksTeam=null;
-    setStatus(`${u.name} selected.`);
-    updateAll();
-  }
-
-  function selectBarracks(team){
-    if(state.busy)return;
-    state.selectedBarracksTeam=team;
-    if(team==='player')state.selectedUnitId=null;
-    setStatus(team==='player'?'Rowe Barracks selected.':'Harper Barracks.');
-    updateAll();
-  }
-
-  function nextSpawn(team){
-    const b=barracks[team];
-    return b.spawn.find(p=>inside(p.x,p.y)&&cost[p.y][p.x]!==Infinity&&!unitAt(p.x,p.y))||null;
-  }
-
-  function recruitUnit(team,announce=true){
-    const ts=teamState[team];
-    if(ts.florins<RECRUIT_COST)return null;
-    if(ts.recruitedThisTurn)return null;
-    const spawn=nextSpawn(team);
-    if(!spawn)return null;
-
-    ts.florins-=RECRUIT_COST;
-    ts.recruitedThisTurn=true;
-
-    const n=state.nextRecruitId++;
-    const id=`${team}-soldier-${n}`;
-    const house=team==='player'?'Rowe':'Harper';
-    units[id]={
-      id,team,kind:'soldier',
-      name:`${house} Soldier ${n}`,
-      title:'Basic Soldier',
-      x:spawn.x,y:spawn.y,
-      hp:8,maxHp:8,atk:3,def:2,move:0,maxMove:4,
-      alive:true,attacked:true
-    };
-    ensureUnitElement(units[id]);
-    if(announce)setStatus(`${house} recruits a Basic Soldier for 300 florins. It can act next turn.`);
-    updateAll();
-    return units[id];
-  }
-
-  function renderRoster(){
-    const p=document.getElementById('playerRosterRows');
-    p.innerHTML='';
-    Object.values(units).filter(u=>u.team==='player').forEach(u=>{
-      const row=document.createElement('div');
-      row.className='roster-unit'+(state.selectedUnitId===u.id&&!state.selectedBarracksTeam?' active':'')+
-                    (u.move===0&&u.alive?' exhausted':'')+(!u.alive?' deadrow':'');
-      row.innerHTML=`<span><span class="unit-dot"></span> ${u.name}</span><span>${u.hp}/${u.maxHp}</span><span class="small">M${u.move} · ${u.attacked?'ATK✓':'ATK'}</span>`;
-      if(u.alive)row.addEventListener('click',()=>selectUnit(u.id));
-      p.appendChild(row);
-    });
-
-    const e=document.getElementById('enemyRosterRows');
-    e.innerHTML='';
-    Object.values(units).filter(u=>u.team==='enemy').forEach(u=>{
-      const row=document.createElement('div');
-      row.className='roster-unit'+(!u.alive?' deadrow':'');
-      row.innerHTML=`<span><span class="unit-dot red"></span> ${u.name}</span><span>${u.hp}/${u.maxHp}</span><span class="small">${u.kind==='hero'?'CHAR':'SOLDIER'}</span>`;
-      e.appendChild(row);
-    });
-  }
-
-  function updateHUD(){
-    const stats=document.getElementById('unitStats');
-    const recruitPanel=document.getElementById('recruitPanel');
-
-    if(state.selectedBarracksTeam){
-      const team=state.selectedBarracksTeam;
-      const ts=teamState[team];
-      stats.style.display='none';
-      recruitPanel.classList.add('show');
-      document.getElementById('unitName').textContent=team==='player'?'Rowe Barracks':'Harper Barracks';
-      document.getElementById('unitTitle').textContent=team==='player'?'Recruitment':'Enemy recruitment';
-      document.getElementById('barracksInfo').innerHTML=
-        `<b>${ts.florins} florins</b> · +${ts.income} per turn<br>`+
-        `Basic Soldier: 8 HP · 3 ATK · 2 DEF · 4 MOV`;
-      const btn=document.getElementById('recruitBtn');
-      if(team==='player'){
-        btn.style.display='';
-        const noSpawn=!nextSpawn('player');
-        btn.disabled=ts.florins<RECRUIT_COST||ts.recruitedThisTurn||noSpawn;
-        if(ts.recruitedThisTurn)btn.textContent='Barracks already recruited this turn';
-        else if(ts.florins<RECRUIT_COST)btn.textContent=`Need ${RECRUIT_COST-ts.florins} more florins`;
-        else if(noSpawn)btn.textContent='No free adjacent tile';
-        else btn.textContent='Recruit Basic Soldier · 300 florins';
-      }else{
-        btn.style.display='none';
-      }
-      return;
-    }
-
-    stats.style.display='';
-    recruitPanel.classList.remove('show');
-
-    let u=selectedUnit();
-    if(!u||!u.alive||u.team!=='player'){
-      u=living('player')[0]||null;
-      state.selectedUnitId=u?u.id:null;
-    }
-    if(!u)return;
-
-    document.getElementById('unitName').textContent=u.name;
-    document.getElementById('unitTitle').textContent=u.title;
-    document.getElementById('hpText').textContent=`${u.hp}/${u.maxHp}`;
-    document.getElementById('atkText').textContent=u.atk;
-    document.getElementById('defText').textContent=u.def;
-    document.getElementById('movText').textContent=`${u.move}/${u.maxMove}`;
-  }
-
-  function updateEconomy(){
-    document.getElementById('playerFlorins').textContent=`${teamState.player.florins} fl.`;
-    document.getElementById('enemyFlorins').textContent=`${teamState.enemy.florins} fl.`;
-  }
-
-  function updateAll(){
-    removeUnusedUnitElements();
-    Object.values(units).forEach(u=>{
-      const el=ensureUnitElement(u);
-      setPos(u);
-      el.classList.toggle('selected',u.id===state.selectedUnitId&&!state.selectedBarracksTeam&&u.team==='player'&&u.alive&&!state.busy);
-      el.classList.toggle('dead',!u.alive);
-      el.classList.toggle('done',u.alive&&u.move===0);
-      el.querySelector('.hpfill').style.width=(u.hp/u.maxHp*100)+'%';
-    });
-
-    document.getElementById('barracks-player').classList.toggle('selected',state.selectedBarracksTeam==='player');
-    document.getElementById('barracks-enemy').classList.toggle('selected',state.selectedBarracksTeam==='enemy');
-
-    document.getElementById('turnNo').textContent=state.turn;
-    endTurnBtn.disabled=state.busy;
-    renderRoster();
-    updateHUD();
-    updateEconomy();
-    updateHighlights();
-    if(!state.busy)saveGame();
-  }
-
-  function nearestPlayer(enemy){
-    return living('player').slice().sort((a,b)=>manhattan(enemy,a)-manhattan(enemy,b))[0]||null;
-  }
-
-  function pathToAdjacent(enemy,target){
-    const targets=dirs.map(([dx,dy])=>({x:target.x+dx,y:target.y+dy}))
-      .filter(p=>inside(p.x,p.y)&&cost[p.y][p.x]!==Infinity&&!unitAt(p.x,p.y));
-    if(!targets.length)return[];
-
-    const data=dijkstra(enemy,999);
-    let best=null,bestCost=Infinity;
-    for(const t of targets){
-      const c=data.best.get(key(t.x,t.y));
-      if(c!==undefined&&c<bestCost){best=t;bestCost=c}
-    }
-    if(!best)return[];
-
-    const full=reconstruct(data.prev,enemy,best)||[];
-    let spent=0,out=[];
-    for(const p of full){
-      const c=cost[p.y][p.x];
-      if(spent+c>enemy.move)break;
-      spent+=c;
-      out.push(p);
-    }
-    return out;
-  }
-
-  async function animateEnemy(u,path){
-    for(const step of path){
-      u.move=Math.max(0,u.move-cost[step.y][step.x]);
-      u.x=step.x;u.y=step.y;
-      setPos(u);
-      await new Promise(r=>setTimeout(r,145));
-    }
-  }
-
-  async function enemyPhase(){
-    state.busy=true;
-    updateAll();
-    setStatus('House Harper begins its phase…');
-
-    if(teamState.enemy.florins>=RECRUIT_COST&&!teamState.enemy.recruitedThisTurn){
-      const recruited=recruitUnit('enemy',false);
-      if(recruited){
-        setStatus('House Harper recruits a Basic Soldier for 300 florins.');
-        await new Promise(r=>setTimeout(r,300));
-      }
-    }
-
-    for(const enemy of living('enemy')){
-      if(!living('player').length)break;
-      if(enemy.move<=0&&enemy.attacked)continue;
-
-      let target=nearestPlayer(enemy);
-      if(!target)break;
-
-      if(manhattan(enemy,target)>1&&enemy.move>0){
-        const path=pathToAdjacent(enemy,target);
-        if(path.length){
-          setStatus(`${enemy.name} advances.`);
-          await animateEnemy(enemy,path);
-        }
-      }
-
-      const adjacent=living('player')
-        .filter(p=>manhattan(enemy,p)===1)
-        .sort((a,b)=>a.hp-b.hp)[0];
-
-      if(adjacent&&!enemy.attacked){
-        await new Promise(r=>setTimeout(r,120));
-        const dmg=damage(enemy,adjacent);
-        adjacent.hp=Math.max(0,adjacent.hp-dmg);
-        enemy.attacked=true;
-        enemy.move=0;
-        setStatus(`${enemy.name} hits ${adjacent.name} for ${dmg} damage.`);
-        if(adjacent.hp<=0){
-          adjacent.alive=false;
-          setStatus(`${adjacent.name} has fallen.`);
-        }
-        updateAll();
-        await new Promise(r=>setTimeout(r,220));
-      }
-    }
-
-    state.busy=false;
-    updateAll();
-    checkEnd();
-  }
-
-  function checkEnd(){
-    if(living('enemy').length===0){
-      document.getElementById('victory').classList.add('show');
-      return true;
-    }
-    if(living('player').length===0){
-      document.getElementById('defeat').classList.add('show');
-      return true;
-    }
-    return false;
-  }
-
-  function setStatus(text){
-    document.getElementById('status').textContent=text;
-  }
-
-  endTurnBtn.addEventListener('click',async()=>{
-    if(state.busy)return;
-
-    await enemyPhase();
-    if(checkEnd())return;
-
-    state.turn++;
-
-    teamState.player.florins+=teamState.player.income;
-    teamState.enemy.florins+=teamState.enemy.income;
-    teamState.player.recruitedThisTurn=false;
-    teamState.enemy.recruitedThisTurn=false;
-
-    living('player').forEach(u=>{u.move=u.maxMove;u.attacked=false});
-    living('enemy').forEach(u=>{u.move=u.maxMove;u.attacked=false});
-
-    const first=living('player')[0];
-    state.selectedUnitId=first?first.id:null;
-    state.selectedBarracksTeam=null;
-
-    setStatus(`Turn ${state.turn}. Both houses receive 100 florins.`);
-    updateAll();
-  });
-
-  document.getElementById('recruitBtn').addEventListener('click',()=>{
-    if(state.busy)return;
-    recruitUnit('player',true);
-  });
-
-  Object.keys(barracks).forEach(team=>{
-    document.getElementById('barracks-'+team).addEventListener('click',e=>{
-      e.stopPropagation();
-      if(state.suppressClick){state.suppressClick=false;return}
-      selectBarracks(team);
-    });
-  });
-
-  function saveGame(){
-    try{
-      localStorage.setItem(SAVE_KEY,JSON.stringify({
-        version:2,
-        turn:state.turn,
-        selectedUnitId:state.selectedUnitId,
-        selectedBarracksTeam:state.selectedBarracksTeam,
-        nextRecruitId:state.nextRecruitId,
-        teams:teamState,
-        units:Object.values(units)
-      }));
-    }catch(err){}
-  }
-
-  function loadGame(){
-    try{
-      const raw=localStorage.getItem(SAVE_KEY);
-      if(!raw)return false;
-      const s=JSON.parse(raw);
-      if(!s||s.version!==2||!Array.isArray(s.units)||!s.teams)return false;
-
-      state.turn=Number.isInteger(s.turn)&&s.turn>0?s.turn:1;
-      state.selectedUnitId=typeof s.selectedUnitId==='string'?s.selectedUnitId:null;
-      state.selectedBarracksTeam=s.selectedBarracksTeam==='player'||s.selectedBarracksTeam==='enemy'?s.selectedBarracksTeam:null;
-      state.nextRecruitId=Number.isInteger(s.nextRecruitId)?s.nextRecruitId:1;
-
-      ['player','enemy'].forEach(team=>{
-        if(s.teams[team]){
-          teamState[team].florins=Number.isFinite(s.teams[team].florins)?s.teams[team].florins:300;
-          teamState[team].income=100;
-          teamState[team].recruitedThisTurn=!!s.teams[team].recruitedThisTurn;
-        }
-      });
-
-      units={};
-      s.units.forEach(u=>{
-        if(!u||!u.id||!u.team)return;
-        units[u.id]=u;
-      });
-      if(!Object.keys(units).length)resetStartingUnits();
-      return true;
-    }catch(err){
+  function recruit(side) {
+    const house = side === 'player' ? state.player : state.enemy;
+    const label = side === 'player' ? 'House Rowe' : 'House Harper';
+    if(house.florins < 300) {
+      showToast(`${label} needs more florins.`);
       return false;
     }
+    house.florins -= 300;
+    house.units += 1;
+    state.selected = side === 'player' ? 'roweBarracks' : 'harperBarracks';
+    render();
+    showToast(`${label} recruited a Soldier.`);
+    return true;
   }
 
-  // --- Touch / camera ---
-  function applyTransform(){
-    board.style.transform=`translate(${state.panX}px,${state.panY}px) scale(${state.zoom})`;
-  }
-  function clampZoom(z){return Math.max(.42,Math.min(2.1,z))}
-  function zoomAt(f,cx,cy){
-    const r=viewport.getBoundingClientRect();
-    if(cx===undefined){cx=r.width/2;cy=r.height/2}
-    const old=state.zoom,next=clampZoom(old*f);
-    const mx=(cx-state.panX)/old,my=(cy-state.panY)/old;
-    state.zoom=next;
-    state.panX=cx-mx*next;
-    state.panY=cy-my*next;
-    applyTransform();
-  }
-
-  function focusBattle(){
-    const r=viewport.getBoundingClientRect();
-    const active=Object.values(units).filter(u=>u.alive);
-    if(!active.length){fit();return}
-    const minX=Math.min(...active.map(u=>u.x),4);
-    const maxX=Math.max(...active.map(u=>u.x),17);
-    const minY=Math.min(...active.map(u=>u.y),7);
-    const maxY=Math.max(...active.map(u=>u.y),15);
-    const margin=1.1;
-    const left=(minX-margin)*CELL,right=(maxX+1+margin)*CELL;
-    const top=(minY-margin)*CELL,bottom=(maxY+1+margin)*CELL;
-    const regionW=Math.max(360,right-left),regionH=Math.max(280,bottom-top);
-    const mobileLandscape=window.matchMedia('(max-width:1000px) and (max-height:600px) and (orientation:landscape)').matches;
-    const usableW=Math.max(320,r.width-(mobileLandscape?18:40));
-    const usableH=Math.max(220,r.height-(mobileLandscape?100:40));
-    state.zoom=clampZoom(Math.min(usableW/regionW,usableH/regionH,mobileLandscape?.84:1.05));
-    const cx=(left+right)/2,cy=(top+bottom)/2;
-    state.panX=r.width/2-cx*state.zoom;
-    state.panY=(mobileLandscape?(usableH/2+7):r.height/2)-cy*state.zoom;
-    applyTransform();
-  }
-
-  function fit(){
-    const r=viewport.getBoundingClientRect();
-    if(window.matchMedia('(max-width:1000px) and (max-height:600px) and (orientation:landscape)').matches){
-      focusBattle();return;
-    }
-    state.zoom=clampZoom(Math.min(r.width/1152,r.height/1280)*.96);
-    state.panX=(r.width-1152*state.zoom)/2;
-    state.panY=(r.height-1280*state.zoom)/2;
-    applyTransform();
-  }
-
-  document.getElementById('zoomIn').addEventListener('click',()=>zoomAt(1.18));
-  document.getElementById('zoomOut').addEventListener('click',()=>zoomAt(.85));
-  document.getElementById('focusBattle').addEventListener('click',focusBattle);
-
-  viewport.addEventListener('wheel',e=>{
-    e.preventDefault();
-    const r=viewport.getBoundingClientRect();
-    zoomAt(e.deltaY<0?1.12:.89,e.clientX-r.left,e.clientY-r.top);
-  },{passive:false});
-
-  const pointerDistance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-  const pointerCenter=(a,b)=>({x:(a.x+b.x)/2,y:(a.y+b.y)/2});
-
-  viewport.addEventListener('pointerdown',e=>{
-    if(state.busy)return;
-
-    if(e.target.closest('.unit')||e.target.closest('.barracks-marker')||
-       e.target.classList.contains('reachable')||e.target.classList.contains('attackable')) return;
-
-    const vr=viewport.getBoundingClientRect();
-    state.pointers.set(e.pointerId,{x:e.clientX-vr.left,y:e.clientY-vr.top});
-    try{viewport.setPointerCapture(e.pointerId)}catch{}
-
-    if(state.pointers.size===2){
-      const pts=[...state.pointers.values()];
-      const center=pointerCenter(pts[0],pts[1]);
-      state.pinching=true;state.dragging=false;state.dragMoved=true;
-      state.pinchStartDist=Math.max(20,pointerDistance(pts[0],pts[1]));
-      state.pinchStartZoom=state.zoom;
-      state.pinchMapX=(center.x-state.panX)/state.zoom;
-      state.pinchMapY=(center.y-state.panY)/state.zoom;
-      viewport.classList.add('dragging');
-      return;
-    }
-
-    state.dragging=true;state.dragMoved=false;
-    state.dragStartX=e.clientX;state.dragStartY=e.clientY;
-    state.panStartX=state.panX;state.panStartY=state.panY;
-  });
-
-  viewport.addEventListener('pointermove',e=>{
-    if(!state.pointers.has(e.pointerId))return;
-    const vr=viewport.getBoundingClientRect();
-    state.pointers.set(e.pointerId,{x:e.clientX-vr.left,y:e.clientY-vr.top});
-
-    if(state.pointers.size>=2){
-      const pts=[...state.pointers.values()].slice(0,2);
-      const center=pointerCenter(pts[0],pts[1]);
-      const dist=Math.max(20,pointerDistance(pts[0],pts[1]));
-      state.zoom=clampZoom(state.pinchStartZoom*(dist/state.pinchStartDist));
-      state.panX=center.x-state.pinchMapX*state.zoom;
-      state.panY=center.y-state.pinchMapY*state.zoom;
-      state.dragMoved=true;
-      viewport.classList.add('dragging');
-      applyTransform();
-      return;
-    }
-
-    if(state.dragging){
-      const dx=e.clientX-state.dragStartX,dy=e.clientY-state.dragStartY;
-      if(Math.hypot(dx,dy)>7){state.dragMoved=true;viewport.classList.add('dragging')}
-      if(state.dragMoved){
-        state.panX=state.panStartX+dx;
-        state.panY=state.panStartY+dy;
-        applyTransform();
+  function endTurn() {
+    state.turn += 1;
+    state.player.florins += 100;
+    state.enemy.florins += 100;
+    render();
+    showToast(`Turn ${state.turn} begins. Both houses gain 100 florins.`);
+    setTimeout(() => {
+      if(state.enemy.florins >= 300) {
+        recruit('enemy');
+      } else {
+        showToast('House Harper holds position.');
       }
-    }
-  });
-
-  function endPointer(e){
-    const moved=state.dragMoved||state.pinching;
-    state.pointers.delete(e.pointerId);
-    try{viewport.releasePointerCapture(e.pointerId)}catch{}
-    if(state.pointers.size<2)state.pinching=false;
-
-    if(state.pointers.size===1){
-      const remaining=[...state.pointers.values()][0];
-      state.dragging=true;
-      state.dragStartX=remaining.x+viewport.getBoundingClientRect().left;
-      state.dragStartY=remaining.y+viewport.getBoundingClientRect().top;
-      state.panStartX=state.panX;state.panStartY=state.panY;
-    }else if(state.pointers.size===0){
-      state.dragging=false;
-      viewport.classList.remove('dragging');
-      if(moved){
-        state.suppressClick=true;
-        setTimeout(()=>{state.suppressClick=false},180);
-      }
-      state.dragMoved=false;
-    }
-  }
-  viewport.addEventListener('pointerup',endPointer);
-  viewport.addEventListener('pointercancel',endPointer);
-
-  // --- Reset / orientation ---
-  document.getElementById('newGame').addEventListener('click',()=>{
-    if(confirm('Start a new game? Your current battle will be erased.')){
-      try{localStorage.removeItem(SAVE_KEY)}catch(err){}
-      location.reload();
-    }
-  });
-  document.querySelectorAll('.restart').forEach(b=>b.addEventListener('click',()=>{
-    try{localStorage.removeItem(SAVE_KEY)}catch(err){}
-    location.reload();
-  }));
-
-  const rotateDismiss=document.getElementById('rotateDismiss');
-  if(rotateDismiss){
-    rotateDismiss.addEventListener('click',()=>{
-      document.getElementById('rotateHint').classList.add('dismissed');
-      setTimeout(focusBattle,50);
-    });
+    }, 650);
   }
 
-  window.addEventListener('resize',()=>{
-    clearTimeout(window.__dynResize);
-    window.__dynResize=setTimeout(fit,100);
-  });
-  window.addEventListener('orientationchange',()=>setTimeout(focusBattle,220));
+  $('roweHero').addEventListener('click', () => select('roweHero'));
+  $('harperHero').addEventListener('click', () => select('harperHero'));
+  $('roweBarracks').addEventListener('click', () => select('roweBarracks'));
+  $('harperBarracks').addEventListener('click', () => select('harperBarracks'));
+  $('roweRecruit').addEventListener('click', e => { e.stopPropagation(); recruit('player'); });
+  $('endTurn').addEventListener('click', endTurn);
 
-  if('serviceWorker' in navigator){
-    window.addEventListener('load',()=>{
-      navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
-    });
+  function fitStage() {
+    const wrap = document.getElementById('wrap');
+    const stage = document.getElementById('stage');
+    const scale = Math.min(wrap.clientWidth / 1672, wrap.clientHeight / 941);
+    stage.style.transform = `scale(${scale})`;
   }
 
-  positionBarracks();
-  loadGame();
-  updateAll();
-  setTimeout(()=>{
-    if(window.matchMedia('(max-width:1000px) and (max-height:600px) and (orientation:landscape)').matches){
-      focusBattle();
-    }else{
-      fit();
-    }
-  },70);
+  window.addEventListener('resize', fitStage);
+  window.addEventListener('orientationchange', () => setTimeout(fitStage, 120));
+
+  render();
+  fitStage();
 })();
 </script>
 </body>
