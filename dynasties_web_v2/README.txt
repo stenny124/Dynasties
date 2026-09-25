@@ -1,7 +1,7 @@
 DYNasties v0.2 — GitHub Pages update
 
 WHAT CHANGED
-- Reworked the previously patched-looking terrain using the original natural map as the base.
+- Reworked the previously patched-looking terrain using the original natural map as the base.x
 - Each house now starts with ONE character and 300 florins.
 - Both houses gain 100 florins at the start of each new numbered turn.
 - One Barracks per house.
