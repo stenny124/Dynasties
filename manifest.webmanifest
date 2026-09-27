@@ -1,13 +1,12 @@
 {
-  "name": "Dynasties",
+  "name": "Dynasties Mechanics",
   "short_name": "Dynasties",
-  "description": "A medieval dynastic tactics game.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#17110c",
-  "theme_color": "#17110c",
   "orientation": "landscape",
+  "background_color": "#151910",
+  "theme_color": "#182014",
   "icons": [
     {
       "src": "./icons/icon-192.png",
