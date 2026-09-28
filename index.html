@@ -9,11 +9,11 @@
 <meta name="theme-color" content="#182014">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dynasties — Mechanics Build v6</title>
+<title>Dynasties — Mechanics Build v7</title>
 <style>
 :root{
   --blue:#315f9b; --red:#93433d; --gold:#d7b96e; --cream:#f3e4bd;
-  --grass-a:#76a94d; --grass-b:#7eaf52; --grid:#5d873c;
+  --grass-a:#76a94d; --grid:#5d873c;
 }
 *{box-sizing:border-box}
 html,body{
@@ -23,7 +23,8 @@ html,body{
   min-height:100dvh;
   overflow:hidden;
   background:#151910;
-  font-family:Georgia,"Times New Roman",serif;-webkit-user-select:none;user-select:none;
+  font-family:Georgia,"Times New Roman",serif;
+  -webkit-user-select:none;user-select:none;
   -webkit-touch-callout:none;overscroll-behavior:none;
 }
 button{font:inherit}
@@ -60,16 +61,24 @@ button{font:inherit}
   margin-top:3px;min-width:116px;min-height:38px;padding:7px 12px;color:#fff0c7;
   background:linear-gradient(#70402f,#4b281f);border:2px solid #d1aa61;border-radius:5px;font-weight:bold;
 }
+
 #fieldViewport{
-  position:relative;min-height:0;overflow:hidden;background:#222c19;touch-action:none;cursor:grab;
+  position:relative;
+  min-height:0;
+  overflow:hidden;
+  background:#222c19;
+  touch-action:none;
+  cursor:grab;
 }
 #fieldViewport.dragging{cursor:grabbing}
-#board{
-  position:absolute;left:0;top:0;width:1280px;height:1280px;transform-origin:0 0;touch-action:none;
-}
 #mapControls{
-  position:absolute;right:calc(8px + env(safe-area-inset-right));top:8px;z-index:30;
-  display:flex;flex-direction:column;gap:6px;
+  position:absolute;
+  right:calc(8px + env(safe-area-inset-right));
+  top:8px;
+  z-index:30;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
 }
 .mapBtn{
   width:46px;height:46px;min-width:46px;min-height:46px;padding:0;border-radius:50%;
@@ -77,30 +86,27 @@ button{font:inherit}
   box-shadow:0 4px 12px rgba(0,0,0,.35);font:bold 22px Georgia,serif;
 }
 #focusMap{font-size:19px}
+
+#board{
+  position:absolute;left:0;top:0;width:1280px;height:1280px;transform-origin:0 0;touch-action:none;
+}
 #grass{
   position:absolute;inset:0;display:grid;grid-template-columns:repeat(20,64px);grid-template-rows:repeat(20,64px);
   border:3px solid #3e5f2a;box-shadow:0 8px 24px rgba(0,0,0,.34);background:var(--grass-a);
 }
 .grassCell{
-  position:relative;
-  width:64px;
-  height:64px;
-  border-right:1px solid rgba(71,116,44,.42);
-  border-bottom:1px solid rgba(71,116,44,.42);
-  background-image:url('./assets/grass_tile.png');
-  background-size:64px 64px;
-  background-repeat:no-repeat;
-  image-rendering:pixelated;
+  position:relative;width:64px;height:64px;border-right:1px solid rgba(71,116,44,.42);border-bottom:1px solid rgba(71,116,44,.42);
+  background-image:url('./assets/grass_tile.png');background-size:64px 64px;background-repeat:no-repeat;image-rendering:pixelated;
 }
-.grassCell.alt{
-  background-image:url('./assets/grass_tile.png');
-}
+.grassCell.alt{background-image:url('./assets/grass_tile.png')}
+
 #overlay{position:absolute;inset:0;z-index:4;pointer-events:none}
 .moveCell,.attackCell,.pathCell{position:absolute;width:64px;height:64px;pointer-events:auto}
 .moveCell{background:rgba(88,188,255,.26);box-shadow:inset 0 0 0 3px rgba(177,228,255,.86)}
 .pathCell{background:rgba(255,225,107,.24);box-shadow:inset 0 0 0 3px rgba(255,238,153,.9)}
 .attackCell{background:rgba(231,77,67,.27);box-shadow:inset 0 0 0 3px rgba(255,205,196,.92)}
 #objectLayer,#unitLayer{position:absolute;inset:0;z-index:6;pointer-events:none}
+
 .barracks{
   position:absolute;width:58px;height:58px;transform:translate(3px,3px);display:grid;place-items:center;
   pointer-events:auto;border:3px solid #e3cc95;border-radius:7px;color:#fff4d6;font:bold 24px Georgia,serif;
@@ -113,33 +119,16 @@ button{font:inherit}
   position:absolute;bottom:-21px;left:50%;transform:translateX(-50%);white-space:nowrap;padding:2px 5px;
   background:rgba(25,18,12,.9);border:1px solid #9e7b45;font:10px "Courier New",monospace;
 }
-.unit{
-  position:absolute;
-  width:62px;
-  height:76px;
-  transform:translate(1px,-13px);
-  pointer-events:auto;
-  transition:left .13s linear,top .13s linear;
 
-  /* Units are buttons for reliable touch input, but must look like sprites only. */
-  padding:0;
-  margin:0;
-  border:0;
-  outline:0;
-  background:transparent;
-  box-shadow:none;
-  appearance:none;
-  -webkit-appearance:none;
-  overflow:visible;
+.unit{
+  position:absolute;width:62px;height:76px;transform:translate(1px,-13px);pointer-events:auto;
+  transition:left .13s linear,top .13s linear;
+  padding:0;margin:0;border:0;outline:0;background:transparent;box-shadow:none;
+  appearance:none;-webkit-appearance:none;overflow:visible;
 }
 .unit img{
-  width:100%;
-  height:100%;
-  object-fit:contain;
-  image-rendering:pixelated;
-  filter:drop-shadow(0 4px 2px rgba(0,0,0,.35));
-  pointer-events:none;
-  transform-origin:center center;
+  width:100%;height:100%;object-fit:contain;image-rendering:pixelated;
+  filter:drop-shadow(0 4px 2px rgba(0,0,0,.35));pointer-events:none;transform-origin:center center;
 }
 .unit.selected::after{
   content:"";position:absolute;left:8px;right:8px;bottom:4px;height:10px;border:3px solid #fff0a2;border-radius:50%;
@@ -148,32 +137,30 @@ button{font:inherit}
 .unit.enemy.selected::after{box-shadow:0 0 0 2px rgba(152,53,45,.95)}
 .unit.done{filter:saturate(.6) brightness(.77)}
 .unit.dead{display:none}
-.hp{
-  position:absolute;left:7px;top:1px;width:48px;height:7px;background:#3c1814;border:1px solid #f0d7a8;z-index:3;
-}
+.hp{position:absolute;left:7px;top:1px;width:48px;height:7px;background:#3c1814;border:1px solid #f0d7a8;z-index:3}
 .hpFill{height:100%;background:#58ae53}
+
 #bottom{
   position:relative;z-index:20;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;
   min-height:88px;padding:7px calc(8px + env(safe-area-inset-right)) calc(7px + env(safe-area-inset-bottom)) calc(8px + env(safe-area-inset-left));
   color:var(--cream);background:linear-gradient(#1b140e,#0e0b08);border-top:3px solid #8b6735;
 }
 #info{min-width:0;display:flex;gap:12px;align-items:center}
-#portrait{
-  flex:0 0 58px;width:58px;height:68px;display:grid;place-items:center;border:2px solid #caa45d;background:#2b2118;overflow:hidden;
-}
+#portrait{flex:0 0 58px;width:58px;height:68px;display:grid;place-items:center;border:2px solid #caa45d;background:#2b2118;overflow:hidden}
 #portrait img{max-width:100%;max-height:100%;object-fit:contain;image-rendering:pixelated}
 #infoText{min-width:0}
 #selectedName{font-size:18px;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #selectedSub{font-size:11px;color:#baa87f;margin:2px 0 4px}
-#stats{display:flex;gap:12px;font-size:12px;white-space:nowrap}
+#stats{display:flex;gap:12px;font-size:12px;white-space:nowrap;flex-wrap:wrap}
 #status{margin-top:4px;font-size:11px;color:#e2cfa2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#actions{display:flex;align-items:center;gap:6px}
+#actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .action{
   min-width:86px;min-height:48px;padding:7px 10px;color:#fff0c7;background:linear-gradient(#31465d,#1e2d3e);
   border:2px solid #bd9957;border-radius:5px;font-weight:bold;
 }
 .action:disabled{opacity:.45}
 #newGame{min-width:56px;font-size:11px}
+
 #rotate{display:none}
 
 /* Portrait-first iPhone layout */
@@ -205,16 +192,15 @@ button{font:inherit}
   #portrait{width:54px;height:62px;flex-basis:54px}
   #selectedName{font-size:16px}
   #selectedSub{font-size:10px}
-  #stats{display:grid;grid-template-columns:repeat(3,auto);gap:3px 10px;font-size:11px;white-space:normal}
+  #stats{display:grid;grid-template-columns:repeat(3,auto);gap:3px 10px;font-size:11px}
   #status{margin-top:3px;font-size:10px;white-space:normal;line-height:1.2;max-height:28px}
   #actions{justify-content:flex-end}
   .action{min-height:40px;padding:5px 8px;font-size:11px}
   #newGame{min-width:70px}
+
   #mapControls{top:8px;right:calc(7px + env(safe-area-inset-right))}
   .mapBtn{width:44px;height:44px;min-width:44px;min-height:44px}
 }
-
-/* Landscape still supported */
 @media(max-width:1000px) and (max-height:600px) and (orientation:landscape){
   #topbar{min-height:58px;padding-top:calc(3px + env(safe-area-inset-top));padding-bottom:3px}
   .crest{width:34px;height:39px;flex-basis:34px;font-size:18px}
@@ -240,11 +226,13 @@ button{font:inherit}
         <div class="econ"><b id="pGold">300</b> florins · <span class="income">+100/turn</span> · <span id="pCount">1</span> units</div>
       </div>
     </div>
+
     <div id="turnBox">
       <div id="turnLabel">TURN</div>
       <div id="turnNo">1</div>
       <button id="endTurn" type="button">End Turn</button>
     </div>
+
     <div class="team enemy">
       <div>
         <div class="teamName">Team Red</div>
@@ -282,23 +270,29 @@ button{font:inherit}
           <span>ATK <b id="statAtk">3</b></span>
           <span>DEF <b id="statDef">2</b></span>
           <span>MOV <b id="statMov">2/2</b></span>
+          <span>RNG <b id="statRng">1</b></span>
           <span>ATK USED <b id="statAttack">No</b></span>
         </div>
-        <div id="status">Select a unit, move on blue tiles, attack an adjacent red tile.</div>
+        <div id="status">Select a unit, move on blue tiles, then attack a red unit within its range.</div>
       </div>
     </div>
     <div id="actions">
-      <button class="action" id="recruit" type="button" hidden>Recruit Soldier · 300</button>
+      <button class="action" id="recruitSoldier" type="button" hidden>Recruit Soldier · 300</button>
+      <button class="action" id="recruitArcher" type="button" hidden>Recruit Archer · 400</button>
       <button class="action" id="newGame" type="button">New Game</button>
     </div>
   </div>
 </div>
 
-
 <script>
 (() => {
-  const COLS=20, ROWS=20, CELL=64, RECRUIT_COST=300;
-  const SAVE_KEY='dynasties-mechanics-v6';
+  const COLS=20, ROWS=20, CELL=64;
+  const SAVE_KEY='dynasties-mechanics-v7';
+  const UNIT_DEFS={
+    soldier:{label:'Soldier',cost:300,hp:8,atk:3,def:2,maxMove:2,minRange:1,maxRange:1},
+    archer:{label:'Archer',cost:400,hp:8,atk:3,def:1,maxMove:2,minRange:1,maxRange:3}
+  };
+
   const state={
     turn:1,selectedUnitId:'blue-1',selectedBarracks:null,busy:false,nextRecruitId:2,
     mapZoom:.52,mapX:0,mapY:0,dragging:false,dragMoved:false,dragStartX:0,dragStartY:0,
@@ -317,8 +311,25 @@ button{font:inherit}
   let units={};
   function resetUnits(){
     units={
-      'blue-1':{id:'blue-1',team:'player',kind:'soldier',name:'Blue Soldier 1',title:'Soldier · Team Blue',x:9,y:15,hp:8,maxHp:8,atk:3,def:2,move:2,maxMove:2,attacked:false,alive:true,facing:'right'},
-      'red-1':{id:'red-1',team:'enemy',kind:'soldier',name:'Red Soldier 1',title:'Soldier · Team Red',x:9,y:4,hp:8,maxHp:8,atk:3,def:2,move:2,maxMove:2,attacked:false,alive:true,facing:'left'}
+      'blue-1':createUnit('player','soldier','blue-1',9,15,false,'right'),
+      'red-1':createUnit('enemy','soldier','red-1',9,4,false,'left')
+    };
+  }
+
+  function createUnit(team,kind,id,x,y,recruited=false,facing=null){
+    const def=UNIT_DEFS[kind];
+    const prefix=team==='player'?'Blue':'Red';
+    const num=id==='blue-1'||id==='red-1' ? '1' : id.split('-').pop();
+    return {
+      id,team,kind,
+      name:`${prefix} ${def.label} ${num}`,
+      title:`${def.label} · Team ${prefix}`,
+      x,y,
+      hp:def.hp,maxHp:def.hp,atk:def.atk,def:def.def,
+      move:recruited?0:def.maxMove,maxMove:def.maxMove,
+      minRange:def.minRange,maxRange:def.maxRange,
+      attacked:!!recruited,alive:true,
+      facing:facing || (team==='player'?'right':'left')
     };
   }
   resetUnits();
@@ -346,7 +357,18 @@ button{font:inherit}
   const unitAt=(x,y)=>Object.values(units).find(u=>u.alive&&u.x===x&&u.y===y)||null;
   const barracksAt=(x,y)=>Object.values(barracks).find(b=>b.x===x&&b.y===y)||null;
   const selectedUnit=()=>state.selectedUnitId?units[state.selectedUnitId]:null;
-  const spriteFor=u=>u.team==='player'?'./assets/team_blue_soldier.png':'./assets/team_red_soldier.png';
+  const inRange=(attacker,target)=>{
+    const d=manhattan(attacker,target);
+    return d>=attacker.minRange && d<=attacker.maxRange;
+  };
+  const rangeLabel=u=>u.minRange===u.maxRange?`${u.maxRange}`:`${u.minRange}-${u.maxRange}`;
+
+  const spriteFor=u=>{
+    if(u.kind==='archer'){
+      return u.team==='player'?'./assets/team_blue_archer.png':'./assets/team_red_archer.png';
+    }
+    return u.team==='player'?'./assets/team_blue_soldier.png':'./assets/team_red_soldier.png';
+  };
 
   function ensureUnitEl(u){
     let el=document.getElementById('unit-'+u.id);
@@ -362,10 +384,11 @@ button{font:inherit}
     el.addEventListener('click',e=>{
       e.stopPropagation();
       if(state.busy||!u.alive)return;
-      if(u.team==='player')selectUnit(u.id);
-      else{
+      if(u.team==='player'){
+        selectUnit(u.id);
+      }else{
         const attacker=selectedUnit();
-        if(attacker&&attacker.team==='player'&&attacker.alive&&manhattan(attacker,u)===1) attack(attacker,u);
+        if(attacker&&attacker.team==='player'&&attacker.alive&&inRange(attacker,u)) attack(attacker,u);
         else setStatus(`${u.name} is out of attack range.`);
       }
     });
@@ -383,18 +406,13 @@ button{font:inherit}
     const el=ensureUnitEl(u);
     el.style.left=(u.x*CELL)+'px';
     el.style.top=(u.y*CELL)+'px';
-
-    /* Horizontal facing only. Vertical movement deliberately keeps the last
-       left/right orientation, so sprites are never flipped upside-down. */
     if(!u.facing)u.facing=(u.team==='player'?'right':'left');
     const img=el.querySelector('img');
     img.style.transform=(u.facing==='left'?'scaleX(-1)':'scaleX(1)');
   }
-
   function faceTowardStep(u,step){
     if(step.x>u.x)u.facing='right';
     else if(step.x<u.x)u.facing='left';
-    /* step.x === u.x = vertical movement: keep existing facing */
   }
 
   function dijkstra(u,maxCost){
@@ -450,7 +468,7 @@ button{font:inherit}
       addOverlayCell(x,y,'moveCell',()=>moveSelectedTo(x,y));
     }
     if(!u.attacked){
-      living('enemy').forEach(e=>{ if(manhattan(u,e)===1) addOverlayCell(e.x,e.y,'attackCell',()=>attack(u,e)); });
+      living('enemy').forEach(e=>{ if(inRange(u,e)) addOverlayCell(e.x,e.y,'attackCell',()=>attack(u,e)); });
     }
   }
 
@@ -475,8 +493,7 @@ button{font:inherit}
     for(const step of path){
       faceTowardStep(u,step);
       u.move=Math.max(0,u.move-1);
-      u.x=step.x;
-      u.y=step.y;
+      u.x=step.x; u.y=step.y;
       setUnitPos(u);
       await new Promise(r=>setTimeout(r,130));
     }
@@ -498,7 +515,7 @@ button{font:inherit}
   const damage=(a,d)=>Math.max(1,a.atk-Math.floor(d.def/2));
 
   function attack(a,d){
-    if(state.busy||!a.alive||!d.alive||manhattan(a,d)!==1)return;
+    if(state.busy||!a.alive||!d.alive||!inRange(a,d))return;
     if(a.attacked){ setStatus(`${a.name} has already attacked this turn.`); return; }
     const dmg=damage(a,d);
     d.hp=Math.max(0,d.hp-dmg);
@@ -526,70 +543,108 @@ button{font:inherit}
     return barracks[team].spawn.find(p=>inside(p.x,p.y)&&!unitAt(p.x,p.y)&&!barracksAt(p.x,p.y))||null;
   }
 
-  function recruit(team,announce=true){
+  function recruit(team,kind='soldier',announce=true){
     const t=teams[team];
-    if(t.gold<RECRUIT_COST||t.recruited)return null;
+    const def=UNIT_DEFS[kind];
+    if(t.gold<def.cost||t.recruited)return null;
     const spawn=nextSpawn(team);
     if(!spawn)return null;
-    t.gold-=RECRUIT_COST; t.recruited=true;
+    t.gold-=def.cost; t.recruited=true;
     const n=state.nextRecruitId++;
-    const prefix=team==='player'?'Blue':'Red';
-    const id=`${team}-soldier-${n}`;
-    units[id]={
-      id,team,kind:'soldier',name:`${prefix} Soldier ${n}`,title:`Soldier · Team ${prefix}`,
-      x:spawn.x,y:spawn.y,hp:8,maxHp:8,atk:3,def:2,move:0,maxMove:2,attacked:true,alive:true,
-      facing:(team==='player'?'right':'left')
-    };
+    const id=`${team}-${kind}-${n}`;
+    units[id]=createUnit(team,kind,id,spawn.x,spawn.y,true);
     ensureUnitEl(units[id]);
-    if(announce)setStatus(`${prefix} recruits a soldier for 300 florins. It can act next turn.`);
+    const prefix=team==='player'?'Blue':'Red';
+    if(announce)setStatus(`${prefix} recruits an ${def.label.toLowerCase()} for ${def.cost} florins. It can act next turn.`);
     updateAll();
     return units[id];
   }
 
   function nearestTarget(enemy){
-    return living('player').slice().sort((a,b)=>manhattan(enemy,a)-manhattan(enemy,b))[0]||null;
+    return living('player').slice().sort((a,b)=>{
+      const da=Math.min(manhattan(enemy,a), enemy.maxRange) - Math.min(manhattan(enemy,b), enemy.maxRange);
+      if(da!==0)return da;
+      return a.hp-b.hp;
+    })[0]||null;
   }
 
-  function routeTowardAdjacent(enemy,target){
-    const candidateTiles=[[1,0],[-1,0],[0,1],[0,-1]]
-      .map(([dx,dy])=>({x:target.x+dx,y:target.y+dy}))
-      .filter(p=>inside(p.x,p.y)&&!unitAt(p.x,p.y)&&!barracksAt(p.x,p.y));
-    if(!candidateTiles.length)return [];
-    const data=dijkstra(enemy,999);
-    let bestTile=null,bestCost=Infinity;
-    for(const t of candidateTiles){
-      const c=data.best.get(key(t.x,t.y));
-      if(c!==undefined&&c<bestCost){ bestCost=c; bestTile=t; }
+  function routeTowardAttackPosition(unit,target){
+    const data=dijkstra(unit,999);
+    let bestTile=null, bestCost=Infinity, bestDist=Infinity;
+
+    for(let y=0;y<ROWS;y++){
+      for(let x=0;x<COLS;x++){
+        if((x===unit.x && y===unit.y) || barracksAt(x,y)) continue;
+        const occ=unitAt(x,y);
+        if(occ && occ.id!==unit.id) continue;
+        const dist=manhattan({x,y},target);
+        if(dist<unit.minRange || dist>unit.maxRange) continue;
+        const cost=data.best.get(key(x,y));
+        if(cost===undefined) continue;
+        if(cost<bestCost || (cost===bestCost && dist<bestDist)){
+          bestCost=cost; bestDist=dist; bestTile={x,y};
+        }
+      }
     }
+
     if(!bestTile)return [];
-    const full=reconstruct(data.prev,enemy,bestTile)||[];
-    return full.slice(0,enemy.move);
+    const full=reconstruct(data.prev,unit,bestTile)||[];
+    return full.slice(0,unit.move);
+  }
+
+  function chooseEnemyRecruitType(){
+    const archers=living('enemy').filter(u=>u.kind==='archer').length;
+    const soldiers=living('enemy').filter(u=>u.kind==='soldier').length;
+    if(teams.enemy.gold>=UNIT_DEFS.archer.cost && archers<soldiers) return 'archer';
+    if(teams.enemy.gold>=UNIT_DEFS.archer.cost && Math.random()<0.35) return 'archer';
+    return 'soldier';
   }
 
   async function enemyPhase(){
     state.busy=true; updateAll(); setStatus('Team Red turn…');
-    if(teams.enemy.gold>=RECRUIT_COST&&!teams.enemy.recruited){
-      const nu=recruit('enemy',false);
-      if(nu){ setStatus('Team Red recruits a soldier.'); await new Promise(r=>setTimeout(r,250)); }
+
+    if(!teams.enemy.recruited){
+      const recruitType=chooseEnemyRecruitType();
+      const cost=UNIT_DEFS[recruitType].cost;
+      if(teams.enemy.gold>=cost){
+        const nu=recruit('enemy',recruitType,false);
+        if(nu){
+          setStatus(`Team Red recruits a ${UNIT_DEFS[recruitType].label.toLowerCase()}.`);
+          await new Promise(r=>setTimeout(r,250));
+        }
+      } else if(teams.enemy.gold>=UNIT_DEFS.soldier.cost){
+        const nu=recruit('enemy','soldier',false);
+        if(nu){
+          setStatus('Team Red recruits a soldier.');
+          await new Promise(r=>setTimeout(r,250));
+        }
+      }
     }
+
     const enemies=living('enemy').slice();
     for(const enemy of enemies){
       if(!living('player').length)break;
       if(enemy.move<=0&&enemy.attacked)continue;
+
       let target=nearestTarget(enemy);
       if(!target)break;
-      if(manhattan(enemy,target)>1&&enemy.move>0){
-        const path=routeTowardAdjacent(enemy,target);
+
+      if(!inRange(enemy,target) && enemy.move>0){
+        const path=routeTowardAttackPosition(enemy,target);
         for(const step of path){
           faceTowardStep(enemy,step);
           enemy.move=Math.max(0,enemy.move-1);
-          enemy.x=step.x;
-          enemy.y=step.y;
+          enemy.x=step.x; enemy.y=step.y;
           setUnitPos(enemy);
           await new Promise(r=>setTimeout(r,125));
         }
       }
-      target=living('player').filter(p=>manhattan(enemy,p)===1).sort((a,b)=>a.hp-b.hp)[0]||null;
+
+      const attackable=living('player').filter(p=>inRange(enemy,p)).sort((a,b)=>{
+        if(a.hp!==b.hp)return a.hp-b.hp;
+        return manhattan(enemy,a)-manhattan(enemy,b);
+      });
+      target=attackable[0]||null;
       if(target&&!enemy.attacked){
         const dmg=damage(enemy,target);
         target.hp=Math.max(0,target.hp-dmg);
@@ -628,7 +683,9 @@ button{font:inherit}
   function setStatus(msg){ document.getElementById('status').textContent=msg; }
 
   function updateBottomInfo(){
-    const recruitBtn=document.getElementById('recruit');
+    const recruitSoldierBtn=document.getElementById('recruitSoldier');
+    const recruitArcherBtn=document.getElementById('recruitArcher');
+
     if(state.selectedBarracks){
       const team=state.selectedBarracks, isBlue=team==='player', t=teams[team];
       const portrait=document.getElementById('portraitImg');
@@ -639,19 +696,35 @@ button{font:inherit}
       document.getElementById('statAtk').textContent='—';
       document.getElementById('statDef').textContent='—';
       document.getElementById('statMov').textContent='—';
+      document.getElementById('statRng').textContent='—';
       document.getElementById('statAttack').textContent='—';
-      recruitBtn.hidden=!isBlue;
+
+      recruitSoldierBtn.hidden=!isBlue;
+      recruitArcherBtn.hidden=!isBlue;
+
       if(isBlue){
         const noSpace=!nextSpawn('player');
-        recruitBtn.disabled=t.gold<RECRUIT_COST||t.recruited||noSpace;
-        if(t.recruited)recruitBtn.textContent='Recruited this turn';
-        else if(t.gold<RECRUIT_COST)recruitBtn.textContent=`Need ${RECRUIT_COST-t.gold} more florins`;
-        else if(noSpace)recruitBtn.textContent='No adjacent spawn tile';
-        else recruitBtn.textContent='Recruit Soldier · 300';
+
+        const soldierCost=UNIT_DEFS.soldier.cost;
+        recruitSoldierBtn.disabled=t.gold<soldierCost||t.recruited||noSpace;
+        if(t.recruited) recruitSoldierBtn.textContent='Recruited this turn';
+        else if(t.gold<soldierCost) recruitSoldierBtn.textContent=`Need ${soldierCost-t.gold} more florins`;
+        else if(noSpace) recruitSoldierBtn.textContent='No adjacent spawn tile';
+        else recruitSoldierBtn.textContent='Recruit Soldier · 300';
+
+        const archerCost=UNIT_DEFS.archer.cost;
+        recruitArcherBtn.disabled=t.gold<archerCost||t.recruited||noSpace;
+        if(t.recruited) recruitArcherBtn.textContent='Recruited this turn';
+        else if(t.gold<archerCost) recruitArcherBtn.textContent=`Need ${archerCost-t.gold} more florins`;
+        else if(noSpace) recruitArcherBtn.textContent='No adjacent spawn tile';
+        else recruitArcherBtn.textContent='Recruit Archer · 400';
       }
       return;
     }
-    recruitBtn.hidden=true;
+
+    recruitSoldierBtn.hidden=true;
+    recruitArcherBtn.hidden=true;
+
     const u=selectedUnit()||living('player')[0]||null;
     if(!u)return;
     const portrait=document.getElementById('portraitImg');
@@ -663,14 +736,18 @@ button{font:inherit}
     document.getElementById('statAtk').textContent=u.atk;
     document.getElementById('statDef').textContent=u.def;
     document.getElementById('statMov').textContent=`${u.move}/${u.maxMove}`;
+    document.getElementById('statRng').textContent=rangeLabel(u);
     document.getElementById('statAttack').textContent=u.attacked?'Yes':'No';
   }
 
   function save(){
     try{
       localStorage.setItem(SAVE_KEY,JSON.stringify({
-        version:5,
-        state:{turn:state.turn,selectedUnitId:state.selectedUnitId,selectedBarracks:state.selectedBarracks,nextRecruitId:state.nextRecruitId},
+        version:6,
+        state:{
+          turn:state.turn,selectedUnitId:state.selectedUnitId,selectedBarracks:state.selectedBarracks,nextRecruitId:state.nextRecruitId,
+          mapZoom:state.mapZoom,mapX:state.mapX,mapY:state.mapY
+        },
         teams:teams, units:Object.values(units)
       }));
     }catch(e){}
@@ -681,11 +758,14 @@ button{font:inherit}
       const raw=localStorage.getItem(SAVE_KEY);
       if(!raw)return;
       const s=JSON.parse(raw);
-      if(!s||s.version!==5||!Array.isArray(s.units))return;
+      if(!s||s.version!==6||!Array.isArray(s.units))return;
       state.turn=s.state?.turn||1;
       state.selectedUnitId=s.state?.selectedUnitId||null;
       state.selectedBarracks=s.state?.selectedBarracks||null;
       state.nextRecruitId=s.state?.nextRecruitId||2;
+      state.mapZoom=s.state?.mapZoom ?? .52;
+      state.mapX=s.state?.mapX ?? 0;
+      state.mapY=s.state?.mapY ?? 0;
       for(const k of ['player','enemy']){
         if(s.teams?.[k]){
           teams[k].gold=s.teams[k].gold;
@@ -719,15 +799,12 @@ button{font:inherit}
     document.getElementById('endTurn').disabled=state.busy;
     updateBottomInfo();
     updateHighlights();
+    applyMapTransform();
     if(!state.busy)save();
   }
 
-  function clampZoom(z){return Math.max(.24,Math.min(1.5,z))}
-
-  function applyMapTransform(){
-    board.style.transform=`translate(${state.mapX}px,${state.mapY}px) scale(${state.mapZoom})`;
-  }
-
+  function clampZoom(z){ return Math.max(.28,Math.min(1.45,z)); }
+  function applyMapTransform(){ board.style.transform=`translate(${state.mapX}px,${state.mapY}px) scale(${state.mapZoom})`; }
   function centerMapOn(x,y,zoom=null){
     const r=fieldViewport.getBoundingClientRect();
     if(zoom!==null)state.mapZoom=clampZoom(zoom);
@@ -736,42 +813,38 @@ button{font:inherit}
     state.mapY=r.height/2-py*state.mapZoom;
     applyMapTransform();
   }
-
   function focusMap(){
     const r=fieldViewport.getBoundingClientRect();
     const portrait=window.matchMedia('(orientation:portrait)').matches;
-    const desiredVisibleCols=portrait?7.2:12;
-    const z=Math.min(portrait?.78:.88,r.width/(desiredVisibleCols*CELL));
-    centerMapOn(9.5,9.5,z);
+    const targetZoom=portrait ? Math.min(.62,r.width/(8*CELL)) : Math.min(.78,r.width/(12*CELL));
+    centerMapOn(9.5,9.5,targetZoom);
   }
-
   function zoomMapAt(factor,cx=null,cy=null){
     const r=fieldViewport.getBoundingClientRect();
     if(cx===null){cx=r.width/2;cy=r.height/2}
     const old=state.mapZoom, next=clampZoom(old*factor);
-    const mx=(cx-state.mapX)/old, my=(cy-state.mapY)/old;
+    const mapPointX=(cx-state.mapX)/old, mapPointY=(cy-state.mapY)/old;
     state.mapZoom=next;
-    state.mapX=cx-mx*next;
-    state.mapY=cy-my*next;
+    state.mapX=cx-mapPointX*next;
+    state.mapY=cy-mapPointY*next;
     applyMapTransform();
   }
-
-  const pointerDistance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-  const pointerCenter=(a,b)=>({x:(a.x+b.x)/2,y:(a.y+b.y)/2});
+  function pointerDistance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+  function pointerCenter(a,b){return{x:(a.x+b.x)/2,y:(a.y+b.y)/2}}
 
   fieldViewport.addEventListener('pointerdown',e=>{
     if(state.busy)return;
     if(e.target.closest('.unit')||e.target.closest('.barracks')||e.target.closest('#mapControls')||
-       e.target.classList.contains('moveCell')||e.target.classList.contains('pathCell')||e.target.classList.contains('attackCell'))return;
+       e.target.classList.contains('moveCell')||e.target.classList.contains('pathCell')||e.target.classList.contains('attackCell')) return;
 
     const r=fieldViewport.getBoundingClientRect();
     state.pointers.set(e.pointerId,{x:e.clientX-r.left,y:e.clientY-r.top});
-    try{fieldViewport.setPointerCapture(e.pointerId)}catch(err){}
+    try{fieldViewport.setPointerCapture(e.pointerId)}catch(e){}
 
     if(state.pointers.size===2){
       const pts=[...state.pointers.values()];
       const c=pointerCenter(pts[0],pts[1]);
-      state.pinching=true;state.dragging=false;state.dragMoved=true;
+      state.pinching=true; state.dragging=false; state.dragMoved=true;
       state.pinchStartDist=Math.max(20,pointerDistance(pts[0],pts[1]));
       state.pinchStartZoom=state.mapZoom;
       state.pinchMapX=(c.x-state.mapX)/state.mapZoom;
@@ -780,9 +853,12 @@ button{font:inherit}
       return;
     }
 
-    state.dragging=true;state.dragMoved=false;
-    state.dragStartX=e.clientX;state.dragStartY=e.clientY;
-    state.mapStartX=state.mapX;state.mapStartY=state.mapY;
+    state.dragging=true;
+    state.dragMoved=false;
+    state.dragStartX=e.clientX;
+    state.dragStartY=e.clientY;
+    state.mapStartX=state.mapX;
+    state.mapStartY=state.mapY;
   });
 
   fieldViewport.addEventListener('pointermove',e=>{
@@ -797,14 +873,23 @@ button{font:inherit}
       state.mapZoom=clampZoom(state.pinchStartZoom*(dist/state.pinchStartDist));
       state.mapX=c.x-state.pinchMapX*state.mapZoom;
       state.mapY=c.y-state.pinchMapY*state.mapZoom;
-      state.dragMoved=true;fieldViewport.classList.add('dragging');applyMapTransform();
+      state.dragMoved=true;
+      fieldViewport.classList.add('dragging');
+      applyMapTransform();
       return;
     }
 
     if(state.dragging){
       const dx=e.clientX-state.dragStartX, dy=e.clientY-state.dragStartY;
-      if(Math.hypot(dx,dy)>6){state.dragMoved=true;fieldViewport.classList.add('dragging')}
-      if(state.dragMoved){state.mapX=state.mapStartX+dx;state.mapY=state.mapStartY+dy;applyMapTransform()}
+      if(Math.hypot(dx,dy)>6){
+        state.dragMoved=true;
+        fieldViewport.classList.add('dragging');
+      }
+      if(state.dragMoved){
+        state.mapX=state.mapStartX+dx;
+        state.mapY=state.mapStartY+dy;
+        applyMapTransform();
+      }
     }
   });
 
@@ -812,12 +897,20 @@ button{font:inherit}
     state.pointers.delete(e.pointerId);
     try{fieldViewport.releasePointerCapture(e.pointerId)}catch(err){}
     if(state.pointers.size<2)state.pinching=false;
+
     if(state.pointers.size===1){
-      const p=[...state.pointers.values()][0], r=fieldViewport.getBoundingClientRect();
-      state.dragging=true;state.dragStartX=p.x+r.left;state.dragStartY=p.y+r.top;
-      state.mapStartX=state.mapX;state.mapStartY=state.mapY;
+      const p=[...state.pointers.values()][0];
+      const r=fieldViewport.getBoundingClientRect();
+      state.dragging=true;
+      state.dragStartX=p.x+r.left;
+      state.dragStartY=p.y+r.top;
+      state.mapStartX=state.mapX;
+      state.mapStartY=state.mapY;
     }else if(state.pointers.size===0){
-      state.dragging=false;state.dragMoved=false;fieldViewport.classList.remove('dragging');
+      state.dragging=false;
+      state.dragMoved=false;
+      fieldViewport.classList.remove('dragging');
+      save();
     }
   }
   fieldViewport.addEventListener('pointerup',endPointer);
@@ -834,7 +927,8 @@ button{font:inherit}
 
   document.getElementById('barracks-player').addEventListener('click',e=>{ e.stopPropagation(); selectBarracks('player'); });
   document.getElementById('barracks-enemy').addEventListener('click',e=>{ e.stopPropagation(); selectBarracks('enemy'); });
-  document.getElementById('recruit').addEventListener('click',()=>recruit('player',true));
+  document.getElementById('recruitSoldier').addEventListener('click',()=>recruit('player','soldier',true));
+  document.getElementById('recruitArcher').addEventListener('click',()=>recruit('player','archer',true));
   document.getElementById('endTurn').addEventListener('click',endTurn);
   document.getElementById('newGame').addEventListener('click',()=>{
     if(confirm('Start a new game?')){
@@ -852,9 +946,7 @@ button{font:inherit}
     const visibleHeight=vv ? vv.height : window.innerHeight;
     document.documentElement.style.setProperty('--app-height',`${Math.round(visibleHeight)}px`);
   }
-
   updateVisibleViewportHeight();
-
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',()=>{
       updateVisibleViewportHeight();
@@ -869,7 +961,10 @@ button{font:inherit}
   positionStaticObjects();
   load();
   updateAll();
-  setTimeout(focusMap,80);
+  setTimeout(()=>{
+    if(state.mapX===0 && state.mapY===0) focusMap();
+    else applyMapTransform();
+  },80);
 })();
 </script>
 </body>
