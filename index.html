@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#182014">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dynasties — Mechanics Build v3</title>
+<title>Dynasties — Mechanics Build v4</title>
 <style>
 :root{
   --blue:#315f9b; --red:#93433d; --gold:#d7b96e; --cream:#f3e4bd;
@@ -58,15 +58,19 @@ button{font:inherit}
   border:3px solid #3e5f2a;box-shadow:0 8px 24px rgba(0,0,0,.34);background:var(--grass-a);
 }
 .grassCell{
-  position:relative;width:64px;height:64px;border-right:1px solid var(--grid);border-bottom:1px solid var(--grid);
-  background:var(--grass-a);
+  position:relative;
+  width:64px;
+  height:64px;
+  border-right:1px solid rgba(71,116,44,.42);
+  border-bottom:1px solid rgba(71,116,44,.42);
+  background-image:url('./assets/grass_tile.png');
+  background-size:64px 64px;
+  background-repeat:no-repeat;
+  image-rendering:pixelated;
 }
-.grassCell.alt{background:var(--grass-b)}
-.grassCell::before,.grassCell::after{
-  content:"";position:absolute;width:2px;height:5px;background:rgba(54,112,43,.38)
+.grassCell.alt{
+  background-image:url('./assets/grass_tile.png');
 }
-.grassCell::before{left:14px;top:17px;transform:rotate(14deg)}
-.grassCell::after{right:12px;bottom:13px;transform:rotate(-11deg)}
 #overlay{position:absolute;inset:0;z-index:4;pointer-events:none}
 .moveCell,.attackCell,.pathCell{position:absolute;width:64px;height:64px;pointer-events:auto}
 .moveCell{background:rgba(88,188,255,.26);box-shadow:inset 0 0 0 3px rgba(177,228,255,.86)}
@@ -212,7 +216,7 @@ button{font:inherit}
           <span>HP <b id="statHP">8/8</b></span>
           <span>ATK <b id="statAtk">3</b></span>
           <span>DEF <b id="statDef">2</b></span>
-          <span>MOV <b id="statMov">4/4</b></span>
+          <span>MOV <b id="statMov">2/2</b></span>
           <span>ATK USED <b id="statAttack">No</b></span>
         </div>
         <div id="status">Select a unit, move on blue tiles, attack an adjacent red tile.</div>
@@ -236,7 +240,7 @@ button{font:inherit}
 <script>
 (() => {
   const COLS=12, ROWS=7, CELL=64, RECRUIT_COST=300;
-  const SAVE_KEY='dynasties-mechanics-v3';
+  const SAVE_KEY='dynasties-mechanics-v4';
   const state={turn:1,selectedUnitId:'blue-1',selectedBarracks:null,busy:false,nextRecruitId:2};
   const teams={
     player:{name:'Team Blue',gold:300,income:100,recruited:false},
@@ -250,8 +254,8 @@ button{font:inherit}
   let units={};
   function resetUnits(){
     units={
-      'blue-1':{id:'blue-1',team:'player',kind:'soldier',name:'Blue Soldier 1',title:'Soldier · Team Blue',x:2,y:3,hp:8,maxHp:8,atk:3,def:2,move:4,maxMove:4,attacked:false,alive:true,facing:'right'},
-      'red-1':{id:'red-1',team:'enemy',kind:'soldier',name:'Red Soldier 1',title:'Soldier · Team Red',x:9,y:3,hp:8,maxHp:8,atk:3,def:2,move:4,maxMove:4,attacked:false,alive:true,facing:'left'}
+      'blue-1':{id:'blue-1',team:'player',kind:'soldier',name:'Blue Soldier 1',title:'Soldier · Team Blue',x:2,y:3,hp:8,maxHp:8,atk:3,def:2,move:2,maxMove:2,attacked:false,alive:true,facing:'right'},
+      'red-1':{id:'red-1',team:'enemy',kind:'soldier',name:'Red Soldier 1',title:'Soldier · Team Red',x:9,y:3,hp:8,maxHp:8,atk:3,def:2,move:2,maxMove:2,attacked:false,alive:true,facing:'left'}
     };
   }
   resetUnits();
@@ -469,7 +473,7 @@ button{font:inherit}
     const id=`${team}-soldier-${n}`;
     units[id]={
       id,team,kind:'soldier',name:`${prefix} Soldier ${n}`,title:`Soldier · Team ${prefix}`,
-      x:spawn.x,y:spawn.y,hp:8,maxHp:8,atk:3,def:2,move:0,maxMove:4,attacked:true,alive:true,
+      x:spawn.x,y:spawn.y,hp:8,maxHp:8,atk:3,def:2,move:0,maxMove:2,attacked:true,alive:true,
       facing:(team==='player'?'right':'left')
     };
     ensureUnitEl(units[id]);
@@ -601,7 +605,7 @@ button{font:inherit}
   function save(){
     try{
       localStorage.setItem(SAVE_KEY,JSON.stringify({
-        version:2,
+        version:3,
         state:{turn:state.turn,selectedUnitId:state.selectedUnitId,selectedBarracks:state.selectedBarracks,nextRecruitId:state.nextRecruitId},
         teams:teams, units:Object.values(units)
       }));
@@ -613,7 +617,7 @@ button{font:inherit}
       const raw=localStorage.getItem(SAVE_KEY);
       if(!raw)return;
       const s=JSON.parse(raw);
-      if(!s||s.version!==2||!Array.isArray(s.units))return;
+      if(!s||s.version!==3||!Array.isArray(s.units))return;
       state.turn=s.state?.turn||1;
       state.selectedUnitId=s.state?.selectedUnitId||null;
       state.selectedBarracks=s.state?.selectedBarracks||null;

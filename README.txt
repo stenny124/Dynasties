@@ -1,11 +1,9 @@
-Dynasties — Mechanics Build v3
+Dynasties — Mechanics Build v4
 
-Changes from v2:
-- Removed all browser button background/chrome from unit sprites.
-- Transparent soldier PNGs now sit cleanly above the grass tile.
-- Units face the direction they travel horizontally.
-- Moving right -> sprite faces right.
-- Moving left -> sprite faces left.
-- Moving up/down -> sprite keeps its previous left/right facing.
-- No vertical/upside-down flipping.
-- Direction logic applies to both player and AI units.
+Changes from v3:
+- Soldier movement reduced from 4 to 2.
+- Starting soldiers have MOV 2/2.
+- Recruited soldiers also have maximum MOV 2.
+- Battlefield grass now uses the user's supplied Terrain_Icon_Grass.png artwork.
+- The supplied 48x48 tile is nearest-neighbour scaled to 64x64 to match the current gameplay grid.
+- Transparent Team Blue / Team Red soldier sprites and horizontal facing behaviour are unchanged.
