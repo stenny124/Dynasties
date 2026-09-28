@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#182014">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dynasties — Mechanics Build v2</title>
+<title>Dynasties — Mechanics Build v3</title>
 <style>
 :root{
   --blue:#315f9b; --red:#93433d; --gold:#d7b96e; --cream:#f3e4bd;
@@ -86,12 +86,32 @@ button{font:inherit}
   background:rgba(25,18,12,.9);border:1px solid #9e7b45;font:10px "Courier New",monospace;
 }
 .unit{
-  position:absolute;width:62px;height:76px;transform:translate(1px,-13px);pointer-events:auto;
+  position:absolute;
+  width:62px;
+  height:76px;
+  transform:translate(1px,-13px);
+  pointer-events:auto;
   transition:left .13s linear,top .13s linear;
+
+  /* Units are buttons for reliable touch input, but must look like sprites only. */
+  padding:0;
+  margin:0;
+  border:0;
+  outline:0;
+  background:transparent;
+  box-shadow:none;
+  appearance:none;
+  -webkit-appearance:none;
+  overflow:visible;
 }
 .unit img{
-  width:100%;height:100%;object-fit:contain;image-rendering:pixelated;
-  filter:drop-shadow(0 4px 2px rgba(0,0,0,.35));pointer-events:none;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  image-rendering:pixelated;
+  filter:drop-shadow(0 4px 2px rgba(0,0,0,.35));
+  pointer-events:none;
+  transform-origin:center center;
 }
 .unit.selected::after{
   content:"";position:absolute;left:8px;right:8px;bottom:4px;height:10px;border:3px solid #fff0a2;border-radius:50%;
@@ -216,7 +236,7 @@ button{font:inherit}
 <script>
 (() => {
   const COLS=12, ROWS=7, CELL=64, RECRUIT_COST=300;
-  const SAVE_KEY='dynasties-mechanics-v2';
+  const SAVE_KEY='dynasties-mechanics-v3';
   const state={turn:1,selectedUnitId:'blue-1',selectedBarracks:null,busy:false,nextRecruitId:2};
   const teams={
     player:{name:'Team Blue',gold:300,income:100,recruited:false},
@@ -230,8 +250,8 @@ button{font:inherit}
   let units={};
   function resetUnits(){
     units={
-      'blue-1':{id:'blue-1',team:'player',kind:'soldier',name:'Blue Soldier 1',title:'Soldier · Team Blue',x:2,y:3,hp:8,maxHp:8,atk:3,def:2,move:4,maxMove:4,attacked:false,alive:true},
-      'red-1':{id:'red-1',team:'enemy',kind:'soldier',name:'Red Soldier 1',title:'Soldier · Team Red',x:9,y:3,hp:8,maxHp:8,atk:3,def:2,move:4,maxMove:4,attacked:false,alive:true}
+      'blue-1':{id:'blue-1',team:'player',kind:'soldier',name:'Blue Soldier 1',title:'Soldier · Team Blue',x:2,y:3,hp:8,maxHp:8,atk:3,def:2,move:4,maxMove:4,attacked:false,alive:true,facing:'right'},
+      'red-1':{id:'red-1',team:'enemy',kind:'soldier',name:'Red Soldier 1',title:'Soldier · Team Red',x:9,y:3,hp:8,maxHp:8,atk:3,def:2,move:4,maxMove:4,attacked:false,alive:true,facing:'left'}
     };
   }
   resetUnits();
@@ -293,7 +313,20 @@ button{font:inherit}
   }
   function setUnitPos(u){
     const el=ensureUnitEl(u);
-    el.style.left=(u.x*CELL)+'px'; el.style.top=(u.y*CELL)+'px';
+    el.style.left=(u.x*CELL)+'px';
+    el.style.top=(u.y*CELL)+'px';
+
+    /* Horizontal facing only. Vertical movement deliberately keeps the last
+       left/right orientation, so sprites are never flipped upside-down. */
+    if(!u.facing)u.facing=(u.team==='player'?'right':'left');
+    const img=el.querySelector('img');
+    img.style.transform=(u.facing==='left'?'scaleX(-1)':'scaleX(1)');
+  }
+
+  function faceTowardStep(u,step){
+    if(step.x>u.x)u.facing='right';
+    else if(step.x<u.x)u.facing='left';
+    /* step.x === u.x = vertical movement: keep existing facing */
   }
 
   function dijkstra(u,maxCost){
@@ -372,8 +405,10 @@ button{font:inherit}
     if(!path||!path.length)return;
     state.busy=true; clearOverlay();
     for(const step of path){
+      faceTowardStep(u,step);
       u.move=Math.max(0,u.move-1);
-      u.x=step.x; u.y=step.y;
+      u.x=step.x;
+      u.y=step.y;
       setUnitPos(u);
       await new Promise(r=>setTimeout(r,130));
     }
@@ -434,7 +469,8 @@ button{font:inherit}
     const id=`${team}-soldier-${n}`;
     units[id]={
       id,team,kind:'soldier',name:`${prefix} Soldier ${n}`,title:`Soldier · Team ${prefix}`,
-      x:spawn.x,y:spawn.y,hp:8,maxHp:8,atk:3,def:2,move:0,maxMove:4,attacked:true,alive:true
+      x:spawn.x,y:spawn.y,hp:8,maxHp:8,atk:3,def:2,move:0,maxMove:4,attacked:true,alive:true,
+      facing:(team==='player'?'right':'left')
     };
     ensureUnitEl(units[id]);
     if(announce)setStatus(`${prefix} recruits a soldier for 300 florins. It can act next turn.`);
@@ -477,8 +513,11 @@ button{font:inherit}
       if(manhattan(enemy,target)>1&&enemy.move>0){
         const path=routeTowardAdjacent(enemy,target);
         for(const step of path){
+          faceTowardStep(enemy,step);
           enemy.move=Math.max(0,enemy.move-1);
-          enemy.x=step.x; enemy.y=step.y; setUnitPos(enemy);
+          enemy.x=step.x;
+          enemy.y=step.y;
+          setUnitPos(enemy);
           await new Promise(r=>setTimeout(r,125));
         }
       }
@@ -562,7 +601,7 @@ button{font:inherit}
   function save(){
     try{
       localStorage.setItem(SAVE_KEY,JSON.stringify({
-        version:1,
+        version:2,
         state:{turn:state.turn,selectedUnitId:state.selectedUnitId,selectedBarracks:state.selectedBarracks,nextRecruitId:state.nextRecruitId},
         teams:teams, units:Object.values(units)
       }));
@@ -574,7 +613,7 @@ button{font:inherit}
       const raw=localStorage.getItem(SAVE_KEY);
       if(!raw)return;
       const s=JSON.parse(raw);
-      if(!s||s.version!==1||!Array.isArray(s.units))return;
+      if(!s||s.version!==2||!Array.isArray(s.units))return;
       state.turn=s.state?.turn||1;
       state.selectedUnitId=s.state?.selectedUnitId||null;
       state.selectedBarracks=s.state?.selectedBarracks||null;
