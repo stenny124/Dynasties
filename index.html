@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#182014">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dynasties — Mechanics Build v7</title>
+<title>Dynasties — Mechanics Build v8</title>
 <style>
 :root{
   --blue:#315f9b; --red:#93433d; --gold:#d7b96e; --cream:#f3e4bd;
@@ -160,6 +160,52 @@ button{font:inherit}
 }
 .action:disabled{opacity:.45}
 #newGame{min-width:56px;font-size:11px}
+.goldAmount{display:inline-flex;align-items:center;gap:3px;vertical-align:middle}
+.goldIcon{width:15px;height:15px;image-rendering:pixelated;vertical-align:middle;flex:0 0 auto}
+
+#recruitPopup{
+  position:absolute;
+  z-index:45;
+  width:184px;
+  padding:7px;
+  color:#fff0c7;
+  background:linear-gradient(#2b2117,#17110c);
+  border:2px solid #c9a15b;
+  border-radius:6px;
+  box-shadow:0 8px 24px rgba(0,0,0,.48);
+}
+#recruitPopup[hidden]{display:none}
+.recruitTitle{
+  padding:2px 3px 6px;
+  font-size:13px;
+  font-weight:bold;
+  color:#f5dfaa;
+  border-bottom:1px solid rgba(201,161,91,.45);
+  margin-bottom:5px;
+}
+.recruitOption{
+  width:100%;
+  min-height:48px;
+  display:grid;
+  grid-template-columns:38px 1fr auto;
+  align-items:center;
+  gap:6px;
+  padding:4px 5px;
+  margin-top:4px;
+  color:#fff0c7;
+  background:#2e3b2a;
+  border:1px solid #907443;
+  border-radius:4px;
+  text-align:left;
+}
+.recruitOption:disabled{opacity:.43}
+.recruitSprite{
+  width:36px;height:40px;object-fit:contain;image-rendering:pixelated;
+}
+.recruitName{font-size:12px;font-weight:bold}
+.recruitPrice{display:flex;align-items:center;gap:3px;font-size:12px;font-weight:bold}
+.recruitPrice .goldIcon{width:16px;height:16px}
+.recruitNote{font-size:9px;color:#c7b58d;margin-top:4px;padding:0 3px}
 
 #rotate{display:none}
 
@@ -173,6 +219,8 @@ button{font:inherit}
   .crest{width:31px;height:36px;flex-basis:31px;font-size:16px;border-width:1px}
   .teamName{font-size:13px}
   .econ{font-size:9px;white-space:normal;line-height:1.2}
+  .econ .goldIcon{width:12px;height:12px}
+  #recruitPopup{width:174px;padding:6px}
   #turnBox{min-width:88px}
   #turnLabel{font-size:9px}
   #turnNo{font-size:17px}
@@ -223,7 +271,7 @@ button{font:inherit}
       <div class="crest">B</div>
       <div>
         <div class="teamName">Team Blue</div>
-        <div class="econ"><b id="pGold">300</b> florins · <span class="income">+100/turn</span> · <span id="pCount">1</span> units</div>
+        <div class="econ"><span class="goldAmount"><img class="goldIcon" src="./assets/gold_icon.png" alt="gold"><b id="pGold">300</b></span> · <span class="income">+100/turn</span> · <span id="pCount">1</span> units</div>
       </div>
     </div>
 
@@ -236,7 +284,7 @@ button{font:inherit}
     <div class="team enemy">
       <div>
         <div class="teamName">Team Red</div>
-        <div class="econ"><span id="eCount">1</span> units · <span class="income">+100/turn</span> · <b id="eGold">300</b> florins</div>
+        <div class="econ"><span id="eCount">1</span> units · <span class="income">+100/turn</span> · <span class="goldAmount"><img class="goldIcon" src="./assets/gold_icon.png" alt="gold"><b id="eGold">300</b></span></div>
       </div>
       <div class="crest">R</div>
     </div>
@@ -247,6 +295,20 @@ button{font:inherit}
       <button class="mapBtn" id="zoomIn" type="button" aria-label="Zoom in">+</button>
       <button class="mapBtn" id="zoomOut" type="button" aria-label="Zoom out">−</button>
       <button class="mapBtn" id="focusMap" type="button" aria-label="Recenter map">◎</button>
+    </div>
+    <div id="recruitPopup" hidden>
+      <div class="recruitTitle">Recruit unit</div>
+      <button class="recruitOption" id="popupRecruitSoldier" type="button">
+        <img class="recruitSprite" src="./assets/team_blue_soldier.png" alt="">
+        <span class="recruitName">Soldier</span>
+        <span class="recruitPrice"><img class="goldIcon" src="./assets/gold_icon.png" alt="gold">300</span>
+      </button>
+      <button class="recruitOption" id="popupRecruitArcher" type="button">
+        <img class="recruitSprite" src="./assets/team_blue_archer.png" alt="">
+        <span class="recruitName">Archer</span>
+        <span class="recruitPrice"><img class="goldIcon" src="./assets/gold_icon.png" alt="gold">400</span>
+      </button>
+      <div class="recruitNote" id="recruitNote">One recruit per turn.</div>
     </div>
     <div id="board">
       <div id="grass"></div>
@@ -277,8 +339,6 @@ button{font:inherit}
       </div>
     </div>
     <div id="actions">
-      <button class="action" id="recruitSoldier" type="button" hidden>Recruit Soldier · 300</button>
-      <button class="action" id="recruitArcher" type="button" hidden>Recruit Archer · 400</button>
       <button class="action" id="newGame" type="button">New Game</button>
     </div>
   </div>
@@ -287,7 +347,7 @@ button{font:inherit}
 <script>
 (() => {
   const COLS=20, ROWS=20, CELL=64;
-  const SAVE_KEY='dynasties-mechanics-v7';
+  const SAVE_KEY='dynasties-mechanics-v8';
   const UNIT_DEFS={
     soldier:{label:'Soldier',cost:300,hp:8,atk:3,def:2,maxMove:2,minRange:1,maxRange:1},
     archer:{label:'Archer',cost:400,hp:8,atk:3,def:1,maxMove:2,minRange:1,maxRange:3}
@@ -339,6 +399,7 @@ button{font:inherit}
   const unitLayer=document.getElementById('unitLayer');
   const board=document.getElementById('board');
   const fieldViewport=document.getElementById('fieldViewport');
+  const recruitPopup=document.getElementById('recruitPopup');
 
   for(let y=0;y<ROWS;y++){
     for(let x=0;x<COLS;x++){
@@ -525,17 +586,70 @@ button{font:inherit}
     updateAll(); checkGameOver();
   }
 
+  function hideRecruitPopup(){
+    recruitPopup.hidden=true;
+    if(state.selectedBarracks==='player')state.selectedBarracks=null;
+    document.getElementById('barracks-player').classList.remove('selected');
+  }
+
+  function positionRecruitPopup(){
+    if(recruitPopup.hidden)return;
+    const b=barracks.player;
+    const r=fieldViewport.getBoundingClientRect();
+    const bx=state.mapX+(b.x+0.5)*CELL*state.mapZoom;
+    const by=state.mapY+(b.y+0.5)*CELL*state.mapZoom;
+    const popupW=recruitPopup.offsetWidth||184;
+    const popupH=recruitPopup.offsetHeight||120;
+    const gap=12;
+    let left=bx+CELL*state.mapZoom*.55+gap;
+    if(left+popupW>r.width-6) left=bx-popupW-CELL*state.mapZoom*.55-gap;
+    left=Math.max(6,Math.min(r.width-popupW-6,left));
+    let top=by-popupH/2;
+    top=Math.max(6,Math.min(r.height-popupH-6,top));
+    recruitPopup.style.left=`${left}px`;
+    recruitPopup.style.top=`${top}px`;
+  }
+
+  function updateRecruitPopup(){
+    const t=teams.player;
+    const noSpace=!nextSpawn('player');
+    const soldierBtn=document.getElementById('popupRecruitSoldier');
+    const archerBtn=document.getElementById('popupRecruitArcher');
+    soldierBtn.disabled=t.recruited||noSpace||t.gold<UNIT_DEFS.soldier.cost;
+    archerBtn.disabled=t.recruited||noSpace||t.gold<UNIT_DEFS.archer.cost;
+    const note=document.getElementById('recruitNote');
+    if(t.recruited) note.textContent='A unit has already been recruited this turn.';
+    else if(noSpace) note.textContent='No free tile beside the barracks.';
+    else note.textContent=`Available gold: ${t.gold}`;
+    positionRecruitPopup();
+  }
+
+  function showRecruitPopup(){
+    state.selectedBarracks='player';
+    document.getElementById('barracks-player').classList.add('selected');
+    recruitPopup.hidden=false;
+    updateRecruitPopup();
+  }
+
   function selectUnit(id){
     const u=units[id];
     if(!u||!u.alive||u.team!=='player'||state.busy)return;
+    hideRecruitPopup();
     state.selectedUnitId=id; state.selectedBarracks=null;
     setStatus(`${u.name} selected.`);
     updateAll();
   }
   function selectBarracks(team){
     if(state.busy)return;
-    state.selectedUnitId=null; state.selectedBarracks=team;
-    setStatus(team==='player'?'Blue Barracks selected.':'Red Barracks selected.');
+    if(team==='player'){
+      if(!recruitPopup.hidden){ hideRecruitPopup(); updateAll(); return; }
+      showRecruitPopup();
+      setStatus('Blue Barracks selected. Choose a unit to recruit.');
+      updateAll();
+      return;
+    }
+    hideRecruitPopup();
+    setStatus('Red Barracks.');
     updateAll();
   }
 
@@ -555,7 +669,7 @@ button{font:inherit}
     units[id]=createUnit(team,kind,id,spawn.x,spawn.y,true);
     ensureUnitEl(units[id]);
     const prefix=team==='player'?'Blue':'Red';
-    if(announce)setStatus(`${prefix} recruits an ${def.label.toLowerCase()} for ${def.cost} florins. It can act next turn.`);
+    if(announce)setStatus(`${prefix} recruits an ${def.label.toLowerCase()} for ${def.cost} gold. It can act next turn.`);
     updateAll();
     return units[id];
   }
@@ -592,6 +706,21 @@ button{font:inherit}
     return full.slice(0,unit.move);
   }
 
+  const wait=ms=>new Promise(r=>setTimeout(r,ms));
+
+  async function followUnitCamera(u,hold=0){
+    if(!u||!u.alive)return;
+    const r=fieldViewport.getBoundingClientRect();
+    const px=(u.x+0.5)*CELL;
+    const py=(u.y+0.5)*CELL;
+    state.mapX=r.width/2-px*state.mapZoom;
+    state.mapY=r.height/2-py*state.mapZoom;
+    board.style.transition='transform 180ms ease-out';
+    applyMapTransform();
+    await wait(190+hold);
+    board.style.transition='none';
+  }
+
   function chooseEnemyRecruitType(){
     const archers=living('enemy').filter(u=>u.kind==='archer').length;
     const soldiers=living('enemy').filter(u=>u.kind==='soldier').length;
@@ -601,22 +730,22 @@ button{font:inherit}
   }
 
   async function enemyPhase(){
-    state.busy=true; updateAll(); setStatus('Team Red turn…');
+    hideRecruitPopup();
+    state.busy=true;
+    updateAll();
+    setStatus('Team Red turn…');
 
+    // Show the enemy barracks before a new unit appears.
     if(!teams.enemy.recruited){
       const recruitType=chooseEnemyRecruitType();
       const cost=UNIT_DEFS[recruitType].cost;
-      if(teams.enemy.gold>=cost){
-        const nu=recruit('enemy',recruitType,false);
+      if(teams.enemy.gold>=cost || teams.enemy.gold>=UNIT_DEFS.soldier.cost){
+        const actualType=teams.enemy.gold>=cost ? recruitType : 'soldier';
+        await centerCameraOnTile(barracks.enemy.x,barracks.enemy.y,220);
+        const nu=recruit('enemy',actualType,false);
         if(nu){
-          setStatus(`Team Red recruits a ${UNIT_DEFS[recruitType].label.toLowerCase()}.`);
-          await new Promise(r=>setTimeout(r,250));
-        }
-      } else if(teams.enemy.gold>=UNIT_DEFS.soldier.cost){
-        const nu=recruit('enemy','soldier',false);
-        if(nu){
-          setStatus('Team Red recruits a soldier.');
-          await new Promise(r=>setTimeout(r,250));
+          setStatus(`Team Red recruits a ${UNIT_DEFS[actualType].label.toLowerCase()}.`);
+          await followUnitCamera(nu,260);
         }
       }
     }
@@ -626,6 +755,7 @@ button{font:inherit}
       if(!living('player').length)break;
       if(enemy.move<=0&&enemy.attacked)continue;
 
+      await followUnitCamera(enemy,80);
       let target=nearestTarget(enemy);
       if(!target)break;
 
@@ -634,9 +764,17 @@ button{font:inherit}
         for(const step of path){
           faceTowardStep(enemy,step);
           enemy.move=Math.max(0,enemy.move-1);
-          enemy.x=step.x; enemy.y=step.y;
+          enemy.x=step.x;
+          enemy.y=step.y;
           setUnitPos(enemy);
-          await new Promise(r=>setTimeout(r,125));
+          // Camera tracks the destination tile at the same pace as the unit.
+          const r=fieldViewport.getBoundingClientRect();
+          state.mapX=r.width/2-(enemy.x+0.5)*CELL*state.mapZoom;
+          state.mapY=r.height/2-(enemy.y+0.5)*CELL*state.mapZoom;
+          board.style.transition='transform 125ms linear';
+          applyMapTransform();
+          await wait(135);
+          board.style.transition='none';
         }
       }
 
@@ -646,16 +784,20 @@ button{font:inherit}
       });
       target=attackable[0]||null;
       if(target&&!enemy.attacked){
+        await followUnitCamera(enemy,40);
         const dmg=damage(enemy,target);
         target.hp=Math.max(0,target.hp-dmg);
-        enemy.attacked=true; enemy.move=0;
+        enemy.attacked=true;
+        enemy.move=0;
         setStatus(`${enemy.name} attacks ${target.name} for ${dmg} damage.`);
         if(target.hp<=0)target.alive=false;
         updateAll();
-        await new Promise(r=>setTimeout(r,240));
+        await wait(300);
       }
     }
-    state.busy=false; updateAll();
+    board.style.transition='none';
+    state.busy=false;
+    updateAll();
   }
 
   async function endTurn(){
@@ -670,8 +812,9 @@ button{font:inherit}
     living('enemy').forEach(u=>{u.move=u.maxMove;u.attacked=false});
     const first=living('player')[0]||null;
     state.selectedUnitId=first?first.id:null; state.selectedBarracks=null;
-    setStatus(`Turn ${state.turn}. Both teams gain 100 florins.`);
+    setStatus(`Turn ${state.turn}. Both teams gain 100 gold.`);
     updateAll();
+    if(first) await followUnitCamera(first,40);
   }
 
   function checkGameOver(){
@@ -683,48 +826,6 @@ button{font:inherit}
   function setStatus(msg){ document.getElementById('status').textContent=msg; }
 
   function updateBottomInfo(){
-    const recruitSoldierBtn=document.getElementById('recruitSoldier');
-    const recruitArcherBtn=document.getElementById('recruitArcher');
-
-    if(state.selectedBarracks){
-      const team=state.selectedBarracks, isBlue=team==='player', t=teams[team];
-      const portrait=document.getElementById('portraitImg');
-      portrait.style.display='none';
-      document.getElementById('selectedName').textContent=isBlue?'Blue Barracks':'Red Barracks';
-      document.getElementById('selectedSub').textContent=isBlue?'Recruitment building':'Enemy recruitment building';
-      document.getElementById('statHP').textContent='—';
-      document.getElementById('statAtk').textContent='—';
-      document.getElementById('statDef').textContent='—';
-      document.getElementById('statMov').textContent='—';
-      document.getElementById('statRng').textContent='—';
-      document.getElementById('statAttack').textContent='—';
-
-      recruitSoldierBtn.hidden=!isBlue;
-      recruitArcherBtn.hidden=!isBlue;
-
-      if(isBlue){
-        const noSpace=!nextSpawn('player');
-
-        const soldierCost=UNIT_DEFS.soldier.cost;
-        recruitSoldierBtn.disabled=t.gold<soldierCost||t.recruited||noSpace;
-        if(t.recruited) recruitSoldierBtn.textContent='Recruited this turn';
-        else if(t.gold<soldierCost) recruitSoldierBtn.textContent=`Need ${soldierCost-t.gold} more florins`;
-        else if(noSpace) recruitSoldierBtn.textContent='No adjacent spawn tile';
-        else recruitSoldierBtn.textContent='Recruit Soldier · 300';
-
-        const archerCost=UNIT_DEFS.archer.cost;
-        recruitArcherBtn.disabled=t.gold<archerCost||t.recruited||noSpace;
-        if(t.recruited) recruitArcherBtn.textContent='Recruited this turn';
-        else if(t.gold<archerCost) recruitArcherBtn.textContent=`Need ${archerCost-t.gold} more florins`;
-        else if(noSpace) recruitArcherBtn.textContent='No adjacent spawn tile';
-        else recruitArcherBtn.textContent='Recruit Archer · 400';
-      }
-      return;
-    }
-
-    recruitSoldierBtn.hidden=true;
-    recruitArcherBtn.hidden=true;
-
     const u=selectedUnit()||living('player')[0]||null;
     if(!u)return;
     const portrait=document.getElementById('portraitImg');
@@ -738,12 +839,13 @@ button{font:inherit}
     document.getElementById('statMov').textContent=`${u.move}/${u.maxMove}`;
     document.getElementById('statRng').textContent=rangeLabel(u);
     document.getElementById('statAttack').textContent=u.attacked?'Yes':'No';
+    updateRecruitPopup();
   }
 
   function save(){
     try{
       localStorage.setItem(SAVE_KEY,JSON.stringify({
-        version:6,
+        version:7,
         state:{
           turn:state.turn,selectedUnitId:state.selectedUnitId,selectedBarracks:state.selectedBarracks,nextRecruitId:state.nextRecruitId,
           mapZoom:state.mapZoom,mapX:state.mapX,mapY:state.mapY
@@ -758,7 +860,7 @@ button{font:inherit}
       const raw=localStorage.getItem(SAVE_KEY);
       if(!raw)return;
       const s=JSON.parse(raw);
-      if(!s||s.version!==6||!Array.isArray(s.units))return;
+      if(!s||s.version!==7||!Array.isArray(s.units))return;
       state.turn=s.state?.turn||1;
       state.selectedUnitId=s.state?.selectedUnitId||null;
       state.selectedBarracks=s.state?.selectedBarracks||null;
@@ -798,13 +900,14 @@ button{font:inherit}
     document.getElementById('turnNo').textContent=state.turn;
     document.getElementById('endTurn').disabled=state.busy;
     updateBottomInfo();
+    updateRecruitPopup();
     updateHighlights();
     applyMapTransform();
     if(!state.busy)save();
   }
 
   function clampZoom(z){ return Math.max(.28,Math.min(1.45,z)); }
-  function applyMapTransform(){ board.style.transform=`translate(${state.mapX}px,${state.mapY}px) scale(${state.mapZoom})`; }
+  function applyMapTransform(){ board.style.transform=`translate(${state.mapX}px,${state.mapY}px) scale(${state.mapZoom})`; positionRecruitPopup(); }
   function centerMapOn(x,y,zoom=null){
     const r=fieldViewport.getBoundingClientRect();
     if(zoom!==null)state.mapZoom=clampZoom(zoom);
@@ -812,6 +915,15 @@ button{font:inherit}
     state.mapX=r.width/2-px*state.mapZoom;
     state.mapY=r.height/2-py*state.mapZoom;
     applyMapTransform();
+  }
+  async function centerCameraOnTile(x,y,hold=0){
+    const r=fieldViewport.getBoundingClientRect();
+    state.mapX=r.width/2-(x+0.5)*CELL*state.mapZoom;
+    state.mapY=r.height/2-(y+0.5)*CELL*state.mapZoom;
+    board.style.transition='transform 180ms ease-out';
+    applyMapTransform();
+    await wait(190+hold);
+    board.style.transition='none';
   }
   function focusMap(){
     const r=fieldViewport.getBoundingClientRect();
@@ -833,8 +945,9 @@ button{font:inherit}
   function pointerCenter(a,b){return{x:(a.x+b.x)/2,y:(a.y+b.y)/2}}
 
   fieldViewport.addEventListener('pointerdown',e=>{
+    if(!recruitPopup.hidden && !e.target.closest('#recruitPopup') && !e.target.closest('#barracks-player')) hideRecruitPopup();
     if(state.busy)return;
-    if(e.target.closest('.unit')||e.target.closest('.barracks')||e.target.closest('#mapControls')||
+    if(e.target.closest('.unit')||e.target.closest('.barracks')||e.target.closest('#mapControls')||e.target.closest('#recruitPopup')||
        e.target.classList.contains('moveCell')||e.target.classList.contains('pathCell')||e.target.classList.contains('attackCell')) return;
 
     const r=fieldViewport.getBoundingClientRect();
@@ -927,8 +1040,8 @@ button{font:inherit}
 
   document.getElementById('barracks-player').addEventListener('click',e=>{ e.stopPropagation(); selectBarracks('player'); });
   document.getElementById('barracks-enemy').addEventListener('click',e=>{ e.stopPropagation(); selectBarracks('enemy'); });
-  document.getElementById('recruitSoldier').addEventListener('click',()=>recruit('player','soldier',true));
-  document.getElementById('recruitArcher').addEventListener('click',()=>recruit('player','archer',true));
+  document.getElementById('popupRecruitSoldier').addEventListener('click',()=>{ const u=recruit('player','soldier',true); if(u){hideRecruitPopup(); updateAll();} });
+  document.getElementById('popupRecruitArcher').addEventListener('click',()=>{ const u=recruit('player','archer',true); if(u){hideRecruitPopup(); updateAll();} });
   document.getElementById('endTurn').addEventListener('click',endTurn);
   document.getElementById('newGame').addEventListener('click',()=>{
     if(confirm('Start a new game?')){

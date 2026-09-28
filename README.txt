@@ -1,20 +1,14 @@
-Dynasties — Mechanics Build v7
+Dynasties — Mechanics Build v8
 
-New Archer implementation:
-- Added Archer unit for both teams.
-- Archer stats:
-  * Cost 400
-  * HP 8
-  * ATK 3
-  * DEF 1
-  * MOV 2
-  * Range 1–3
-- Added blue and red archer sprites.
-- Blue archer is a recolour of the uploaded red archer sprite.
-- Barracks now let the player recruit either:
-  * Soldier (300)
-  * Archer (400)
-- Bottom panel now shows unit RNG.
-- Attack highlights respect each unit's actual range.
-- Enemy AI can recruit and use archers too.
-- Archers can shoot adjacent enemies as requested (range 1–3).
+Changes from v7:
+- Currency is now called Gold everywhere.
+- Added the uploaded gold coin icon to the top HUD and recruitment prices.
+- Recruitment buttons removed from the bottom HUD.
+- Clicking the Blue barracks opens a compact recruitment window beside the barracks.
+- Recruitment window shows Soldier 300 and Archer 400 with sprites and gold icons.
+- The recruitment window stays the same UI size while the map zooms.
+- During Team Red's turn the camera centres on the enemy barracks when recruiting.
+- Camera then centres on newly created enemy units.
+- Camera follows each enemy unit tile-by-tile as it moves.
+- Camera centres on attacking enemy units.
+- At the start of the next Blue turn the camera returns to a Blue unit.
