@@ -1,10 +1,10 @@
 {
-  "name": "Dynasties Mechanics v4",
+  "name": "Dynasties Mechanics v5",
   "short_name": "Dynasties",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "orientation": "landscape",
+  "orientation": "any",
   "background_color": "#151910",
   "theme_color": "#182014",
   "icons": [
