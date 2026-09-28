@@ -1,4 +1,4 @@
-const CACHE='dynasties-mechanics-v5';
+const CACHE='dynasties-mechanics-v6';
 const STATIC=['./index.html','./assets/team_blue_soldier.png','./assets/team_red_soldier.png','./assets/grass_tile.png'];
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(STATIC)).then(()=>self.skipWaiting()));
