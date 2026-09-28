@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#182014">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dynasties — Mechanics Build v8</title>
+<title>Dynasties — Mechanics Build v9</title>
 <style>
 :root{
   --blue:#315f9b; --red:#93433d; --gold:#d7b96e; --cream:#f3e4bd;
@@ -44,12 +44,19 @@ button{font:inherit}
 .team{min-width:0;display:flex;align-items:center;gap:10px}
 .team.enemy{justify-content:flex-end;text-align:right}
 .crest{
-  flex:0 0 42px;width:42px;height:48px;display:grid;place-items:center;
-  border:2px solid var(--gold);border-radius:5px 5px 14px 14px;font-weight:bold;font-size:22px;
-  box-shadow:inset 0 0 0 2px rgba(0,0,0,.2)
+  flex:0 0 44px;
+  width:44px;
+  height:50px;
+  display:grid;
+  place-items:center;
 }
-.player .crest{background:var(--blue)}
-.enemy .crest{background:var(--red)}
+.crest img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  display:block;
+}
+.player .crest,.enemy .crest{background:none}
 .teamName{font-size:18px;font-weight:bold;white-space:nowrap}
 .econ{font-size:13px;color:#d7c79d;white-space:nowrap}
 .econ b{color:#fff0c4}
@@ -112,8 +119,8 @@ button{font:inherit}
   pointer-events:auto;border:3px solid #e3cc95;border-radius:7px;color:#fff4d6;font:bold 24px Georgia,serif;
   box-shadow:0 4px 8px rgba(0,0,0,.35), inset 0 0 0 3px rgba(0,0,0,.18);
 }
-.barracks.player{background:#315f9b}
-.barracks.enemy{background:#93433d}
+.barracks.player{background:#687483}
+.barracks.enemy{background:#a1261d}
 .barracks.selected{outline:4px solid #ffe98c;outline-offset:3px}
 .barracks .tiny{
   position:absolute;bottom:-21px;left:50%;transform:translateX(-50%);white-space:nowrap;padding:2px 5px;
@@ -216,7 +223,7 @@ button{font:inherit}
     padding:calc(5px + env(safe-area-inset-top)) calc(5px + env(safe-area-inset-right)) 5px calc(5px + env(safe-area-inset-left));
   }
   .team{gap:5px}
-  .crest{width:31px;height:36px;flex-basis:31px;font-size:16px;border-width:1px}
+  .crest{width:32px;height:37px;flex-basis:32px}
   .teamName{font-size:13px}
   .econ{font-size:9px;white-space:normal;line-height:1.2}
   .econ .goldIcon{width:12px;height:12px}
@@ -268,9 +275,9 @@ button{font:inherit}
 <div id="game">
   <div id="topbar">
     <div class="team player">
-      <div class="crest">B</div>
+      <div class="crest"><img src="./assets/house_stark_crest.png" alt="House Stark crest"></div>
       <div>
-        <div class="teamName">Team Blue</div>
+        <div class="teamName">House Stark</div>
         <div class="econ"><span class="goldAmount"><img class="goldIcon" src="./assets/gold_icon.png" alt="gold"><b id="pGold">300</b></span> · <span class="income">+100/turn</span> · <span id="pCount">1</span> units</div>
       </div>
     </div>
@@ -283,10 +290,10 @@ button{font:inherit}
 
     <div class="team enemy">
       <div>
-        <div class="teamName">Team Red</div>
+        <div class="teamName">House Lannister</div>
         <div class="econ"><span id="eCount">1</span> units · <span class="income">+100/turn</span> · <span class="goldAmount"><img class="goldIcon" src="./assets/gold_icon.png" alt="gold"><b id="eGold">300</b></span></div>
       </div>
-      <div class="crest">R</div>
+      <div class="crest"><img src="./assets/house_lannister_crest.png" alt="House Lannister crest"></div>
     </div>
   </div>
 
@@ -297,7 +304,7 @@ button{font:inherit}
       <button class="mapBtn" id="focusMap" type="button" aria-label="Recenter map">◎</button>
     </div>
     <div id="recruitPopup" hidden>
-      <div class="recruitTitle">Recruit unit</div>
+      <div class="recruitTitle">Recruit at Barracks</div>
       <button class="recruitOption" id="popupRecruitSoldier" type="button">
         <img class="recruitSprite" src="./assets/team_blue_soldier.png" alt="">
         <span class="recruitName">Soldier</span>
@@ -314,8 +321,8 @@ button{font:inherit}
       <div id="grass"></div>
       <div id="overlay"></div>
       <div id="objectLayer">
-        <button class="barracks player" id="barracks-player" type="button" aria-label="Blue Barracks">B<span class="tiny">BLUE</span></button>
-        <button class="barracks enemy" id="barracks-enemy" type="button" aria-label="Red Barracks">B<span class="tiny">RED</span></button>
+        <button class="barracks player" id="barracks-player" type="button" aria-label="House Stark Barracks">S<span class="tiny">STARK</span></button>
+        <button class="barracks enemy" id="barracks-enemy" type="button" aria-label="House Lannister Barracks">L<span class="tiny">LANNISTER</span></button>
       </div>
       <div id="unitLayer"></div>
     </div>
@@ -325,8 +332,8 @@ button{font:inherit}
     <div id="info">
       <div id="portrait"><img id="portraitImg" src="./assets/team_blue_soldier.png" alt=""></div>
       <div id="infoText">
-        <div id="selectedName">Blue Soldier 1</div>
-        <div id="selectedSub">Soldier · Team Blue</div>
+        <div id="selectedName">Stark Soldier 1</div>
+        <div id="selectedSub">Soldier · House Stark</div>
         <div id="stats">
           <span>HP <b id="statHP">8/8</b></span>
           <span>ATK <b id="statAtk">3</b></span>
@@ -347,7 +354,7 @@ button{font:inherit}
 <script>
 (() => {
   const COLS=20, ROWS=20, CELL=64;
-  const SAVE_KEY='dynasties-mechanics-v8';
+  const SAVE_KEY='dynasties-mechanics-v9';
   const UNIT_DEFS={
     soldier:{label:'Soldier',cost:300,hp:8,atk:3,def:2,maxMove:2,minRange:1,maxRange:1},
     archer:{label:'Archer',cost:400,hp:8,atk:3,def:1,maxMove:2,minRange:1,maxRange:3}
@@ -360,8 +367,8 @@ button{font:inherit}
     pinchMapX:0,pinchMapY:0
   };
   const teams={
-    player:{name:'Team Blue',gold:300,income:100,recruited:false},
-    enemy:{name:'Team Red',gold:300,income:100,recruited:false}
+    player:{name:'House Stark',gold:300,income:100,recruited:false},
+    enemy:{name:'House Lannister',gold:300,income:100,recruited:false}
   };
   const barracks={
     player:{x:9,y:17,spawn:[{x:9,y:16},{x:10,y:16},{x:10,y:17},{x:10,y:18},{x:9,y:18},{x:8,y:18},{x:8,y:17},{x:8,y:16}]},
@@ -378,12 +385,12 @@ button{font:inherit}
 
   function createUnit(team,kind,id,x,y,recruited=false,facing=null){
     const def=UNIT_DEFS[kind];
-    const prefix=team==='player'?'Blue':'Red';
+    const prefix=team==='player'?'Stark':'Lannister';
     const num=id==='blue-1'||id==='red-1' ? '1' : id.split('-').pop();
     return {
       id,team,kind,
       name:`${prefix} ${def.label} ${num}`,
-      title:`${def.label} · Team ${prefix}`,
+      title:`${def.label} · House ${prefix}`,
       x,y,
       hp:def.hp,maxHp:def.hp,atk:def.atk,def:def.def,
       move:recruited?0:def.maxMove,maxMove:def.maxMove,
@@ -620,7 +627,7 @@ button{font:inherit}
     const note=document.getElementById('recruitNote');
     if(t.recruited) note.textContent='A unit has already been recruited this turn.';
     else if(noSpace) note.textContent='No free tile beside the barracks.';
-    else note.textContent=`Available gold: ${t.gold}`;
+    else note.textContent=`House Stark gold: ${t.gold}`;
     positionRecruitPopup();
   }
 
@@ -644,12 +651,12 @@ button{font:inherit}
     if(team==='player'){
       if(!recruitPopup.hidden){ hideRecruitPopup(); updateAll(); return; }
       showRecruitPopup();
-      setStatus('Blue Barracks selected. Choose a unit to recruit.');
+      setStatus('House Stark Barracks selected. Choose a unit to recruit.');
       updateAll();
       return;
     }
     hideRecruitPopup();
-    setStatus('Red Barracks.');
+    setStatus('House Lannister Barracks.');
     updateAll();
   }
 
@@ -668,7 +675,7 @@ button{font:inherit}
     const id=`${team}-${kind}-${n}`;
     units[id]=createUnit(team,kind,id,spawn.x,spawn.y,true);
     ensureUnitEl(units[id]);
-    const prefix=team==='player'?'Blue':'Red';
+    const prefix=team==='player'?'Stark':'Lannister';
     if(announce)setStatus(`${prefix} recruits an ${def.label.toLowerCase()} for ${def.cost} gold. It can act next turn.`);
     updateAll();
     return units[id];
@@ -733,7 +740,7 @@ button{font:inherit}
     hideRecruitPopup();
     state.busy=true;
     updateAll();
-    setStatus('Team Red turn…');
+    setStatus('House Lannister turn…');
 
     // Show the enemy barracks before a new unit appears.
     if(!teams.enemy.recruited){
@@ -744,7 +751,7 @@ button{font:inherit}
         await centerCameraOnTile(barracks.enemy.x,barracks.enemy.y,220);
         const nu=recruit('enemy',actualType,false);
         if(nu){
-          setStatus(`Team Red recruits a ${UNIT_DEFS[actualType].label.toLowerCase()}.`);
+          setStatus(`House Lannister recruits a ${UNIT_DEFS[actualType].label.toLowerCase()}.`);
           await followUnitCamera(nu,260);
         }
       }
@@ -818,8 +825,8 @@ button{font:inherit}
   }
 
   function checkGameOver(){
-    if(living('enemy').length===0){ alert('Victory — Team Red has no units remaining.'); return true; }
-    if(living('player').length===0){ alert('Defeat — Team Blue has no units remaining.'); return true; }
+    if(living('enemy').length===0){ alert('Victory — House Lannister has no units remaining.'); return true; }
+    if(living('player').length===0){ alert('Defeat — House Stark has no units remaining.'); return true; }
     return false;
   }
 
@@ -845,7 +852,7 @@ button{font:inherit}
   function save(){
     try{
       localStorage.setItem(SAVE_KEY,JSON.stringify({
-        version:7,
+        version:8,
         state:{
           turn:state.turn,selectedUnitId:state.selectedUnitId,selectedBarracks:state.selectedBarracks,nextRecruitId:state.nextRecruitId,
           mapZoom:state.mapZoom,mapX:state.mapX,mapY:state.mapY
@@ -860,7 +867,7 @@ button{font:inherit}
       const raw=localStorage.getItem(SAVE_KEY);
       if(!raw)return;
       const s=JSON.parse(raw);
-      if(!s||s.version!==7||!Array.isArray(s.units))return;
+      if(!s||s.version!==8||!Array.isArray(s.units))return;
       state.turn=s.state?.turn||1;
       state.selectedUnitId=s.state?.selectedUnitId||null;
       state.selectedBarracks=s.state?.selectedBarracks||null;
