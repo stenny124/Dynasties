@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#182014">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dynasties — Mechanics Build v9</title>
+<title>Dynasties — Mechanics Build v10</title>
 <style>
 :root{
   --blue:#315f9b; --red:#93433d; --gold:#d7b96e; --cream:#f3e4bd;
@@ -134,14 +134,34 @@ button{font:inherit}
   appearance:none;-webkit-appearance:none;overflow:visible;
 }
 .unit img{
+  position:relative;
+  z-index:2;
   width:100%;height:100%;object-fit:contain;image-rendering:pixelated;
   filter:drop-shadow(0 4px 2px rgba(0,0,0,.35));pointer-events:none;transform-origin:center center;
 }
-.unit.selected::after{
-  content:"";position:absolute;left:8px;right:8px;bottom:4px;height:10px;border:3px solid #fff0a2;border-radius:50%;
-  box-shadow:0 0 0 2px rgba(45,106,176,.95);
+.unit.selected::before,
+.unit.inspected::before{
+  content:"";
+  position:absolute;
+  z-index:0;
+  left:5px;
+  right:5px;
+  bottom:0px;
+  height:18px;
+  border-radius:50%;
+  transform:scaleY(.42);
+  pointer-events:none;
 }
-.unit.enemy.selected::after{box-shadow:0 0 0 2px rgba(152,53,45,.95)}
+.unit.selected::before{
+  background:rgba(244,214,112,.24);
+  border:3px solid rgba(255,235,155,.95);
+  box-shadow:0 0 7px rgba(255,224,111,.55);
+}
+.unit.inspected::before{
+  background:rgba(177,62,51,.22);
+  border:3px solid rgba(235,112,97,.92);
+  box-shadow:0 0 7px rgba(214,78,61,.45);
+}
 .unit.done{filter:saturate(.6) brightness(.77)}
 .unit.dead{display:none}
 .hp{position:absolute;left:7px;top:1px;width:48px;height:7px;background:#3c1814;border:1px solid #f0d7a8;z-index:3}
@@ -342,10 +362,11 @@ button{font:inherit}
           <span>RNG <b id="statRng">1</b></span>
           <span>ATK USED <b id="statAttack">No</b></span>
         </div>
-        <div id="status">Select a unit, move on blue tiles, then attack a red unit within its range.</div>
+        <div id="status">Select a Stark unit, move on blue tiles, or tap a Lannister unit to inspect it.</div>
       </div>
     </div>
     <div id="actions">
+      <button class="action" id="attackInspected" type="button" hidden>Attack</button>
       <button class="action" id="newGame" type="button">New Game</button>
     </div>
   </div>
@@ -354,14 +375,14 @@ button{font:inherit}
 <script>
 (() => {
   const COLS=20, ROWS=20, CELL=64;
-  const SAVE_KEY='dynasties-mechanics-v9';
+  const SAVE_KEY='dynasties-mechanics-v10';
   const UNIT_DEFS={
     soldier:{label:'Soldier',cost:300,hp:8,atk:3,def:2,maxMove:2,minRange:1,maxRange:1},
     archer:{label:'Archer',cost:400,hp:8,atk:3,def:1,maxMove:2,minRange:1,maxRange:3}
   };
 
   const state={
-    turn:1,selectedUnitId:'blue-1',selectedBarracks:null,busy:false,nextRecruitId:2,
+    turn:1,selectedUnitId:'blue-1',inspectedUnitId:null,selectedBarracks:null,busy:false,nextRecruitId:2,
     mapZoom:.52,mapX:0,mapY:0,dragging:false,dragMoved:false,dragStartX:0,dragStartY:0,
     mapStartX:0,mapStartY:0,pointers:new Map(),pinching:false,pinchStartDist:0,pinchStartZoom:.52,
     pinchMapX:0,pinchMapY:0
@@ -425,6 +446,7 @@ button{font:inherit}
   const unitAt=(x,y)=>Object.values(units).find(u=>u.alive&&u.x===x&&u.y===y)||null;
   const barracksAt=(x,y)=>Object.values(barracks).find(b=>b.x===x&&b.y===y)||null;
   const selectedUnit=()=>state.selectedUnitId?units[state.selectedUnitId]:null;
+  const inspectedUnit=()=>state.inspectedUnitId?units[state.inspectedUnitId]:null;
   const inRange=(attacker,target)=>{
     const d=manhattan(attacker,target);
     return d>=attacker.minRange && d<=attacker.maxRange;
@@ -455,9 +477,7 @@ button{font:inherit}
       if(u.team==='player'){
         selectUnit(u.id);
       }else{
-        const attacker=selectedUnit();
-        if(attacker&&attacker.team==='player'&&attacker.alive&&inRange(attacker,u)) attack(attacker,u);
-        else setStatus(`${u.name} is out of attack range.`);
+        inspectUnit(u.id);
       }
     });
     unitLayer.appendChild(el);
@@ -589,7 +609,11 @@ button{font:inherit}
     d.hp=Math.max(0,d.hp-dmg);
     a.attacked=true; a.move=0;
     setStatus(`${a.name} attacks ${d.name} for ${dmg} damage.`);
-    if(d.hp<=0){ d.alive=false; setStatus(`${d.name} has fallen.`); }
+    if(d.hp<=0){
+      d.alive=false;
+      if(state.inspectedUnitId===d.id)state.inspectedUnitId=null;
+      setStatus(`${d.name} has fallen.`);
+    }
     updateAll(); checkGameOver();
   }
 
@@ -642,8 +666,25 @@ button{font:inherit}
     const u=units[id];
     if(!u||!u.alive||u.team!=='player'||state.busy)return;
     hideRecruitPopup();
-    state.selectedUnitId=id; state.selectedBarracks=null;
+    state.selectedUnitId=id;
+    state.inspectedUnitId=null;
+    state.selectedBarracks=null;
     setStatus(`${u.name} selected.`);
+    updateAll();
+  }
+
+  function inspectUnit(id){
+    const u=units[id];
+    if(!u||!u.alive||u.team!=='enemy'||state.busy)return;
+    hideRecruitPopup();
+    state.inspectedUnitId=id;
+    state.selectedBarracks=null;
+    const attacker=selectedUnit();
+    if(attacker&&attacker.alive&&inRange(attacker,u)&&!attacker.attacked){
+      setStatus(`${u.name} inspected. ${attacker.name} can attack this unit.`);
+    }else{
+      setStatus(`${u.name} inspected.`);
+    }
     updateAll();
   }
   function selectBarracks(team){
@@ -818,7 +859,7 @@ button{font:inherit}
     living('player').forEach(u=>{u.move=u.maxMove;u.attacked=false});
     living('enemy').forEach(u=>{u.move=u.maxMove;u.attacked=false});
     const first=living('player')[0]||null;
-    state.selectedUnitId=first?first.id:null; state.selectedBarracks=null;
+    state.selectedUnitId=first?first.id:null; state.inspectedUnitId=null; state.selectedBarracks=null;
     setStatus(`Turn ${state.turn}. Both teams gain 100 gold.`);
     updateAll();
     if(first) await followUnitCamera(first,40);
@@ -833,28 +874,42 @@ button{font:inherit}
   function setStatus(msg){ document.getElementById('status').textContent=msg; }
 
   function updateBottomInfo(){
-    const u=selectedUnit()||living('player')[0]||null;
+    const inspected=inspectedUnit();
+    const selected=selectedUnit();
+    const u=(inspected&&inspected.alive)?inspected:(selected||living('player')[0]||null);
     if(!u)return;
+
     const portrait=document.getElementById('portraitImg');
     portrait.style.display='';
     portrait.src=spriteFor(u);
     document.getElementById('selectedName').textContent=u.name;
-    document.getElementById('selectedSub').textContent=u.title;
+    document.getElementById('selectedSub').textContent=u.title + (u.team==='enemy'?' · Enemy':'');
     document.getElementById('statHP').textContent=`${u.hp}/${u.maxHp}`;
     document.getElementById('statAtk').textContent=u.atk;
     document.getElementById('statDef').textContent=u.def;
     document.getElementById('statMov').textContent=`${u.move}/${u.maxMove}`;
     document.getElementById('statRng').textContent=rangeLabel(u);
     document.getElementById('statAttack').textContent=u.attacked?'Yes':'No';
+
+    const attackBtn=document.getElementById('attackInspected');
+    const canAttack=!!(
+      inspected && inspected.alive &&
+      selected && selected.alive &&
+      !selected.attacked &&
+      inRange(selected,inspected)
+    );
+    attackBtn.hidden=!canAttack;
+    if(canAttack)attackBtn.textContent=`Attack ${inspected.kind==='archer'?'Archer':'Soldier'}`;
+
     updateRecruitPopup();
   }
 
   function save(){
     try{
       localStorage.setItem(SAVE_KEY,JSON.stringify({
-        version:8,
+        version:9,
         state:{
-          turn:state.turn,selectedUnitId:state.selectedUnitId,selectedBarracks:state.selectedBarracks,nextRecruitId:state.nextRecruitId,
+          turn:state.turn,selectedUnitId:state.selectedUnitId,inspectedUnitId:state.inspectedUnitId,selectedBarracks:state.selectedBarracks,nextRecruitId:state.nextRecruitId,
           mapZoom:state.mapZoom,mapX:state.mapX,mapY:state.mapY
         },
         teams:teams, units:Object.values(units)
@@ -867,9 +922,10 @@ button{font:inherit}
       const raw=localStorage.getItem(SAVE_KEY);
       if(!raw)return;
       const s=JSON.parse(raw);
-      if(!s||s.version!==8||!Array.isArray(s.units))return;
+      if(!s||s.version!==9||!Array.isArray(s.units))return;
       state.turn=s.state?.turn||1;
       state.selectedUnitId=s.state?.selectedUnitId||null;
+      state.inspectedUnitId=s.state?.inspectedUnitId||null;
       state.selectedBarracks=s.state?.selectedBarracks||null;
       state.nextRecruitId=s.state?.nextRecruitId||2;
       state.mapZoom=s.state?.mapZoom ?? .52;
@@ -893,6 +949,7 @@ button{font:inherit}
       const el=ensureUnitEl(u);
       setUnitPos(u);
       el.classList.toggle('selected',u.id===state.selectedUnitId&&!state.selectedBarracks&&u.alive);
+      el.classList.toggle('inspected',u.id===state.inspectedUnitId&&u.team==='enemy'&&u.alive);
       el.classList.toggle('done',u.alive&&u.move===0&&u.attacked);
       el.classList.toggle('dead',!u.alive);
       el.querySelector('.hpFill').style.width=(u.hp/u.maxHp*100)+'%';
@@ -1049,6 +1106,13 @@ button{font:inherit}
   document.getElementById('barracks-enemy').addEventListener('click',e=>{ e.stopPropagation(); selectBarracks('enemy'); });
   document.getElementById('popupRecruitSoldier').addEventListener('click',()=>{ const u=recruit('player','soldier',true); if(u){hideRecruitPopup(); updateAll();} });
   document.getElementById('popupRecruitArcher').addEventListener('click',()=>{ const u=recruit('player','archer',true); if(u){hideRecruitPopup(); updateAll();} });
+  document.getElementById('attackInspected').addEventListener('click',()=>{
+    const attacker=selectedUnit();
+    const target=inspectedUnit();
+    if(attacker&&target&&attacker.alive&&target.alive&&!attacker.attacked&&inRange(attacker,target)){
+      attack(attacker,target);
+    }
+  });
   document.getElementById('endTurn').addEventListener('click',endTurn);
   document.getElementById('newGame').addEventListener('click',()=>{
     if(confirm('Start a new game?')){

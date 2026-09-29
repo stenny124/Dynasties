@@ -1,12 +1,15 @@
-Dynasties — Mechanics Build v9
+Dynasties — Mechanics Build v10
 
-Small-step reskin from v8:
-- Team Blue renamed to House Stark.
-- Team Red renamed to House Lannister.
-- Added House Stark heraldry in the top-left HUD.
-- Added House Lannister heraldry in the top-right HUD.
-- Replaced the blue soldier sprite with the uploaded Stark soldier.
-- Replaced the red soldier sprite with the uploaded Lannister soldier.
-- Barracks labels now read STARK and LANNISTER.
-- Victory / defeat / turn messages now use the house names.
-- Core mechanics, map size, zooming, camera following and recruitment logic are otherwise unchanged.
+Changes:
+- Replaced Stark and Lannister soldier sprites with the new uploaded artwork.
+- Replaced Stark and Lannister archer sprites with the new uploaded artwork.
+- Reworked selected-unit marker:
+  * now sits beneath the unit's feet
+  * flattened ground-level glow/ellipse
+  * friendly selection uses gold
+  * inspected enemy uses red
+- Enemy units can now be tapped to inspect their full stats and information.
+- Inspecting an enemy no longer immediately attacks it.
+- If the currently selected Stark unit can attack the inspected enemy, an Attack button appears in the bottom HUD.
+- Friendly selection is retained while viewing enemy stats, so attack range/availability still works.
+- Core balance, costs, AI, camera, map and recruitment rules are unchanged.
