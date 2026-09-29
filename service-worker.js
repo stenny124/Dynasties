@@ -1,4 +1,4 @@
-const CACHE='dynasties-mechanics-v10';
+const CACHE='dynasties-mechanics-v11';
 const STATIC=[
   './index.html',
   './assets/team_blue_soldier.png',
@@ -8,7 +8,9 @@ const STATIC=[
   './assets/grass_tile.png',
   './assets/gold_icon.png',
   './assets/house_stark_crest.png',
-  './assets/house_lannister_crest.png'
+  './assets/house_lannister_crest.png',
+  './assets/winterfell.png',
+  './assets/casterly_rock.png'
 ];
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(STATIC)).then(()=>self.skipWaiting()));

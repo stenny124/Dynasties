@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#182014">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dynasties — Mechanics Build v10</title>
+<title>Dynasties — Mechanics Build v11</title>
 <style>
 :root{
   --blue:#315f9b; --red:#93433d; --gold:#d7b96e; --cream:#f3e4bd;
@@ -115,17 +115,32 @@ button{font:inherit}
 #objectLayer,#unitLayer{position:absolute;inset:0;z-index:6;pointer-events:none}
 
 .barracks{
-  position:absolute;width:58px;height:58px;transform:translate(3px,3px);display:grid;place-items:center;
-  pointer-events:auto;border:3px solid #e3cc95;border-radius:7px;color:#fff4d6;font:bold 24px Georgia,serif;
-  box-shadow:0 4px 8px rgba(0,0,0,.35), inset 0 0 0 3px rgba(0,0,0,.18);
+  position:absolute;
+  width:64px;
+  height:64px;
+  transform:translate(0,0);
+  pointer-events:auto;
+  padding:0;
+  border:0;
+  outline:0;
+  background:transparent;
+  box-shadow:none;
 }
-.barracks.player{background:#687483}
-.barracks.enemy{background:#a1261d}
-.barracks.selected{outline:4px solid #ffe98c;outline-offset:3px}
-.barracks .tiny{
-  position:absolute;bottom:-21px;left:50%;transform:translateX(-50%);white-space:nowrap;padding:2px 5px;
-  background:rgba(25,18,12,.9);border:1px solid #9e7b45;font:10px "Courier New",monospace;
+.barracks img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  image-rendering:pixelated;
+  filter:drop-shadow(0 4px 6px rgba(0,0,0,.38));
+  display:block;
 }
+.barracks.selected img{
+  filter:
+    drop-shadow(0 0 0 rgba(0,0,0,0))
+    drop-shadow(0 0 8px rgba(255,233,140,.85))
+    drop-shadow(0 4px 6px rgba(0,0,0,.38));
+}
+.barracks .tiny{display:none}
 
 .unit{
   position:absolute;width:62px;height:76px;transform:translate(1px,-13px);pointer-events:auto;
@@ -324,7 +339,7 @@ button{font:inherit}
       <button class="mapBtn" id="focusMap" type="button" aria-label="Recenter map">◎</button>
     </div>
     <div id="recruitPopup" hidden>
-      <div class="recruitTitle">Recruit at Barracks</div>
+      <div class="recruitTitle">Recruit at Winterfell</div>
       <button class="recruitOption" id="popupRecruitSoldier" type="button">
         <img class="recruitSprite" src="./assets/team_blue_soldier.png" alt="">
         <span class="recruitName">Soldier</span>
@@ -341,8 +356,8 @@ button{font:inherit}
       <div id="grass"></div>
       <div id="overlay"></div>
       <div id="objectLayer">
-        <button class="barracks player" id="barracks-player" type="button" aria-label="House Stark Barracks">S<span class="tiny">STARK</span></button>
-        <button class="barracks enemy" id="barracks-enemy" type="button" aria-label="House Lannister Barracks">L<span class="tiny">LANNISTER</span></button>
+        <button class="barracks player" id="barracks-player" type="button" aria-label="Winterfell"><img src="./assets/winterfell.png" alt="Winterfell"></button>
+        <button class="barracks enemy" id="barracks-enemy" type="button" aria-label="Casterly Rock"><img src="./assets/casterly_rock.png" alt="Casterly Rock"></button>
       </div>
       <div id="unitLayer"></div>
     </div>
@@ -375,7 +390,7 @@ button{font:inherit}
 <script>
 (() => {
   const COLS=20, ROWS=20, CELL=64;
-  const SAVE_KEY='dynasties-mechanics-v10';
+  const SAVE_KEY='dynasties-mechanics-v11';
   const UNIT_DEFS={
     soldier:{label:'Soldier',cost:300,hp:8,atk:3,def:2,maxMove:2,minRange:1,maxRange:1},
     archer:{label:'Archer',cost:400,hp:8,atk:3,def:1,maxMove:2,minRange:1,maxRange:3}
@@ -692,12 +707,12 @@ button{font:inherit}
     if(team==='player'){
       if(!recruitPopup.hidden){ hideRecruitPopup(); updateAll(); return; }
       showRecruitPopup();
-      setStatus('House Stark Barracks selected. Choose a unit to recruit.');
+      setStatus('Winterfell selected. Choose a unit to recruit.');
       updateAll();
       return;
     }
     hideRecruitPopup();
-    setStatus('House Lannister Barracks.');
+    setStatus('Casterly Rock.');
     updateAll();
   }
 
@@ -907,7 +922,7 @@ button{font:inherit}
   function save(){
     try{
       localStorage.setItem(SAVE_KEY,JSON.stringify({
-        version:9,
+        version:10,
         state:{
           turn:state.turn,selectedUnitId:state.selectedUnitId,inspectedUnitId:state.inspectedUnitId,selectedBarracks:state.selectedBarracks,nextRecruitId:state.nextRecruitId,
           mapZoom:state.mapZoom,mapX:state.mapX,mapY:state.mapY
@@ -922,7 +937,7 @@ button{font:inherit}
       const raw=localStorage.getItem(SAVE_KEY);
       if(!raw)return;
       const s=JSON.parse(raw);
-      if(!s||s.version!==9||!Array.isArray(s.units))return;
+      if(!s||s.version!==10||!Array.isArray(s.units))return;
       state.turn=s.state?.turn||1;
       state.selectedUnitId=s.state?.selectedUnitId||null;
       state.inspectedUnitId=s.state?.inspectedUnitId||null;
