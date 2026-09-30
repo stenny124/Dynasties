@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#182014">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dynasties — Mechanics Build v12</title>
+<title>Dynasties — Mechanics Build v13</title>
 <style>
 :root{
   --blue:#315f9b; --red:#93433d; --gold:#d7b96e; --cream:#f3e4bd;
@@ -154,28 +154,17 @@ button{font:inherit}
   width:100%;height:100%;object-fit:contain;image-rendering:pixelated;
   filter:drop-shadow(0 4px 2px rgba(0,0,0,.35));pointer-events:none;transform-origin:center center;
 }
-.unit.selected::before,
-.unit.inspected::before{
-  content:"";
-  position:absolute;
-  z-index:0;
-  left:5px;
-  right:5px;
-  bottom:0px;
-  height:18px;
-  border-radius:50%;
-  transform:scaleY(.42);
-  pointer-events:none;
+.unit.selected img{
+  filter:
+    drop-shadow(0 0 0 rgba(0,0,0,0))
+    drop-shadow(0 0 8px rgba(255,233,140,.88))
+    drop-shadow(0 4px 2px rgba(0,0,0,.35));
 }
-.unit.selected::before{
-  background:rgba(244,214,112,.24);
-  border:3px solid rgba(255,235,155,.95);
-  box-shadow:0 0 7px rgba(255,224,111,.55);
-}
-.unit.inspected::before{
-  background:rgba(177,62,51,.22);
-  border:3px solid rgba(235,112,97,.92);
-  box-shadow:0 0 7px rgba(214,78,61,.45);
+.unit.inspected img{
+  filter:
+    drop-shadow(0 0 0 rgba(0,0,0,0))
+    drop-shadow(0 0 8px rgba(235,112,97,.82))
+    drop-shadow(0 4px 2px rgba(0,0,0,.35));
 }
 .unit.done{filter:saturate(.6) brightness(.77)}
 .unit.dead{display:none}
@@ -377,7 +366,7 @@ button{font:inherit}
           <span>RNG <b id="statRng">1</b></span>
           <span>ATK USED <b id="statAttack">No</b></span>
         </div>
-        <div id="status">Select a Stark unit, move on blue tiles, or tap a Lannister unit to inspect it.</div>
+        <div id="status">Select a Stark unit, move on blue tiles, inspect Lannisters, and expect a smarter enemy turn.</div>
       </div>
     </div>
     <div id="actions">
@@ -390,7 +379,7 @@ button{font:inherit}
 <script>
 (() => {
   const COLS=20, ROWS=20, CELL=64;
-  const SAVE_KEY='dynasties-mechanics-v12';
+  const SAVE_KEY='dynasties-mechanics-v13';
   const UNIT_DEFS={
     soldier:{label:'Soldier',cost:300,hp:8,atk:3,def:2,maxMove:2,minRange:1,maxRange:1},
     archer:{label:'Archer',cost:400,hp:8,atk:3,def:1,maxMove:2,minRange:1,maxRange:3}
@@ -753,38 +742,176 @@ button{font:inherit}
     return units[id];
   }
 
-  function nearestTarget(enemy){
+  function priorityPlayerTarget(unit,fromPos,target){
+    let score=0;
+    score += (target.maxHp-target.hp)*10;
+    if(target.kind==='archer')score += 26;
+    if(target.hp<=3)score += 18;
+    score -= manhattan(fromPos,target)*2;
+    if(unit.kind==='archer' && target.kind==='soldier')score += 4;
+    return score;
+  }
+
+  function preferredPlayerTarget(unit,fromPos){
     return living('player').slice().sort((a,b)=>{
-      const da=Math.min(manhattan(enemy,a), enemy.maxRange) - Math.min(manhattan(enemy,b), enemy.maxRange);
-      if(da!==0)return da;
-      return a.hp-b.hp;
+      return priorityPlayerTarget(unit,fromPos,b)-priorityPlayerTarget(unit,fromPos,a);
     })[0]||null;
   }
 
-  function routeTowardAttackPosition(unit,target){
-    const data=dijkstra(unit,999);
-    let bestTile=null, bestCost=Infinity, bestDist=Infinity;
+  function playerThreatCountAt(x,y){
+    const pos={x,y};
+    return living('player').reduce((n,p)=>{
+      const dist=manhattan(pos,p);
+      const maxReach=p.maxMove + p.maxRange;
+      return n + ((dist<=maxReach && dist>=p.minRange)?1:0);
+    },0);
+  }
 
-    for(let y=0;y<ROWS;y++){
-      for(let x=0;x<COLS;x++){
-        if((x===unit.x && y===unit.y) || barracksAt(x,y)) continue;
-        const occ=unitAt(x,y);
-        if(occ && occ.id!==unit.id) continue;
-        const dist=manhattan({x,y},target);
-        if(dist<unit.minRange || dist>unit.maxRange) continue;
-        const cost=data.best.get(key(x,y));
-        if(cost===undefined) continue;
-        if(cost<bestCost || (cost===bestCost && dist<bestDist)){
-          bestCost=cost; bestDist=dist; bestTile={x,y};
+  function allySupportCount(unit,x,y,range=2){
+    return living('enemy').filter(a=>a.id!==unit.id&&manhattan({x,y},a)<=range).length;
+  }
+
+  function nearestPlayerDistance(x,y){
+    const ps=living('player');
+    if(!ps.length)return 99;
+    return Math.min(...ps.map(p=>manhattan({x,y},p)));
+  }
+
+  function enemyCastlePressure(){
+    const castleCenter={x:barracks.enemy.x+0.5,y:barracks.enemy.y+0.5};
+    return living('player').some(p=>manhattan(castleCenter,p)<=7);
+  }
+
+  function castleDefenseBonus(x,y){
+    if(!enemyCastlePressure())return 0;
+    const center={x:barracks.enemy.x+0.5,y:barracks.enemy.y+0.5};
+    const d=manhattan({x,y},center);
+    return Math.max(0,7-d)*7;
+  }
+
+  function positionScore(unit,x,y,target){
+    const nearest=nearestPlayerDistance(x,y);
+    const threats=playerThreatCountAt(x,y);
+    const allySupport=allySupportCount(unit,x,y,2);
+    const nearbyArchers=living('enemy').filter(a=>a.id!==unit.id&&a.kind==='archer'&&manhattan({x,y},a)<=1).length;
+
+    let score=0;
+    score += allySupport*10;
+    if(allySupport===0 && living('enemy').length>1)score -= 12;
+    score += castleDefenseBonus(x,y);
+
+    if(unit.kind==='archer'){
+      if(nearest===2)score += 28;
+      else if(nearest===3)score += 24;
+      else if(nearest===1)score -= 55;
+      else if(nearest===4)score += 10;
+      else score -= Math.abs(nearest-3)*3;
+      score -= threats*18;
+    }else{
+      score += Math.max(0,7-nearest)*4;
+      if(nearest===1)score += 8;
+      score -= threats*8;
+      score += nearbyArchers*12;
+    }
+
+    if(target){
+      const d=manhattan({x,y},target);
+      if(unit.kind==='archer'){
+        if(d===2)score += 20;
+        else if(d===3)score += 18;
+        else if(d===1)score -= 30;
+        else score -= Math.abs(d-2)*2;
+      }else{
+        score += Math.max(0,6-d)*3;
+      }
+    }
+
+    return score;
+  }
+
+  function attackScore(unit,target,x,y){
+    const pos={x,y};
+    const dist=manhattan(pos,target);
+    const dmg=damage(unit,target);
+    let score=positionScore(unit,x,y,target);
+
+    if(dmg>=target.hp)score += 140;
+    score += dmg*16;
+    score += (target.maxHp-target.hp)*7;
+    if(target.kind==='archer')score += 24;
+    if(target.hp<=3)score += 20;
+
+    if(unit.kind==='archer'){
+      if(dist===2)score += 18;
+      else if(dist===3)score += 14;
+      else if(dist===1)score -= 35;
+    }
+
+    return score;
+  }
+
+  function evaluateEnemyAction(unit){
+    const data=dijkstra(unit,unit.move);
+    let best={
+      score:-1e9,
+      tile:{x:unit.x,y:unit.y},
+      path:[],
+      target:null
+    };
+
+    for(const [k,cost] of data.best.entries()){
+      const [x,y]=k.split(',').map(Number);
+      const tile={x,y};
+      const path=reconstruct(data.prev,unit,tile)||[];
+      const preferred=preferredPlayerTarget(unit,tile);
+      const moveBias=-(cost*1.5);
+
+      const attackables=living('player').filter(t=>{
+        const d=manhattan(tile,t);
+        return d>=unit.minRange && d<=unit.maxRange;
+      });
+
+      if(attackables.length){
+        for(const target of attackables){
+          const score=attackScore(unit,target,x,y)+moveBias;
+          if(score>best.score){
+            best={score,tile,path,target};
+          }
+        }
+      }else{
+        let score=positionScore(unit,x,y,preferred)+moveBias;
+        if(preferred){
+          const d=manhattan(tile,preferred);
+          if(unit.kind==='archer'){
+            if(d===2)score += 18;
+            else if(d===3)score += 15;
+            else if(d===1)score -= 30;
+          }else{
+            score += Math.max(0,7-d)*3;
+          }
+        }
+        if(score>best.score){
+          best={score,tile,path,target:null};
         }
       }
     }
 
-    if(!bestTile)return [];
-    const full=reconstruct(data.prev,unit,bestTile)||[];
-    return full.slice(0,unit.move);
+    return best;
   }
 
+  function chooseEnemyRecruitType(){
+    const enemyArchers=living('enemy').filter(u=>u.kind==='archer').length;
+    const enemySoldiers=living('enemy').filter(u=>u.kind==='soldier').length;
+    const playerArchers=living('player').filter(u=>u.kind==='archer').length;
+    const playerSoldiers=living('player').filter(u=>u.kind==='soldier').length;
+
+    if(enemySoldiers===0)return 'soldier';
+    if(enemySoldiers<enemyArchers+1)return 'soldier';
+    if(teams.enemy.gold>=UNIT_DEFS.archer.cost && playerSoldiers>playerArchers && enemyArchers<Math.ceil(playerSoldiers/2)) return 'archer';
+    if(teams.enemy.gold>=UNIT_DEFS.archer.cost && playerArchers>=playerSoldiers && enemySoldiers>=2 && enemyArchers<enemySoldiers && Math.random()<0.6) return 'archer';
+    if(teams.enemy.gold>=UNIT_DEFS.archer.cost && enemyArchers<2 && Math.random()<0.35) return 'archer';
+    return 'soldier';
+  }
   const wait=ms=>new Promise(r=>setTimeout(r,ms));
 
   async function followUnitCamera(u,hold=0){
@@ -814,7 +941,6 @@ button{font:inherit}
     updateAll();
     setStatus('House Lannister turn…');
 
-    // Show the enemy barracks before a new unit appears.
     if(!teams.enemy.recruited){
       const recruitType=chooseEnemyRecruitType();
       const cost=UNIT_DEFS[recruitType].cost;
@@ -829,24 +955,27 @@ button{font:inherit}
       }
     }
 
-    const enemies=living('enemy').slice();
+    const enemies=living('enemy').slice().sort((a,b)=>{
+      if(a.kind!==b.kind)return a.kind==='soldier' ? -1 : 1;
+      return manhattan(a,{x:barracks.player.x+0.5,y:barracks.player.y+0.5}) - manhattan(b,{x:barracks.player.x+0.5,y:barracks.player.y+0.5});
+    });
+
     for(const enemy of enemies){
-      if(!living('player').length)break;
-      if(enemy.move<=0&&enemy.attacked)continue;
+      if(!enemy.alive || !living('player').length)break;
+      if(enemy.move<=0 && enemy.attacked)continue;
 
       await followUnitCamera(enemy,80);
-      let target=nearestTarget(enemy);
-      if(!target)break;
+      const plan=evaluateEnemyAction(enemy);
+      if(!plan)continue;
 
-      if(!inRange(enemy,target) && enemy.move>0){
-        const path=routeTowardAttackPosition(enemy,target);
-        for(const step of path){
+      if(plan.path && plan.path.length){
+        for(const step of plan.path){
           faceTowardStep(enemy,step);
           enemy.move=Math.max(0,enemy.move-1);
           enemy.x=step.x;
           enemy.y=step.y;
           setUnitPos(enemy);
-          // Camera tracks the destination tile at the same pace as the unit.
+
           const r=fieldViewport.getBoundingClientRect();
           state.mapX=r.width/2-(enemy.x+0.5)*CELL*state.mapZoom;
           state.mapY=r.height/2-(enemy.y+0.5)*CELL*state.mapZoom;
@@ -857,28 +986,34 @@ button{font:inherit}
         }
       }
 
-      const attackable=living('player').filter(p=>inRange(enemy,p)).sort((a,b)=>{
-        if(a.hp!==b.hp)return a.hp-b.hp;
-        return manhattan(enemy,a)-manhattan(enemy,b);
-      });
-      target=attackable[0]||null;
-      if(target&&!enemy.attacked){
+      let target=plan.target;
+      if(!target || !target.alive || !inRange(enemy,target)){
+        const attackables=living('player').filter(p=>inRange(enemy,p)).sort((a,b)=>{
+          return attackScore(enemy,b,enemy.x,enemy.y)-attackScore(enemy,a,enemy.x,enemy.y);
+        });
+        target=attackables[0]||null;
+      }
+
+      if(target && !enemy.attacked){
         await followUnitCamera(enemy,40);
         const dmg=damage(enemy,target);
         target.hp=Math.max(0,target.hp-dmg);
         enemy.attacked=true;
         enemy.move=0;
         setStatus(`${enemy.name} attacks ${target.name} for ${dmg} damage.`);
-        if(target.hp<=0)target.alive=false;
+        if(target.hp<=0){
+          target.alive=false;
+          if(state.inspectedUnitId===target.id)state.inspectedUnitId=null;
+        }
         updateAll();
-        await wait(300);
+        await wait(320);
       }
     }
+
     board.style.transition='none';
     state.busy=false;
     updateAll();
   }
-
   async function endTurn(){
     if(state.busy)return;
     await enemyPhase();
@@ -938,7 +1073,7 @@ button{font:inherit}
   function save(){
     try{
       localStorage.setItem(SAVE_KEY,JSON.stringify({
-        version:11,
+        version:12,
         state:{
           turn:state.turn,selectedUnitId:state.selectedUnitId,inspectedUnitId:state.inspectedUnitId,selectedBarracks:state.selectedBarracks,nextRecruitId:state.nextRecruitId,
           mapZoom:state.mapZoom,mapX:state.mapX,mapY:state.mapY
@@ -953,7 +1088,7 @@ button{font:inherit}
       const raw=localStorage.getItem(SAVE_KEY);
       if(!raw)return;
       const s=JSON.parse(raw);
-      if(!s||s.version!==11||!Array.isArray(s.units))return;
+      if(!s||s.version!==12||!Array.isArray(s.units))return;
       state.turn=s.state?.turn||1;
       state.selectedUnitId=s.state?.selectedUnitId||null;
       state.inspectedUnitId=s.state?.inspectedUnitId||null;
