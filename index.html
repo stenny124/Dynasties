@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#182014">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dynasties — Mechanics Build v11</title>
+<title>Dynasties — Mechanics Build v12</title>
 <style>
 :root{
   --blue:#315f9b; --red:#93433d; --gold:#d7b96e; --cream:#f3e4bd;
@@ -116,8 +116,8 @@ button{font:inherit}
 
 .barracks{
   position:absolute;
-  width:64px;
-  height:64px;
+  width:128px;
+  height:128px;
   transform:translate(0,0);
   pointer-events:auto;
   padding:0;
@@ -390,7 +390,7 @@ button{font:inherit}
 <script>
 (() => {
   const COLS=20, ROWS=20, CELL=64;
-  const SAVE_KEY='dynasties-mechanics-v11';
+  const SAVE_KEY='dynasties-mechanics-v12';
   const UNIT_DEFS={
     soldier:{label:'Soldier',cost:300,hp:8,atk:3,def:2,maxMove:2,minRange:1,maxRange:1},
     archer:{label:'Archer',cost:400,hp:8,atk:3,def:1,maxMove:2,minRange:1,maxRange:3}
@@ -407,14 +407,30 @@ button{font:inherit}
     enemy:{name:'House Lannister',gold:300,income:100,recruited:false}
   };
   const barracks={
-    player:{x:9,y:17,spawn:[{x:9,y:16},{x:10,y:16},{x:10,y:17},{x:10,y:18},{x:9,y:18},{x:8,y:18},{x:8,y:17},{x:8,y:16}]},
-    enemy:{x:9,y:2,spawn:[{x:9,y:3},{x:10,y:3},{x:10,y:2},{x:10,y:1},{x:9,y:1},{x:8,y:1},{x:8,y:2},{x:8,y:3}]}
+    player:{
+      x:8,y:16,w:2,h:2,
+      spawn:[
+        {x:7,y:15},{x:8,y:15},{x:9,y:15},{x:10,y:15},
+        {x:7,y:16},{x:10,y:16},
+        {x:7,y:17},{x:10,y:17},
+        {x:7,y:18},{x:8,y:18},{x:9,y:18},{x:10,y:18}
+      ]
+    },
+    enemy:{
+      x:8,y:1,w:2,h:2,
+      spawn:[
+        {x:7,y:0},{x:8,y:0},{x:9,y:0},{x:10,y:0},
+        {x:7,y:1},{x:10,y:1},
+        {x:7,y:2},{x:10,y:2},
+        {x:7,y:3},{x:8,y:3},{x:9,y:3},{x:10,y:3}
+      ]
+    }
   };
 
   let units={};
   function resetUnits(){
     units={
-      'blue-1':createUnit('player','soldier','blue-1',9,15,false,'right'),
+      'blue-1':createUnit('player','soldier','blue-1',9,14,false,'right'),
       'red-1':createUnit('enemy','soldier','red-1',9,4,false,'left')
     };
   }
@@ -459,7 +475,7 @@ button{font:inherit}
   const manhattan=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
   const living=team=>Object.values(units).filter(u=>u.team===team&&u.alive);
   const unitAt=(x,y)=>Object.values(units).find(u=>u.alive&&u.x===x&&u.y===y)||null;
-  const barracksAt=(x,y)=>Object.values(barracks).find(b=>b.x===x&&b.y===y)||null;
+  const barracksAt=(x,y)=>Object.values(barracks).find(b=>x>=b.x&&x<b.x+(b.w||1)&&y>=b.y&&y<b.y+(b.h||1))||null;
   const selectedUnit=()=>state.selectedUnitId?units[state.selectedUnitId]:null;
   const inspectedUnit=()=>state.inspectedUnitId?units[state.inspectedUnitId]:null;
   const inRange=(attacker,target)=>{
@@ -642,8 +658,8 @@ button{font:inherit}
     if(recruitPopup.hidden)return;
     const b=barracks.player;
     const r=fieldViewport.getBoundingClientRect();
-    const bx=state.mapX+(b.x+0.5)*CELL*state.mapZoom;
-    const by=state.mapY+(b.y+0.5)*CELL*state.mapZoom;
+    const bx=state.mapX+(b.x+(b.w||1)/2)*CELL*state.mapZoom;
+    const by=state.mapY+(b.y+(b.h||1)/2)*CELL*state.mapZoom;
     const popupW=recruitPopup.offsetWidth||184;
     const popupH=recruitPopup.offsetHeight||120;
     const gap=12;
@@ -707,7 +723,7 @@ button{font:inherit}
     if(team==='player'){
       if(!recruitPopup.hidden){ hideRecruitPopup(); updateAll(); return; }
       showRecruitPopup();
-      setStatus('Winterfell selected. Choose a unit to recruit.');
+      setStatus('Winterfell selected. Recruit from the castle.');
       updateAll();
       return;
     }
@@ -804,7 +820,7 @@ button{font:inherit}
       const cost=UNIT_DEFS[recruitType].cost;
       if(teams.enemy.gold>=cost || teams.enemy.gold>=UNIT_DEFS.soldier.cost){
         const actualType=teams.enemy.gold>=cost ? recruitType : 'soldier';
-        await centerCameraOnTile(barracks.enemy.x,barracks.enemy.y,220);
+        await centerCameraOnTile(barracks.enemy.x+0.5,barracks.enemy.y+0.5,220);
         const nu=recruit('enemy',actualType,false);
         if(nu){
           setStatus(`House Lannister recruits a ${UNIT_DEFS[actualType].label.toLowerCase()}.`);
@@ -922,7 +938,7 @@ button{font:inherit}
   function save(){
     try{
       localStorage.setItem(SAVE_KEY,JSON.stringify({
-        version:10,
+        version:11,
         state:{
           turn:state.turn,selectedUnitId:state.selectedUnitId,inspectedUnitId:state.inspectedUnitId,selectedBarracks:state.selectedBarracks,nextRecruitId:state.nextRecruitId,
           mapZoom:state.mapZoom,mapX:state.mapX,mapY:state.mapY
@@ -937,7 +953,7 @@ button{font:inherit}
       const raw=localStorage.getItem(SAVE_KEY);
       if(!raw)return;
       const s=JSON.parse(raw);
-      if(!s||s.version!==10||!Array.isArray(s.units))return;
+      if(!s||s.version!==11||!Array.isArray(s.units))return;
       state.turn=s.state?.turn||1;
       state.selectedUnitId=s.state?.selectedUnitId||null;
       state.inspectedUnitId=s.state?.inspectedUnitId||null;

@@ -1,9 +1,10 @@
-Dynasties — Mechanics Build v11
+Dynasties — Mechanics Build v12
 
-Changes from v10:
-- Replaced the generic Stark barracks with the uploaded Winterfell asset.
-- Replaced the generic Lannister barracks with the uploaded Casterly Rock asset.
-- Recruitment still works exactly the same way as before.
-- Clicking Winterfell still opens the recruitment popup beside it.
-- Selected castle gets a soft gold glow rather than a box outline.
-- All unit art, inspection behavior and combat flow are otherwise unchanged.
+Changes from v11:
+- Winterfell now renders across 4 tiles (2x2).
+- Casterly Rock now renders across 4 tiles (2x2).
+- Movement/pathing treats the full 2x2 castle footprint as occupied.
+- Recruitment still works from the castles.
+- Spawn tiles were adjusted around the larger castle footprint.
+- Recruitment popup now positions itself relative to the centre of the castle.
+- Enemy-turn camera centers more cleanly on Casterly Rock.
