@@ -1,16 +1,12 @@
-Dynasties — Mechanics Build v13
+Dynasties — Mechanics Build v14
 
-Changes from v12:
-- Upgraded the Lannister AI from a nearest-target chase to a score-based tactical AI.
-- AI now weighs:
-  * kill opportunities
-  * focus fire on wounded targets
-  * target priority (especially archers)
-  * archer spacing (prefers 2–3 tile distance)
-  * threat avoidance
-  * ally cohesion / not overextending
-  * soldiers staying closer to friendly archers
-  * castle defense when Winterfell/Stark pressure is nearby
-- Recruitment choices are smarter and composition-aware.
-- Replaced the old ground ring on selected units with an edge glow, matching the style used on selected Winterfell/Casterly Rock.
-- Inspected enemy units still use a red edge glow for clarity.
+Balance / AI changes after archer-heavy playtest:
+- Fixed a duplicate AI recruitment function that was overriding the smarter recruiter.
+- Fixed AI economy behaviour: it can now save 400 gold for an archer instead of automatically spending 300 on a soldier.
+- Lannister recruitment reacts to Stark army composition and specifically answers archer spam.
+- Stronger focus-fire and archer target priority.
+- Stronger cohesion: lone units avoid advancing into multiple overlapping threats.
+- Soldiers more actively screen friendly archers.
+- Lannister archers prefer protected range-2/range-3 firing positions.
+- ENGAGEMENT rule: an archer adjacent to an enemy soldier cannot move away that turn, but can still attack. This is symmetric for both Houses.
+- Selected Stark units use the same gold edge-glow treatment as selected Winterfell; no circle/ground marker.
