@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#182014">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dynasties — Mechanics Build v15</title>
+<title>Dynasties — Mechanics Build v16</title>
 <style>
 :root{
   --blue:#315f9b; --red:#93433d; --gold:#d7b96e; --cream:#f3e4bd;
@@ -385,7 +385,7 @@ button{font:inherit}
 <script>
 (() => {
   const COLS=20, ROWS=20, CELL=64;
-  const SAVE_KEY='dynasties-mechanics-v15';
+  const SAVE_KEY='dynasties-mechanics-v16';
   const UNIT_DEFS={
     soldier:{label:'Soldier',cost:300,hp:8,atk:3,def:2,maxMove:2,minRange:1,maxRange:1},
     archer:{label:'Archer',cost:400,hp:8,atk:3,def:1,maxMove:2,minRange:1,maxRange:3},
@@ -1128,7 +1128,7 @@ button{font:inherit}
   function save(){
     try{
       localStorage.setItem(SAVE_KEY,JSON.stringify({
-        version:14,
+        version:15,
         state:{
           turn:state.turn,selectedUnitId:state.selectedUnitId,inspectedUnitId:state.inspectedUnitId,selectedBarracks:state.selectedBarracks,nextRecruitId:state.nextRecruitId,
           mapZoom:state.mapZoom,mapX:state.mapX,mapY:state.mapY
@@ -1143,7 +1143,7 @@ button{font:inherit}
       const raw=localStorage.getItem(SAVE_KEY);
       if(!raw)return;
       const s=JSON.parse(raw);
-      if(!s||s.version!==14||!Array.isArray(s.units))return;
+      if(!s||s.version!==15||!Array.isArray(s.units))return;
       state.turn=s.state?.turn||1;
       state.selectedUnitId=s.state?.selectedUnitId||null;
       state.inspectedUnitId=s.state?.inspectedUnitId||null;
