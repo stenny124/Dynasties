@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#182014">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dynasties — Mechanics Build v17</title>
+<title>Dynasties — Mechanics Build v18</title>
 <style>
 :root{
   --blue:#315f9b; --red:#93433d; --gold:#d7b96e; --cream:#f3e4bd;
@@ -168,7 +168,7 @@ button{font:inherit}
 }
 .unit.done{filter:saturate(.6) brightness(.77)}
 .unit.dead{display:none}
-.unit.cavalry{width:82px;height:88px;transform:translate(-9px,-23px)}
+.unit.cavalry{width:62px;height:76px;transform:translate(1px,-13px)}
 .hp{position:absolute;left:7px;top:1px;width:48px;height:7px;background:#3c1814;border:1px solid #f0d7a8;z-index:3}
 .hpFill{height:100%;background:#58ae53}
 
@@ -460,7 +460,7 @@ button{font:inherit}
         <img class="menuCrest" src="./assets/house_stark_crest.png" alt="">
         <div>
           <div class="menuTitle">DYNASTIES</div>
-          <div class="menuSubtitle">STARK · LANNISTER</div>
+          <div class="menuSubtitle">WHITE WALKERS · LANNISTER</div>
         </div>
         <img class="menuCrest" src="./assets/house_lannister_crest.png" alt="">
       </div>
@@ -504,9 +504,9 @@ button{font:inherit}
 <div id="game">
   <div id="topbar">
     <div class="team player">
-      <div class="crest"><img src="./assets/house_stark_crest.png" alt="House Stark crest"></div>
+      <div class="crest"><img src="./assets/house_stark_crest.png" alt="White Walkers crest"></div>
       <div>
-        <div class="teamName">House Stark</div>
+        <div class="teamName">White Walkers</div>
         <div class="econ"><span class="goldAmount"><img class="goldIcon" src="./assets/gold_icon.png" alt="gold"><b id="pGold">300</b></span> · <span class="income">+100/turn</span> · <span id="pCount">1</span> units</div>
       </div>
     </div>
@@ -533,7 +533,7 @@ button{font:inherit}
       <button class="mapBtn" id="focusMap" type="button" aria-label="Recenter map">◎</button>
     </div>
     <div id="recruitPopup" hidden>
-      <div class="recruitTitle">Recruit at Winterfell</div>
+      <div class="recruitTitle">Recruit at Ice Fortress</div>
       <button class="recruitOption" id="popupRecruitSoldier" type="button">
         <img class="recruitSprite" src="./assets/team_blue_soldier.png" alt="">
         <span class="recruitName">Soldier</span>
@@ -555,7 +555,7 @@ button{font:inherit}
       <div id="grass"></div>
       <div id="overlay"></div>
       <div id="objectLayer">
-        <button class="barracks player" id="barracks-player" type="button" aria-label="Winterfell"><img src="./assets/winterfell.png" alt="Winterfell"></button>
+        <button class="barracks player" id="barracks-player" type="button" aria-label="Ice Fortress"><img src="./assets/winterfell.png" alt="Ice Fortress"></button>
         <button class="barracks enemy" id="barracks-enemy" type="button" aria-label="Casterly Rock"><img src="./assets/casterly_rock.png" alt="Casterly Rock"></button>
       </div>
       <div id="unitLayer"></div>
@@ -566,8 +566,8 @@ button{font:inherit}
     <div id="info">
       <div id="portrait"><img id="portraitImg" src="./assets/team_blue_soldier.png" alt=""></div>
       <div id="infoText">
-        <div id="selectedName">Stark Soldier 1</div>
-        <div id="selectedSub">Soldier · House Stark</div>
+        <div id="selectedName">White Walker Soldier 1</div>
+        <div id="selectedSub">Soldier · White Walkers</div>
         <div id="stats">
           <span>HP <b id="statHP">8/8</b></span>
           <span>ATK <b id="statAtk">3</b></span>
@@ -576,7 +576,7 @@ button{font:inherit}
           <span>RNG <b id="statRng">1</b></span>
           <span>ATK USED <b id="statAttack">No</b></span>
         </div>
-        <div id="status">Select a Stark unit, move on blue tiles, inspect Lannisters. Archers caught by enemy soldiers or cavalry are ENGAGED and cannot move away.</div>
+        <div id="status">Select a White Walkers unit, move on blue tiles, inspect Lannisters. Archers caught by enemy soldiers or cavalry are ENGAGED and cannot move away.</div>
       </div>
     </div>
     <div id="actions">
@@ -589,7 +589,7 @@ button{font:inherit}
 <script>
 (() => {
   const COLS=20, ROWS=20, CELL=64;
-  const SAVE_KEY='dynasties-mechanics-v17';
+  const SAVE_KEY='dynasties-mechanics-v18';
   const MAPS_KEY='dynasties-created-maps-v1';
   const DEFAULT_MAP={
     id:'default-grass',
@@ -615,7 +615,7 @@ button{font:inherit}
     pinchMapX:0,pinchMapY:0
   };
   const teams={
-    player:{name:'House Stark',gold:300,income:100,recruited:false},
+    player:{name:'White Walkers',gold:300,income:100,recruited:false},
     enemy:{name:'House Lannister',gold:300,income:100,recruited:false}
   };
   const barracks={
@@ -765,7 +765,7 @@ button{font:inherit}
       btn.innerHTML=`${mapPreviewMarkup()}
         <div>
           <div class="mapCardName">${escapeHtml(map.name)}</div>
-          <div class="mapCardMeta">${meta}<br>Winterfell vs Casterly Rock</div>
+          <div class="mapCardMeta">${meta}<br>White Walkers vs Lannister</div>
         </div>`;
       btn.addEventListener('click',()=>startNewGame(map));
       list.appendChild(btn);
@@ -857,12 +857,12 @@ button{font:inherit}
 
   function createUnit(team,kind,id,x,y,recruited=false,facing=null){
     const def=UNIT_DEFS[kind];
-    const prefix=team==='player'?'Stark':'Lannister';
+    const prefix=team==='player'?'White Walker':'Lannister';
     const num=id==='blue-1'||id==='red-1' ? '1' : id.split('-').pop();
     return {
       id,team,kind,
       name:`${prefix} ${def.label} ${num}`,
-      title:`${def.label} · House ${prefix}`,
+      title:`${def.label} · ${team==='player'?'White Walkers':'House Lannister'}`,
       x,y,
       hp:def.hp,maxHp:def.hp,atk:def.atk,def:def.def,
       move:recruited?0:def.maxMove,maxMove:def.maxMove,
@@ -1122,7 +1122,7 @@ button{font:inherit}
     const note=document.getElementById('recruitNote');
     if(t.recruited) note.textContent='A unit has already been recruited this turn.';
     else if(noSpace) note.textContent='No free tile beside the barracks.';
-    else note.textContent=`House Stark gold: ${t.gold}`;
+    else note.textContent=`White Walkers gold: ${t.gold}`;
     positionRecruitPopup();
   }
 
@@ -1164,7 +1164,7 @@ button{font:inherit}
     if(team==='player'){
       if(!recruitPopup.hidden){ hideRecruitPopup(); updateAll(); return; }
       showRecruitPopup();
-      setStatus('Winterfell selected. Recruit from the castle.');
+      setStatus('Ice Fortress selected. Recruit from the castle.');
       updateAll();
       return;
     }
@@ -1188,7 +1188,7 @@ button{font:inherit}
     const id=`${team}-${kind}-${n}`;
     units[id]=createUnit(team,kind,id,spawn.x,spawn.y,true);
     ensureUnitEl(units[id]);
-    const prefix=team==='player'?'Stark':'Lannister';
+    const prefix=team==='player'?'White Walker':'Lannister';
     if(announce)setStatus(`${prefix} recruits an ${def.label.toLowerCase()} for ${def.cost} gold. It can act next turn.`);
     updateAll();
     return units[id];
@@ -1371,7 +1371,7 @@ button{font:inherit}
 
     if(enemyMelee===0)return 'soldier';
 
-    // Clear answer to archer-heavy Stark armies: bring in cavalry if none/too few exist.
+    // Clear answer to archer-heavy White Walker armies: bring in cavalry if none/too few exist.
     if(playerArchers>=2 && enemyCavalry<Math.max(1,Math.ceil(playerArchers/3))) return 'cavalry';
 
     // Match ranged pressure when falling behind.
@@ -1380,7 +1380,7 @@ button{font:inherit}
     // Restore melee backbone if army gets too ranged.
     if(enemyArchers>=enemyMelee) return 'soldier';
 
-    // If Stark starts fielding cavalry, avoid leaving only archers exposed.
+    // If White Walkers start fielding cavalry, avoid leaving only archers exposed.
     if(playerCavalry>enemyCavalry && enemySoldiers<2) return 'soldier';
 
     // Maintain a mixed force.
@@ -1512,7 +1512,7 @@ button{font:inherit}
 
   function checkGameOver(){
     if(living('enemy').length===0){ alert('Victory — House Lannister has no units remaining.'); return true; }
-    if(living('player').length===0){ alert('Defeat — House Stark has no units remaining.'); return true; }
+    if(living('player').length===0){ alert('Defeat — White Walkers have no units remaining.'); return true; }
     return false;
   }
 
@@ -1553,7 +1553,7 @@ button{font:inherit}
     if(!state.gameActive)return;
     try{
       localStorage.setItem(SAVE_KEY,JSON.stringify({
-        version:16,
+        version:17,
         state:{
           turn:state.turn,selectedUnitId:state.selectedUnitId,inspectedUnitId:state.inspectedUnitId,selectedBarracks:state.selectedBarracks,nextRecruitId:state.nextRecruitId,
           mapZoom:state.mapZoom,mapX:state.mapX,mapY:state.mapY
