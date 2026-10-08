@@ -1,4 +1,4 @@
-const CACHE='dynasties-mechanics-v23';
+const CACHE='dynasties-mechanics-v24';
 const STATIC=[
   './index.html',
   './assets/team_blue_soldier.png',
@@ -10,6 +10,8 @@ const STATIC=[
   './assets/uploaded_extra_red_cavalry.png',
   './assets/grass_tile.png',
   './assets/terrain_sea.png',
+  './assets/terrain_forest.png',
+  './assets/terrain_mountain.png',
   './assets/toolbar_units.png',
   './assets/toolbar_terrain.png',
   './assets/gold_icon.png',

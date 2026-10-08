@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#182014">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dynasties — Mechanics Build v23</title>
+<title>Dynasties — Mechanics Build v24</title>
 <style>
 :root{
   --blue:#315f9b; --red:#93433d; --gold:#d7b96e; --cream:#f3e4bd;
@@ -111,6 +111,11 @@ button{font:inherit}
   border-right-color:#2e6fb0;
   border-bottom-color:#2e6fb0;
 }
+.grassCell[data-terrain="forest"],
+.grassCell[data-terrain="mountain"]{
+  background-color:#8ab141;
+}
+
 
 #overlay{position:absolute;inset:0;z-index:4;pointer-events:none}
 .moveCell,.attackCell,.pathCell{position:absolute;width:64px;height:64px;pointer-events:auto}
@@ -485,6 +490,14 @@ button{font:inherit}
   border-right-color:#2e6fb0;
   border-bottom-color:#2e6fb0;
 }
+.creatorTile.forest{
+  background-image:url('./assets/terrain_forest.png');
+  background-color:#8ab141;
+}
+.creatorTile.mountain{
+  background-image:url('./assets/terrain_mountain.png');
+  background-color:#8ab141;
+}
 .creatorTile.locked::after{content:"";position:absolute;inset:0;box-shadow:inset 0 0 0 1px rgba(255,233,178,.14);pointer-events:none}
 #creatorObjectLayer,#creatorUnitLayer{position:absolute;left:0;top:0;pointer-events:none}
 .editorCastle{
@@ -667,7 +680,7 @@ button{font:inherit}
         <button class="menuButton primary small" id="mapCreateNew" type="button">Create New Map</button>
         <button class="menuButton small" id="mapImportButton" type="button">Import Map</button>
       </div>
-      <input id="importMapInput" type="file" accept=".dynmap,.json,application/json">
+      <input id="importMapInput" type="file">
       <div class="mapManagerList" id="mapManagerList"></div>
       <div id="mapManagerMessage"></div>
     </section>
@@ -819,7 +832,7 @@ button{font:inherit}
   const CELL=64, EDITOR_CELL=32, MAX_MAP_SIZE=200, MIN_MAP_SIZE=4;
   const LEGACY_SAVE_KEY='dynasties-mechanics-v21';
   const SAVE_SLOT_PREFIX='dynasties-save-slot-v1-';
-  const MAP_FILE_VERSION=1;
+  const MAP_FILE_VERSION=2;
   const MAPS_KEY='dynasties-created-maps-v1';
   const DEFAULT_MAP={
     id:'default-grass',
@@ -957,7 +970,7 @@ button{font:inherit}
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');
     a.href=url;
-    a.download=`${slugifyMapName(clean.name)}.dynmap`;
+    a.download=`${slugifyMapName(clean.name)}.dynmap.json`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -972,13 +985,14 @@ button{font:inherit}
       throw new Error(`Map dimensions must be between ${MIN_MAP_SIZE} and ${MAX_MAP_SIZE} tiles.`);
     }
     if(!Array.isArray(payload.tiles)||payload.tiles.length!==width*height)throw new Error('Terrain data is incomplete.');
-    const tiles=payload.tiles.map(t=>t==='sea'?'sea':'grass');
+    const validTerrain=new Set(['grass','sea','forest','mountain']);
+    const tiles=payload.tiles.map(t=>validTerrain.has(t)?t:'grass');
     const validTeams=new Set(['player','enemy']);
     const validKinds=new Set(Object.keys(UNIT_DEFS));
     const units=(Array.isArray(payload.units)?payload.units:[])
       .filter(u=>u&&validTeams.has(u.team)&&validKinds.has(u.kind)&&Number.isInteger(Number(u.x))&&Number.isInteger(Number(u.y)))
       .map(u=>({team:u.team,kind:u.kind,x:Number(u.x),y:Number(u.y)}))
-      .filter(u=>u.x>=0&&u.x<width&&u.y>=0&&u.y<height&&tiles[u.y*width+u.x]!=='sea');
+      .filter(u=>u.x>=0&&u.x<width&&u.y>=0&&u.y<height&&!['sea','mountain'].includes(tiles[u.y*width+u.x]));
     const defaults=defaultCastlePositions(width,height);
     const castleFor=team=>{
       const c=payload.castles?.[team];
@@ -1040,11 +1054,11 @@ button{font:inherit}
       const card=document.createElement('div');
       card.className='mapManageCard';
       const source=map.imported?'Imported':'Created here';
-      const sea=map.tiles.filter(t=>t==='sea').length;
+      const editedTerrain=map.tiles.filter(t=>t!=='grass').length;
       card.innerHTML=`${mapPreviewMarkup()}
         <div class="mapManageInfo">
           <div class="mapManageName">${escapeHtml(map.name)}</div>
-          <div class="mapManageMeta">${source} · ${map.width}×${map.height} · ${sea} sea tiles · ${map.units.length} units</div>
+          <div class="mapManageMeta">${source} · ${map.width}×${map.height} · ${editedTerrain} terrain tiles · ${map.units.length} units</div>
           <div class="mapManageActions">
             <button class="mapMiniBtn primary" type="button" data-edit-map="${map.id}">Edit</button>
             <button class="mapMiniBtn" type="button" data-export-map="${map.id}">Export</button>
@@ -1400,7 +1414,8 @@ button{font:inherit}
         tile.className='creatorTile';
         tile.dataset.x=x;tile.dataset.y=y;
         tile.style.width=`${EDITOR_CELL}px`;tile.style.height=`${EDITOR_CELL}px`;
-        if(editorTerrainAt(x,y)==='sea')tile.classList.add('sea');
+        const terrain=editorTerrainAt(x,y);
+        if(terrain!=='grass')tile.classList.add(terrain);
         if(editorCastleAt(x,y))tile.classList.add('locked');
         tile.addEventListener('pointerdown',e=>{
           if(!editorPaletteOpen)return;
@@ -1459,7 +1474,7 @@ button{font:inherit}
     const oc=editorMap.castles[other];
     const overlaps=!(x+1<oc.x||x>oc.x+1||y+1<oc.y||y>oc.y+1);
     if(overlaps)return {ok:false,msg:'HQs cannot overlap.'};
-    for(let yy=y;yy<y+2;yy++)for(let xx=x;xx<x+2;xx++)if(editorTerrainAt(xx,yy)==='sea')return {ok:false,msg:'HQs need a 2×2 grass area.'};
+    for(let yy=y;yy<y+2;yy++)for(let xx=x;xx<x+2;xx++)if(editorTerrainAt(xx,yy)!=='grass')return {ok:false,msg:'HQs need a 2×2 grass area.'};
     return {ok:true};
   }
 
@@ -1469,11 +1484,15 @@ button{font:inherit}
     if(editorTool==='terrain'){
       if(editorCastleAt(x,y)){setEditorMessage('Move the HQ first before changing terrain beneath it.');return;}
       editorMap.tiles[editorIndex(x,y)]=editorSelection;
-      if(editorSelection==='sea')editorMap.units=editorMap.units.filter(u=>!(u.x===x&&u.y===y));
+      if(['sea','mountain'].includes(editorSelection))editorMap.units=editorMap.units.filter(u=>!(u.x===x&&u.y===y));
       const tile=document.querySelector(`.creatorTile[data-x="${x}"][data-y="${y}"]`);
-      if(tile)tile.classList.toggle('sea',editorSelection==='sea');
+      if(tile){
+        tile.classList.remove('sea','forest','mountain');
+        if(editorSelection!=='grass')tile.classList.add(editorSelection);
+      }
       renderEditorObjects();
-      setEditorMessage(editorSelection==='sea'?'Sea painted.':'Grass painted.');
+      const terrainName={grass:'Grass',sea:'Sea',forest:'Forest',mountain:'Mountain'}[editorSelection]||'Terrain';
+      setEditorMessage(`${terrainName} painted.`);
       return;
     }
 
@@ -1495,7 +1514,7 @@ button{font:inherit}
         if(before!==editorMap.units.length)setEditorMessage('Unit removed.');
         renderEditorObjects();return;
       }
-      if(editorTerrainAt(x,y)==='sea'){setEditorMessage('Units cannot be placed on sea.');return;}
+      if(['sea','mountain'].includes(editorTerrainAt(x,y))){setEditorMessage('Units cannot be placed on sea or mountain.');return;}
       const [team,kind]=editorSelection.split(':');
       editorMap.units=editorMap.units.filter(u=>!(u.x===x&&u.y===y));
       editorMap.units.push({team,kind,x,y});
@@ -1521,8 +1540,10 @@ button{font:inherit}
         <div class="editorChoices">
           <button class="editorChoice ${editorSelection==='grass'?'active':''}" data-editor-select="grass" type="button"><img src="./assets/grass_tile.png" alt="Grass"><span>Grass</span></button>
           <button class="editorChoice ${editorSelection==='sea'?'active':''}" data-editor-select="sea" type="button"><img src="./assets/terrain_sea.png" alt="Sea"><span>Sea</span></button>
+          <button class="editorChoice ${editorSelection==='forest'?'active':''}" data-editor-select="forest" type="button"><img src="./assets/terrain_forest.png" alt="Forest"><span>Forest</span></button>
+          <button class="editorChoice ${editorSelection==='mountain'?'active':''}" data-editor-select="mountain" type="button"><img src="./assets/terrain_mountain.png" alt="Mountain"><span>Mountain</span></button>
         </div>`;
-      document.getElementById('editorHint').textContent='Terrain: choose Grass or Sea, then paint directly onto the map.';
+      document.getElementById('editorHint').textContent='Terrain: choose Grass, Sea, Forest or Mountain, then press and drag to paint.';
     }else{
       const unitChoice=(team,kind)=>`<button class="editorChoice ${editorSelection===team+':'+kind?'active':''}" data-editor-select="${team}:${kind}" type="button"><img src="${editorUnitSprite({team,kind})}" alt=""><span>${UNIT_DEFS[kind].label}</span></button>`;
       const hqChoice=(team,src,label)=>`<button class="editorChoice editorHQChoice ${editorSelection==='hq:'+team?'active':''}" data-editor-select="hq:${team}" type="button"><img src="${src}" alt=""><span>${label}</span></button>`;
@@ -1544,7 +1565,7 @@ button{font:inherit}
   function setEditorTool(tool){
     if(editorTool===tool && editorPaletteOpen){closeEditorPalette();return;}
     editorTool=tool;
-    if(tool==='terrain' && !['grass','sea'].includes(editorSelection))editorSelection='grass';
+    if(tool==='terrain' && !['grass','sea','forest','mountain'].includes(editorSelection))editorSelection='grass';
     if(tool==='units' && !String(editorSelection).includes(':') && editorSelection!=='remove')editorSelection='player:soldier';
     document.getElementById('editorTerrainTool').classList.toggle('active',tool==='terrain');
     document.getElementById('editorUnitsTool').classList.toggle('active',tool==='units');
@@ -1579,6 +1600,17 @@ button{font:inherit}
     setEditorMessage(`Map resized to ${newW}×${newH}.`);
   }
 
+  function paintEditorTerrainFromClient(clientX,clientY){
+    if(!editorPainting||!editorPaletteOpen||editorTool!=='terrain'||editorPinching)return;
+    const preview=document.getElementById('creatorPreview');
+    const r=preview.getBoundingClientRect();
+    if(!r.width||!r.height)return;
+    if(clientX<r.left||clientY<r.top||clientX>=r.right||clientY>=r.bottom)return;
+    const x=Math.min(editorCols()-1,Math.max(0,Math.floor((clientX-r.left)/r.width*editorCols())));
+    const y=Math.min(editorRows()-1,Math.max(0,Math.floor((clientY-r.top)/r.height*editorRows())));
+    applyEditorBrush(x,y);
+  }
+
   function editorPointerDistance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
   function editorPointerCenter(a,b){return{x:(a.x+b.x)/2,y:(a.y+b.y)/2}}
 
@@ -1609,6 +1641,10 @@ button{font:inherit}
         const pts=[...editorPointers.values()].slice(0,2),c=editorPointerCenter(pts[0],pts[1]);
         const dist=Math.max(20,editorPointerDistance(pts[0],pts[1]));editorZoom=clampEditorZoom(editorPinchStartZoom*(dist/editorPinchStartDist));
         editorX=c.x-editorPinchMapX*editorZoom;editorY=c.y-editorPinchMapY*editorZoom;applyEditorTransform();return;
+      }
+      if(editorPainting&&editorPaletteOpen&&editorTool==='terrain'){
+        paintEditorTerrainFromClient(e.clientX,e.clientY);
+        return;
       }
       if(editorDragging&&!editorPaletteOpen){
         const dx=e.clientX-editorDragStartX,dy=e.clientY-editorDragStartY;
@@ -1763,13 +1799,19 @@ button{font:inherit}
   }
 
   function terrainPassable(x,y){
-    return terrainAt(x,y)!=='sea';
+    return !['sea','mountain'].includes(terrainAt(x,y));
   }
 
   function renderActiveMapTerrain(){
     [...grass.children].forEach((cell,i)=>{
       const terrain=activeMap.tiles?.[i]||'grass';
-      cell.style.backgroundImage=terrain==='sea'?"url('./assets/terrain_sea.png')":"url('./assets/grass_tile.png')";
+      const terrainAsset={
+        grass:'./assets/grass_tile.png',
+        sea:'./assets/terrain_sea.png',
+        forest:'./assets/terrain_forest.png',
+        mountain:'./assets/terrain_mountain.png'
+      }[terrain]||'./assets/grass_tile.png';
+      cell.style.backgroundImage=`url('${terrainAsset}')`;
       cell.style.backgroundSize='64px 64px';
       cell.dataset.terrain=terrain;
     });
