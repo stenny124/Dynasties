@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#182014">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dynasties — Mechanics Build v27</title>
+<title>Dynasties — Mechanics Build v29</title>
 <style>
 :root{
   --blue:#315f9b; --red:#93433d; --gold:#d7b96e; --cream:#f3e4bd;
@@ -1359,10 +1359,11 @@ button{font:inherit}
   }
 
   const WG_GRASS_VARIANTS=Array.from({length:25},(_,i)=>`./assets/wg_grass_${i}.png`);
-  const WG_SEA_AUTOTILES=Array.from({length:16},(_,i)=>`./assets/wg_sea_auto_${i}.png`);
   const WG_MOUNTAIN_AUTOTILES=Array.from({length:16},(_,i)=>`./assets/wg_mountain_auto_${i}.png`);
-  const WG_COAST_OVERLAYS=Array.from({length:16},(_,i)=>`./assets/wg_coast_overlay_${i}.png`);
   const WG_MOUNTAIN_FULLS=Array.from({length:3},(_,i)=>`./assets/wg_mountain_full_${i}.png`);
+  const WG_OCEAN_OVERLAYS=Array.from({length:8},(_,i)=>`./assets/wg_ocean_overlay_${i}.png`);
+  const WG_CLIFF_OVERLAYS=Array.from({length:16},(_,i)=>`./assets/wg_cliff_overlay_${i}.png`);
+  const WG_MOUNTAIN_SNOW_PEAK='./assets/wg_mountain_snow_peak.png';
 
   function terrainHash(x,y){
     let n=((x+11)*374761393)^((y+29)*668265263);
@@ -1372,7 +1373,12 @@ button{font:inherit}
 
   function terrainMask(map,terrain,x,y,width,height){
     const tiles=map?.tiles||[];
-    const same=(xx,yy)=>xx>=0&&yy>=0&&xx<width&&yy<height&&tiles[yy*width+xx]===terrain;
+    const same=(xx,yy)=>{
+      if(xx<0||yy<0||xx>=width||yy>=height){
+        return terrain==='sea';
+      }
+      return tiles[yy*width+xx]===terrain;
+    };
     return (same(x,y-1)?1:0) | (same(x+1,y)?2:0) | (same(x,y+1)?4:0) | (same(x-1,y)?8:0);
   }
 
@@ -1390,7 +1396,8 @@ button{font:inherit}
 
   function mountainVisual(mask,x,y){
     const count=popcount4(mask);
-    if(count<=1){
+    if(mask===15)return WG_MOUNTAIN_SNOW_PEAK;
+    if(count<=2){
       return WG_MOUNTAIN_FULLS[terrainHash(x,y)%WG_MOUNTAIN_FULLS.length];
     }
     return WG_MOUNTAIN_AUTOTILES[mask];
@@ -1398,7 +1405,8 @@ button{font:inherit}
 
   function applyTerrainVisual(el,terrain,x,y,size,map,width,height){
     const grass=grassVariant(x,y);
-    const coastMask=terrainMask(map,'sea',x,y,width,height);
+    const cliffMask=terrainMask(map,'sea',x,y,width,height);
+
     el.style.backgroundColor='#8ab141';
     el.style.backgroundRepeat='no-repeat';
     el.style.imageRendering='pixelated';
@@ -1407,25 +1415,31 @@ button{font:inherit}
     el.style.borderBottom='1px solid rgba(65,96,41,.23)';
 
     if(terrain==='sea'){
-      const mask=terrainMask(map,'sea',x,y,width,height);
-      el.style.backgroundImage=`url('${WG_SEA_AUTOTILES[mask]}')`;
+      const ocean=WG_OCEAN_OVERLAYS[terrainHash(x,y)%WG_OCEAN_OVERLAYS.length];
+      el.style.backgroundColor='#2d6fae';
+      el.style.backgroundImage=`url('${ocean}')`;
       el.style.backgroundSize=`${size}px ${size}px`;
-      el.style.borderRight='1px solid rgba(48,105,142,.18)';
-      el.style.borderBottom='1px solid rgba(48,105,142,.18)';
+      el.style.borderRight='1px solid rgba(34,84,135,.25)';
+      el.style.borderBottom='1px solid rgba(34,84,135,.25)';
       return;
     }
 
     if(terrain==='mountain'){
       const mask=terrainMask(map,'mountain',x,y,width,height);
       const mountain=mountainVisual(mask,x,y);
-      el.style.backgroundImage=`url('${mountain}'), url('${grass}')`;
-      el.style.backgroundSize=`${size}px ${size}px, ${size}px ${size}px`;
+      if(cliffMask){
+        el.style.backgroundImage=`url('${mountain}'), url('${WG_CLIFF_OVERLAYS[cliffMask]}'), url('${grass}')`;
+        el.style.backgroundSize=`${size}px ${size}px, ${size}px ${size}px, ${size}px ${size}px`;
+      }else{
+        el.style.backgroundImage=`url('${mountain}'), url('${grass}')`;
+        el.style.backgroundSize=`${size}px ${size}px, ${size}px ${size}px`;
+      }
       return;
     }
 
     if(terrain==='forest'){
-      if(coastMask){
-        el.style.backgroundImage=`url('./assets/terrain_forest_overlay.png'), url('${WG_COAST_OVERLAYS[coastMask]}'), url('${grass}')`;
+      if(cliffMask){
+        el.style.backgroundImage=`url('./assets/terrain_forest_overlay.png'), url('${WG_CLIFF_OVERLAYS[cliffMask]}'), url('${grass}')`;
         el.style.backgroundSize=`${size}px ${size}px, ${size}px ${size}px, ${size}px ${size}px`;
       }else{
         el.style.backgroundImage=`url('./assets/terrain_forest_overlay.png'), url('${grass}')`;
@@ -1434,8 +1448,8 @@ button{font:inherit}
       return;
     }
 
-    if(coastMask){
-      el.style.backgroundImage=`url('${WG_COAST_OVERLAYS[coastMask]}'), url('${grass}')`;
+    if(cliffMask){
+      el.style.backgroundImage=`url('${WG_CLIFF_OVERLAYS[cliffMask]}'), url('${grass}')`;
       el.style.backgroundSize=`${size}px ${size}px, ${size}px ${size}px`;
       return;
     }
