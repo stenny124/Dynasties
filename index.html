@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#182014">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dynasties — Mechanics Build v29</title>
+<title>Dynasties — Mechanics Build v30</title>
 <style>
 :root{
   --blue:#315f9b; --red:#93433d; --gold:#d7b96e; --cream:#f3e4bd;
@@ -1405,7 +1405,6 @@ button{font:inherit}
 
   function applyTerrainVisual(el,terrain,x,y,size,map,width,height){
     const grass=grassVariant(x,y);
-    const cliffMask=terrainMask(map,'sea',x,y,width,height);
 
     el.style.backgroundColor='#8ab141';
     el.style.backgroundRepeat='no-repeat';
@@ -1414,46 +1413,41 @@ button{font:inherit}
     el.style.borderRight='1px solid rgba(65,96,41,.23)';
     el.style.borderBottom='1px solid rgba(65,96,41,.23)';
 
+    // Sea has deliberately been reverted to the exact supplied tile.
+    // No beach, cliff or neighbour-aware coastline treatment is applied.
     if(terrain==='sea'){
-      const ocean=WG_OCEAN_OVERLAYS[terrainHash(x,y)%WG_OCEAN_OVERLAYS.length];
       el.style.backgroundColor='#2d6fae';
-      el.style.backgroundImage=`url('${ocean}')`;
+      el.style.backgroundImage=`url('./assets/terrain_sea.png')`;
       el.style.backgroundSize=`${size}px ${size}px`;
-      el.style.borderRight='1px solid rgba(34,84,135,.25)';
-      el.style.borderBottom='1px solid rgba(34,84,135,.25)';
+      el.style.borderRight='1px solid rgba(48,105,142,.18)';
+      el.style.borderBottom='1px solid rgba(48,105,142,.18)';
       return;
     }
 
     if(terrain==='mountain'){
       const mask=terrainMask(map,'mountain',x,y,width,height);
+
+      // A mountain surrounded by mountains on all four cardinal sides uses
+      // the supplied snowy-peak tile exactly, rather than layering it over grass.
+      if(mask===15){
+        el.style.backgroundImage=`url('${WG_MOUNTAIN_SNOW_PEAK}')`;
+        el.style.backgroundSize=`${size}px ${size}px`;
+        return;
+      }
+
       const mountain=mountainVisual(mask,x,y);
-      if(cliffMask){
-        el.style.backgroundImage=`url('${mountain}'), url('${WG_CLIFF_OVERLAYS[cliffMask]}'), url('${grass}')`;
-        el.style.backgroundSize=`${size}px ${size}px, ${size}px ${size}px, ${size}px ${size}px`;
-      }else{
-        el.style.backgroundImage=`url('${mountain}'), url('${grass}')`;
-        el.style.backgroundSize=`${size}px ${size}px, ${size}px ${size}px`;
-      }
-      return;
-    }
-
-    if(terrain==='forest'){
-      if(cliffMask){
-        el.style.backgroundImage=`url('./assets/terrain_forest_overlay.png'), url('${WG_CLIFF_OVERLAYS[cliffMask]}'), url('${grass}')`;
-        el.style.backgroundSize=`${size}px ${size}px, ${size}px ${size}px, ${size}px ${size}px`;
-      }else{
-        el.style.backgroundImage=`url('./assets/terrain_forest_overlay.png'), url('${grass}')`;
-        el.style.backgroundSize=`${size}px ${size}px, ${size}px ${size}px`;
-      }
-      return;
-    }
-
-    if(cliffMask){
-      el.style.backgroundImage=`url('${WG_CLIFF_OVERLAYS[cliffMask]}'), url('${grass}')`;
+      el.style.backgroundImage=`url('${mountain}'), url('${grass}')`;
       el.style.backgroundSize=`${size}px ${size}px, ${size}px ${size}px`;
       return;
     }
 
+    if(terrain==='forest'){
+      el.style.backgroundImage=`url('./assets/terrain_forest_overlay.png'), url('${grass}')`;
+      el.style.backgroundSize=`${size}px ${size}px, ${size}px ${size}px`;
+      return;
+    }
+
+    // Grass is plain grass again. No automatic cliff overlay next to sea.
     el.style.backgroundImage=`url('${grass}')`;
     el.style.backgroundSize=`${size}px ${size}px`;
   }

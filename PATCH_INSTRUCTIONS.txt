@@ -1,1 +1,3 @@
-Overwrite these files in your existing v28/v29 repo with the files in this patch ZIP.
+V30 patch: overwrite the matching files in your existing GitHub repo.
+Sea is reverted to the exact supplied sea tile. Cliff/coast rendering is disabled.
+The supplied snowy mountain tile is used when a mountain has mountain neighbours N/E/S/W.
