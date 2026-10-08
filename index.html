@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#182014">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dynasties — Mechanics Build v18</title>
+<title>Dynasties — Mechanics Build v20</title>
 <style>
 :root{
   --blue:#315f9b; --red:#93433d; --gold:#d7b96e; --cream:#f3e4bd;
@@ -408,34 +408,124 @@ button{font:inherit}
 .mapCardName{font-size:15px;font-weight:bold;margin-bottom:3px}
 .mapCardMeta{font-size:10px;color:#ae9974;line-height:1.35}
 .emptyMaps{padding:12px;border:1px dashed #675433;color:#b9a47b;font-size:11px;text-align:center}
-.createFieldLabel{font-size:11px;color:#c7b185;margin:7px 0 4px}
-#createMapName{
-  width:100%;min-height:44px;padding:8px 10px;
-  color:#fff0c7;background:#15110d;border:1px solid #816536;border-radius:5px;
-  outline:none;font:15px Georgia,serif;
+/* ---------- Map editor ---------- */
+#createMapScreen{
+  position:fixed;
+  inset:0;
+  z-index:5;
+  overflow:hidden;
+  color:#352717;
+  background:
+    linear-gradient(90deg,rgba(125,91,48,.11) 1px,transparent 1px),
+    linear-gradient(rgba(125,91,48,.11) 1px,transparent 1px),
+    #ead7ad;
+  background-size:24px 24px;
 }
-#createMapName:focus{border-color:#c9a15b}
-#creatorPreview{
-  width:100%;
+#createMapScreen[hidden]{display:none}
+.editorTopLine{
+  position:absolute;left:8px;right:8px;top:calc(7px + env(safe-area-inset-top));
+  z-index:8;display:grid;grid-template-columns:auto minmax(120px,270px) auto;gap:7px;align-items:center;
+}
+.editorBack,.editorSave{
+  min-height:38px;padding:5px 10px;border:2px solid #8c6741;border-radius:4px;
+  background:#f2e2bf;color:#513a24;font-weight:bold;box-shadow:0 2px 0 rgba(65,45,24,.2);
+}
+#createMapName{
+  width:100%;min-height:38px;padding:6px 9px;color:#3a2a1b;background:#f8ebce;
+  border:2px solid #8c6741;border-radius:4px;outline:none;font:14px Georgia,serif;text-align:center;
+}
+#createMapName:focus{border-color:#5b4027}
+#editorStage{
+  position:absolute;
+  left:18px;right:18px;
+  top:calc(54px + env(safe-area-inset-top));
+  bottom:calc(18px + env(safe-area-inset-bottom));
+  display:grid;place-items:center;
+}
+#editorMapFrame{
+  position:relative;
+  width:min(92vw,calc(100vh - 96px),760px);
+  max-width:calc(100vw - 36px);
   aspect-ratio:1/1;
-  max-height:330px;
-  margin:10px auto 12px;
+  padding:5px;
+  background:#e8d0a0;
+  border:2px solid #8e6840;
+  box-shadow:0 4px 18px rgba(73,49,25,.26),inset 0 0 0 2px rgba(255,248,225,.6);
+}
+#creatorViewport{position:absolute;inset:5px;overflow:hidden;background:#7baa3e;border:2px solid #78613b}
+#creatorPreview{
+  position:absolute;inset:0;
   display:grid;
   grid-template-columns:repeat(20,1fr);
   grid-template-rows:repeat(20,1fr);
-  border:2px solid #4d6d35;
-  overflow:hidden;
+  touch-action:none;
+  cursor:crosshair;
 }
 .creatorTile{
-  min-width:0;min-height:0;
+  position:relative;min-width:0;min-height:0;
   background-image:url('./assets/grass_tile.png');
-  background-size:100% 100%;
-  image-rendering:pixelated;
-  border-right:1px solid rgba(73,105,48,.22);
-  border-bottom:1px solid rgba(73,105,48,.22);
+  background-size:100% 100%;background-repeat:no-repeat;image-rendering:pixelated;
+  border-right:1px solid rgba(65,96,41,.19);border-bottom:1px solid rgba(65,96,41,.19);
 }
-.creatorActions{display:flex;gap:8px}
-.creatorActions .menuButton{flex:1}
+.creatorTile.sea{background-image:url('./assets/terrain_sea.png')}
+.creatorTile.locked::after{content:"";position:absolute;inset:0;box-shadow:inset 0 0 0 1px rgba(255,233,178,.14);pointer-events:none}
+#creatorObjectLayer,#creatorUnitLayer{position:absolute;inset:0;pointer-events:none}
+.editorCastle{
+  position:absolute;width:10%;height:16.6667%;object-fit:contain;image-rendering:pixelated;
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.32));pointer-events:none;
+}
+.editorPlacedUnit{
+  position:absolute;width:5%;height:8.3333%;object-fit:contain;image-rendering:pixelated;
+  transform:translate(0,-18%);filter:drop-shadow(0 1px 1px rgba(0,0,0,.4));pointer-events:none;
+}
+.editorPlacedUnit.cavalry{width:5.7%;height:9.4%;transform:translate(-6%,-25%)}
+#editorToolbar{
+  position:absolute;z-index:10;left:50%;top:-18px;transform:translateX(-50%);
+  display:flex;gap:2px;padding:3px;border:2px solid #80603b;border-radius:4px;
+  background:#f4e6c8;box-shadow:0 2px 4px rgba(60,42,24,.25);
+}
+.editorTool{
+  width:42px;height:44px;padding:1px;border:2px solid transparent;background:transparent;border-radius:3px;
+}
+.editorTool img{width:100%;height:100%;object-fit:contain;image-rendering:pixelated}
+.editorTool.active{background:#d6b885;border-color:#87623b;box-shadow:inset 0 0 0 1px rgba(255,255,255,.55)}
+#editorPalette{
+  position:absolute;z-index:11;left:50%;top:32px;transform:translateX(-50%);
+  max-width:min(94vw,620px);padding:5px;background:#f5e6c7;border:2px solid #86623d;border-radius:5px;
+  box-shadow:0 5px 12px rgba(65,45,24,.3);
+}
+#editorPalette[hidden]{display:none}
+.editorPaletteTitle{font:bold 10px Georgia,serif;color:#62492e;margin:0 3px 4px}
+.editorChoices{display:flex;gap:4px;overflow-x:auto;max-width:100%;padding-bottom:2px}
+.editorChoice{
+  flex:0 0 auto;min-width:60px;min-height:62px;padding:3px;border:2px solid #a27a49;border-radius:4px;
+  background:#ead5ab;color:#4d3823;text-align:center;font:10px Georgia,serif;
+}
+.editorChoice img{display:block;width:40px;height:40px;margin:0 auto 2px;object-fit:contain;image-rendering:pixelated}
+.editorChoice.active{background:#c8a773;border-color:#604426;box-shadow:inset 0 0 0 1px #f8edcf}
+.editorChoice.removeChoice .removeIcon{display:grid;place-items:center;width:40px;height:40px;margin:0 auto 2px;font:bold 28px Arial;color:#91493e}
+.editorFactionLabel{align-self:center;flex:0 0 auto;padding:0 3px;font:bold 9px Georgia;color:#6a5133;writing-mode:vertical-rl;transform:rotate(180deg)}
+#editorHint{
+  position:absolute;z-index:9;left:8px;bottom:7px;max-width:70%;padding:4px 7px;
+  color:#f8e8c4;background:rgba(54,41,25,.82);border-radius:3px;font:10px Georgia,serif;pointer-events:none;
+}
+#editorMessage{
+  position:absolute;z-index:9;right:8px;bottom:7px;max-width:45%;padding:4px 7px;
+  color:#f7e8c7;background:rgba(54,41,25,.82);border-radius:3px;font:10px Georgia,serif;text-align:right;pointer-events:none;
+}
+@media(max-width:600px) and (orientation:portrait){
+  .editorTopLine{grid-template-columns:auto 1fr auto;top:calc(5px + env(safe-area-inset-top));}
+  .editorBack,.editorSave{min-height:34px;padding:4px 7px;font-size:11px}
+  #createMapName{min-height:34px;font-size:12px}
+  #editorStage{left:7px;right:7px;top:calc(48px + env(safe-area-inset-top));bottom:calc(74px + env(safe-area-inset-bottom));}
+  #editorMapFrame{width:min(96vw,calc((100vh - 145px) * 1.18));aspect-ratio:1/1;}
+  #editorToolbar{top:-20px}
+  #editorPalette{top:31px;max-width:96vw}
+  .editorChoice{min-width:55px;min-height:58px;font-size:9px}
+  .editorChoice img,.editorChoice .removeIcon{width:36px;height:36px}
+  #editorHint{bottom:-54px;left:0;max-width:100%;width:100%;text-align:center;background:#5b4328}
+  #editorMessage{bottom:-72px;right:0;max-width:100%;width:100%;text-align:center;background:transparent;color:#5a4229}
+}
 .menuFooter{
   text-align:center;margin-top:14px;color:#75684e;font-size:9px;line-height:1.35
 }
@@ -483,19 +573,32 @@ button{font:inherit}
     </section>
 
     <section class="menuScreen" id="createMapScreen" hidden>
-      <div class="menuBackRow">
-        <button class="menuBack" data-menu-back type="button">← Back</button>
-        <div class="menuSectionTitle">Create Map</div>
-        <span></span>
+      <div class="editorTopLine">
+        <button class="editorBack" data-menu-back type="button">← Back</button>
+        <input id="createMapName" maxlength="28" placeholder="Map name" autocomplete="off">
+        <button class="editorSave" id="saveCreatedMap" type="button">Save Map</button>
       </div>
-      <div class="menuSectionSub">
-        Map-library foundation. For now maps use the current 20×20 all-grass battlefield; terrain painting and placement tools can be added here next.
-      </div>
-      <div class="createFieldLabel">MAP NAME</div>
-      <input id="createMapName" maxlength="28" placeholder="e.g. The Kingsroad" autocomplete="off">
-      <div id="creatorPreview"></div>
-      <div class="creatorActions">
-        <button class="menuButton primary small" id="saveCreatedMap" type="button">Save Map</button>
+
+      <div id="editorStage">
+        <div id="editorMapFrame">
+          <div id="editorToolbar">
+            <button class="editorTool active" id="editorTerrainTool" type="button" title="Terrain">
+              <img src="./assets/toolbar_terrain.png" alt="Terrain">
+            </button>
+            <button class="editorTool" id="editorUnitsTool" type="button" title="Units">
+              <img src="./assets/toolbar_units.png" alt="Units">
+            </button>
+          </div>
+          <div id="editorPalette"></div>
+
+          <div id="creatorViewport">
+            <div id="creatorPreview"></div>
+            <div id="creatorObjectLayer"></div>
+            <div id="creatorUnitLayer"></div>
+          </div>
+          <div id="editorHint">Terrain: choose Grass or Sea, then paint directly onto the map.</div>
+          <div id="editorMessage"></div>
+        </div>
       </div>
     </section>
   </div>
@@ -589,19 +692,28 @@ button{font:inherit}
 <script>
 (() => {
   const COLS=20, ROWS=20, CELL=64;
-  const SAVE_KEY='dynasties-mechanics-v18';
+  const SAVE_KEY='dynasties-mechanics-v20';
   const MAPS_KEY='dynasties-created-maps-v1';
   const DEFAULT_MAP={
     id:'default-grass',
     name:'Default Grass Map',
     created:false,
     tiles:Array(COLS*ROWS).fill('grass'),
+    units:[
+      {team:'player',kind:'soldier',x:9,y:14},
+      {team:'enemy',kind:'soldier',x:9,y:4}
+    ],
     castles:{
       player:{x:8,y:16},
       enemy:{x:8,y:1}
     }
   };
-  let activeMap={...DEFAULT_MAP,tiles:[...DEFAULT_MAP.tiles],castles:{player:{...DEFAULT_MAP.castles.player},enemy:{...DEFAULT_MAP.castles.enemy}}};
+  let activeMap={
+    ...DEFAULT_MAP,
+    tiles:[...DEFAULT_MAP.tiles],
+    units:DEFAULT_MAP.units.map(u=>({...u})),
+    castles:{player:{...DEFAULT_MAP.castles.player},enemy:{...DEFAULT_MAP.castles.enemy}}
+  };
   const UNIT_DEFS={
     soldier:{label:'Soldier',cost:300,hp:8,atk:3,def:2,maxMove:2,minRange:1,maxRange:1},
     archer:{label:'Archer',cost:400,hp:8,atk:3,def:1,maxMove:2,minRange:1,maxRange:3},
@@ -642,12 +754,14 @@ button{font:inherit}
   let units={};
 
   function cloneMap(map){
+    const fallbackUnits=DEFAULT_MAP.units.map(u=>({...u}));
     return {
       id:map.id,
       name:map.name,
       created:!!map.created,
       createdAt:map.createdAt||null,
-      tiles:Array.isArray(map.tiles)?[...map.tiles]:Array(COLS*ROWS).fill('grass'),
+      tiles:Array.isArray(map.tiles)&&map.tiles.length===COLS*ROWS?[...map.tiles]:Array(COLS*ROWS).fill('grass'),
+      units:Array.isArray(map.units)?map.units.map(u=>({...u})):fallbackUnits,
       castles:{
         player:{...(map.castles?.player||DEFAULT_MAP.castles.player)},
         enemy:{...(map.castles?.enemy||DEFAULT_MAP.castles.enemy)}
@@ -682,6 +796,7 @@ button{font:inherit}
     barracks.enemy.x=ec.x;
     barracks.enemy.y=ec.y;
     positionStaticObjects();
+    if(typeof renderActiveMapTerrain==='function')renderActiveMapTerrain();
   }
 
   function resetTeamState(){
@@ -695,7 +810,7 @@ button{font:inherit}
 
   function resetGameState(){
     state.turn=1;
-    state.selectedUnitId='blue-1';
+    state.selectedUnitId=null;
     state.inspectedUnitId=null;
     state.selectedBarracks=null;
     state.busy=false;
@@ -707,6 +822,8 @@ button{font:inherit}
     resetTeamState();
     unitLayer.innerHTML='';
     resetUnits();
+    const firstPlayer=living('player')[0]||null;
+    state.selectedUnitId=firstPlayer?firstPlayer.id:null;
   }
 
   function hasSavedGame(){
@@ -714,7 +831,7 @@ button{font:inherit}
       const raw=localStorage.getItem(SAVE_KEY);
       if(!raw)return false;
       const s=JSON.parse(raw);
-      return !!(s && s.version===16 && Array.isArray(s.units));
+      return !!(s && s.version===19 && Array.isArray(s.units));
     }catch(e){ return false; }
   }
 
@@ -760,8 +877,8 @@ button{font:inherit}
       btn.type='button';
       btn.className='mapCard';
       const meta=map.created
-        ? `Created map · 20×20 · Grass`
-        : `Built-in map · 20×20 · Grass`;
+        ? `Created map · 20×20 · ${map.tiles.filter(t=>t==='sea').length} sea tiles · ${map.units.length} units`
+        : `Built-in map · 20×20 · Grass · ${map.units.length} units`;
       btn.innerHTML=`${mapPreviewMarkup()}
         <div>
           <div class="mapCardName">${escapeHtml(map.name)}</div>
@@ -778,14 +895,180 @@ button{font:inherit}
     }[c]));
   }
 
+  let editorMap=null;
+  let editorTool='terrain';
+  let editorSelection='grass';
+  let editorPainting=false;
+
+  function editorCastleAt(x,y){
+    const pcs=editorMap?.castles?.player||DEFAULT_MAP.castles.player;
+    const ecs=editorMap?.castles?.enemy||DEFAULT_MAP.castles.enemy;
+    const inFootprint=(c)=>x>=c.x&&x<c.x+2&&y>=c.y&&y<c.y+2;
+    return inFootprint(pcs)||inFootprint(ecs);
+  }
+
+  function editorTerrainAt(x,y){
+    return editorMap?.tiles?.[y*COLS+x]||'grass';
+  }
+
+  function editorUnitAt(x,y){
+    return editorMap?.units?.find(u=>u.x===x&&u.y===y)||null;
+  }
+
+  function editorUnitSprite(u){
+    if(u.kind==='archer')return u.team==='player'?'./assets/team_blue_archer.png':'./assets/team_red_archer.png';
+    if(u.kind==='cavalry')return u.team==='player'?'./assets/team_blue_cavalry.png':'./assets/team_red_cavalry.png';
+    return u.team==='player'?'./assets/team_blue_soldier.png':'./assets/team_red_soldier.png';
+  }
+
   function renderCreatorPreview(){
     const preview=document.getElementById('creatorPreview');
-    if(preview.children.length)return;
-    for(let i=0;i<COLS*ROWS;i++){
-      const tile=document.createElement('div');
-      tile.className='creatorTile';
-      preview.appendChild(tile);
+    preview.innerHTML='';
+    for(let y=0;y<ROWS;y++){
+      for(let x=0;x<COLS;x++){
+        const tile=document.createElement('div');
+        tile.className='creatorTile';
+        tile.dataset.x=x;
+        tile.dataset.y=y;
+        if(editorTerrainAt(x,y)==='sea')tile.classList.add('sea');
+        if(editorCastleAt(x,y))tile.classList.add('locked');
+        tile.addEventListener('pointerdown',e=>{
+          e.preventDefault();
+          editorPainting=true;
+          applyEditorBrush(x,y);
+        });
+        tile.addEventListener('pointerenter',()=>{
+          if(editorPainting&&editorTool==='terrain')applyEditorBrush(x,y);
+        });
+        preview.appendChild(tile);
+      }
     }
+    preview.onpointermove=e=>{
+      if(!editorPainting||editorTool!=='terrain')return;
+      const r=preview.getBoundingClientRect();
+      const px=e.clientX-r.left, py=e.clientY-r.top;
+      if(px<0||py<0||px>=r.width||py>=r.height)return;
+      const x=Math.min(COLS-1,Math.floor(px/r.width*COLS));
+      const y=Math.min(ROWS-1,Math.floor(py/r.height*ROWS));
+      applyEditorBrush(x,y);
+    };
+    renderEditorObjects();
+  }
+
+  function renderEditorObjects(){
+    if(!editorMap)return;
+    const objectLayer=document.getElementById('creatorObjectLayer');
+    const unitLayerEl=document.getElementById('creatorUnitLayer');
+    objectLayer.innerHTML='';
+    unitLayerEl.innerHTML='';
+
+    for(const [team,src] of [['enemy','./assets/casterly_rock.png'],['player','./assets/winterfell.png']]){
+      const c=editorMap.castles[team];
+      const img=document.createElement('img');
+      img.className='editorCastle';
+      img.src=src;
+      img.style.left=`${c.x/20*100}%`;
+      img.style.top=`${c.y/20*100}%`;
+      img.style.width='10%';
+      img.style.height='10%';
+      objectLayer.appendChild(img);
+    }
+
+    editorMap.units.forEach(u=>{
+      const img=document.createElement('img');
+      img.className='editorPlacedUnit '+u.kind;
+      img.src=editorUnitSprite(u);
+      img.style.left=`${u.x/20*100}%`;
+      img.style.top=`${u.y/20*100}%`;
+      unitLayerEl.appendChild(img);
+    });
+  }
+
+  function setEditorMessage(msg){
+    document.getElementById('editorMessage').textContent=msg||'';
+  }
+
+  function applyEditorBrush(x,y){
+    if(!editorMap)return;
+    if(editorCastleAt(x,y)){
+      setEditorMessage('Castle tiles are fixed for now.');
+      return;
+    }
+
+    if(editorTool==='terrain'){
+      editorMap.tiles[y*COLS+x]=editorSelection;
+      if(editorSelection==='sea'){
+        editorMap.units=editorMap.units.filter(u=>!(u.x===x&&u.y===y));
+      }
+      const tile=document.querySelector(`.creatorTile[data-x="${x}"][data-y="${y}"]`);
+      if(tile)tile.classList.toggle('sea',editorSelection==='sea');
+      renderEditorObjects();
+      setEditorMessage(editorSelection==='sea'?'Sea painted.':'Grass painted.');
+      return;
+    }
+
+    if(editorTool==='units'){
+      if(editorSelection==='remove'){
+        const before=editorMap.units.length;
+        editorMap.units=editorMap.units.filter(u=>!(u.x===x&&u.y===y));
+        if(before!==editorMap.units.length)setEditorMessage('Unit removed.');
+        renderEditorObjects();
+        return;
+      }
+      if(editorTerrainAt(x,y)==='sea'){
+        setEditorMessage('Units cannot be placed on sea.');
+        return;
+      }
+      const [team,kind]=editorSelection.split(':');
+      editorMap.units=editorMap.units.filter(u=>!(u.x===x&&u.y===y));
+      editorMap.units.push({team,kind,x,y});
+      renderEditorObjects();
+      setEditorMessage(`${team==='player'?'White Walker':'Lannister'} ${UNIT_DEFS[kind].label} placed.`);
+    }
+  }
+
+  function renderEditorPalette(){
+    const palette=document.getElementById('editorPalette');
+    palette.hidden=false;
+    if(editorTool==='terrain'){
+      palette.innerHTML=`
+        <div class="editorPaletteTitle">TERRAIN</div>
+        <div class="editorChoices">
+          <button class="editorChoice ${editorSelection==='grass'?'active':''}" data-editor-select="grass" type="button">
+            <img src="./assets/grass_tile.png" alt="Grass"><span>Grass</span>
+          </button>
+          <button class="editorChoice ${editorSelection==='sea'?'active':''}" data-editor-select="sea" type="button">
+            <img src="./assets/terrain_sea.png" alt="Sea"><span>Sea</span>
+          </button>
+        </div>`;
+      document.getElementById('editorHint').textContent='Terrain: select a tile, then tap or drag across the map to paint.';
+    }else{
+      const unitChoice=(team,kind)=>`<button class="editorChoice ${editorSelection===team+':'+kind?'active':''}" data-editor-select="${team}:${kind}" type="button"><img src="${editorUnitSprite({team,kind})}" alt=""><span>${UNIT_DEFS[kind].label}</span></button>`;
+      palette.innerHTML=`
+        <div class="editorPaletteTitle">STARTING UNITS</div>
+        <div class="editorChoices">
+          <span class="editorFactionLabel">WHITE WALKERS</span>
+          ${unitChoice('player','soldier')}${unitChoice('player','archer')}${unitChoice('player','cavalry')}
+          <span class="editorFactionLabel">LANNISTER</span>
+          ${unitChoice('enemy','soldier')}${unitChoice('enemy','archer')}${unitChoice('enemy','cavalry')}
+          <button class="editorChoice removeChoice ${editorSelection==='remove'?'active':''}" data-editor-select="remove" type="button"><span class="removeIcon">×</span><span>Remove</span></button>
+        </div>`;
+      document.getElementById('editorHint').textContent='Units: select a unit and tap a grass tile to set its starting position.';
+    }
+
+    palette.querySelectorAll('[data-editor-select]').forEach(btn=>btn.addEventListener('click',()=>{
+      editorSelection=btn.dataset.editorSelect;
+      renderEditorPalette();
+    }));
+  }
+
+  function setEditorTool(tool){
+    editorTool=tool;
+    editorSelection=tool==='terrain'?'grass':'player:soldier';
+    document.getElementById('editorTerrainTool').classList.toggle('active',tool==='terrain');
+    document.getElementById('editorUnitsTool').classList.toggle('active',tool==='units');
+    renderEditorPalette();
+    setEditorMessage('');
   }
 
   function openNewGameScreen(){
@@ -794,30 +1077,40 @@ button{font:inherit}
   }
 
   function openCreateMapScreen(){
+    editorMap={
+      id:null,
+      name:'',
+      created:true,
+      tiles:Array(COLS*ROWS).fill('grass'),
+      units:[],
+      castles:{player:{...DEFAULT_MAP.castles.player},enemy:{...DEFAULT_MAP.castles.enemy}}
+    };
     document.getElementById('createMapName').value='';
-    renderCreatorPreview();
     showMenuScreen('createMapScreen');
+    setEditorTool('terrain');
+    renderCreatorPreview();
   }
 
   function createBlankMap(){
     const input=document.getElementById('createMapName');
     const name=input.value.trim();
     if(!name){
+      setEditorMessage('Give the map a name before saving.');
       input.focus();
+      return;
+    }
+    const hasPlayer=editorMap.units.some(u=>u.team==='player');
+    const hasEnemy=editorMap.units.some(u=>u.team==='enemy');
+    if(!hasPlayer||!hasEnemy){
+      setEditorMessage('Place at least one White Walker and one Lannister unit.');
+      setEditorTool('units');
       return;
     }
     const maps=getCreatedMaps();
     const id='map-'+Date.now().toString(36);
     maps.push({
-      id,
-      name,
-      created:true,
-      createdAt:new Date().toISOString(),
-      tiles:Array(COLS*ROWS).fill('grass'),
-      castles:{
-        player:{x:8,y:16},
-        enemy:{x:8,y:1}
-      }
+      ...cloneMap({...editorMap,id,name,created:true,createdAt:new Date().toISOString()}),
+      id,name,created:true,createdAt:new Date().toISOString()
     });
     saveCreatedMaps(maps);
     openNewGameScreen();
@@ -849,10 +1142,13 @@ button{font:inherit}
   }
 
   function resetUnits(){
-    units={
-      'blue-1':createUnit('player','soldier','blue-1',9,14,false,'right'),
-      'red-1':createUnit('enemy','soldier','red-1',9,4,false,'left')
-    };
+    units={};
+    const placements=(Array.isArray(activeMap.units)?activeMap.units:DEFAULT_MAP.units).filter(u=>u.x>=0&&u.x<COLS&&u.y>=0&&u.y<ROWS);
+    let idx=1;
+    placements.forEach(p=>{
+      const id=`map-${p.team}-${p.kind}-${idx++}`;
+      units[id]=createUnit(p.team,p.kind,id,p.x,p.y,false,p.team==='player'?'right':'left');
+    });
   }
 
   function createUnit(team,kind,id,x,y,recruited=false,facing=null){
@@ -889,6 +1185,25 @@ button{font:inherit}
       grass.appendChild(c);
     }
   }
+
+  function terrainAt(x,y){
+    return activeMap.tiles?.[y*COLS+x]||'grass';
+  }
+
+  function terrainPassable(x,y){
+    return terrainAt(x,y)!=='sea';
+  }
+
+  function renderActiveMapTerrain(){
+    [...grass.children].forEach((cell,i)=>{
+      const terrain=activeMap.tiles?.[i]||'grass';
+      cell.style.backgroundImage=terrain==='sea'?"url('./assets/terrain_sea.png')":"url('./assets/grass_tile.png')";
+      cell.style.backgroundSize='64px 64px';
+      cell.dataset.terrain=terrain;
+    });
+  }
+
+  renderActiveMapTerrain();
 
   const key=(x,y)=>`${x},${y}`;
   const inside=(x,y)=>x>=0&&x<COLS&&y>=0&&y<ROWS;
@@ -979,7 +1294,7 @@ button{font:inherit}
       if(cur.c!==best.get(ck))continue;
       for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
         const nx=cur.x+dx, ny=cur.y+dy;
-        if(!inside(nx,ny)||barracksAt(nx,ny))continue;
+        if(!inside(nx,ny)||!terrainPassable(nx,ny)||barracksAt(nx,ny))continue;
         const occ=unitAt(nx,ny);
         if(occ&&occ.id!==u.id)continue;
         const nc=cur.c+1;
@@ -1063,8 +1378,9 @@ button{font:inherit}
     if(state.busy)return;
     const u=unitAt(x,y);
     if(u){ if(u.team==='player') selectUnit(u.id); return; }
-    if(barracksAt(x,y)){
-      const team=(barracks.player.x===x&&barracks.player.y===y)?'player':'enemy';
+    const castle=barracksAt(x,y);
+    if(castle){
+      const team=castle===barracks.player?'player':'enemy';
       selectBarracks(team);
     }
   }
@@ -1174,7 +1490,7 @@ button{font:inherit}
   }
 
   function nextSpawn(team){
-    return barracks[team].spawn.find(p=>inside(p.x,p.y)&&!unitAt(p.x,p.y)&&!barracksAt(p.x,p.y))||null;
+    return barracks[team].spawn.find(p=>inside(p.x,p.y)&&terrainPassable(p.x,p.y)&&!unitAt(p.x,p.y)&&!barracksAt(p.x,p.y))||null;
   }
 
   function recruit(team,kind='soldier',announce=true){
@@ -1242,6 +1558,71 @@ button{font:inherit}
     return Math.max(0,7-d)*7;
   }
 
+  function distanceToClosestPlayerAt(x,y){
+    const players=living('player');
+    if(!players.length)return 99;
+    return Math.min(...players.map(p=>manhattan({x,y},p)));
+  }
+
+  function enemyFormationDistance(excludeId=null){
+    const vals=living('enemy')
+      .filter(u=>u.id!==excludeId)
+      .map(u=>distanceToClosestPlayerAt(u.x,u.y))
+      .sort((a,b)=>a-b);
+    if(!vals.length)return null;
+    const mid=Math.floor(vals.length/2);
+    return vals.length%2 ? vals[mid] : (vals[mid-1]+vals[mid])/2;
+  }
+
+  function enemyCastleCenter(){
+    return {
+      x:barracks.enemy.x+(barracks.enemy.w||1)/2,
+      y:barracks.enemy.y+(barracks.enemy.h||1)/2
+    };
+  }
+
+  function distanceFromEnemyCastle(x,y){
+    return manhattan({x,y},enemyCastleCenter());
+  }
+
+  function strategicAdvanceScore(unit,x,y){
+    const currentDist=distanceToClosestPlayerAt(unit.x,unit.y);
+    const candidateDist=distanceToClosestPlayerAt(x,y);
+    const progress=currentDist-candidateDist;
+    const formationDist=enemyFormationDistance(unit.id);
+
+    let score=progress*15;
+
+    // When the armies are still separated, units must actually leave the castle
+    // area and make contact rather than winning points by standing together.
+    if(candidateDist>6){
+      score += progress*7;
+    }
+
+    if(formationDist!==null){
+      // Positive leadGap = this unit is farther forward than the rest of the army.
+      const leadGap=formationDist-candidateDist;
+
+      // Do not let one unit sprint far ahead of the formation.
+      if(leadGap>3)score -= (leadGap-3)*24;
+
+      // Back-line units are strongly encouraged to catch the formation.
+      const behindGap=candidateDist-formationDist;
+      if(behindGap>1)score += Math.min(behindGap,5)*10;
+    }
+
+    const currentCastleDist=distanceFromEnemyCastle(unit.x,unit.y);
+    const candidateCastleDist=distanceFromEnemyCastle(x,y);
+
+    // Units clustered around Casterly Rock should deploy outward while the enemy
+    // is still distant. This directly fixes the "army parked at barracks" issue.
+    if(currentDist>6 && currentCastleDist<=4){
+      score += Math.max(0,candidateCastleDist-currentCastleDist)*12;
+    }
+
+    return score;
+  }
+
   function positionScore(unit,x,y,target){
     const nearest=nearestPlayerDistance(x,y);
     const threats=playerThreatCountAt(x,y);
@@ -1249,52 +1630,59 @@ button{font:inherit}
     const closeSupport=allySupportCount(unit,x,y,1);
     const nearbyArchers=living('enemy').filter(a=>a.id!==unit.id&&a.kind==='archer'&&manhattan({x,y},a)<=1).length;
 
-    let score=0;
+    let score=strategicAdvanceScore(unit,x,y);
 
-    score += allySupport*13;
-    score += closeSupport*5;
-    if(allySupport===0 && living('enemy').length>1)score -= 18;
-    if(threats>=2 && allySupport===0)score -= 55;
-    if(threats>allySupport+1)score -= (threats-allySupport-1)*18;
+    // Cohesion still matters, but no longer outweighs simply advancing.
+    score += allySupport*7;
+    score += closeSupport*3;
+
+    // Being totally isolated becomes dangerous only as contact approaches.
+    if(nearest<=7 && allySupport===0 && living('enemy').length>1)score -= 20;
+    if(nearest<=6 && threats>=2 && allySupport===0)score -= 50;
+    if(nearest<=6 && threats>allySupport+1)score -= (threats-allySupport-1)*16;
+
     score += castleDefenseBonus(x,y);
 
     if(unit.kind==='archer'){
-      if(nearest===2)score += 34;
-      else if(nearest===3)score += 30;
-      else if(nearest===1)score -= 75;
-      else if(nearest===4)score += 10;
-      else score -= Math.abs(nearest-3)*4;
+      if(nearest===2)score += 36;
+      else if(nearest===3)score += 32;
+      else if(nearest===1)score -= 78;
+      else if(nearest===4)score += 12;
 
-      score -= threats*23;
-      if(threats>0 && allySupport===0)score -= 32;
-      if(closeSupport>0)score += 8;
+      // Threat avoidance only becomes dominant near the battle.
+      if(nearest<=6)score -= threats*22;
+      if(nearest<=5 && threats>0 && allySupport===0)score -= 30;
+      if(closeSupport>0)score += 7;
     }else if(unit.kind==='cavalry'){
-      score += Math.max(0,9-nearest)*6;
-      if(nearest===1)score += 16;
-      score -= threats*5;
-      if(target && target.kind==='archer')score += 26;
-      if(target && target.kind==='cavalry')score += 4;
+      // Cavalry can close distance quickly, but still shouldn't become a lone missile.
+      score += Math.max(0,9-nearest)*5;
+      if(nearest===1)score += 18;
+      if(nearest<=6)score -= threats*5;
+      if(target && target.kind==='archer')score += 30;
     }else{
       score += Math.max(0,7-nearest)*4;
-      if(nearest===1)score += 12;
-      score -= threats*7;
-      score += nearbyArchers*18;
-      if(nearbyArchers>0 && nearest<=2)score += 12;
+      if(nearest===1)score += 13;
+      if(nearest<=6)score -= threats*7;
+
+      // Infantry screens friendly archers once fighting begins.
+      if(nearest<=7){
+        score += nearbyArchers*15;
+        if(nearbyArchers>0 && nearest<=2)score += 11;
+      }
     }
 
     if(target){
       const d=manhattan({x,y},target);
       if(unit.kind==='archer'){
         if(d===2)score += 25;
-        else if(d===3)score += 21;
-        else if(d===1)score -= 42;
-        else score -= Math.abs(d-2)*3;
+        else if(d===3)score += 22;
+        else if(d===1)score -= 44;
       }else if(unit.kind==='cavalry'){
         score += Math.max(0,8-d)*5;
-        if(target.kind==='archer')score += 26;
+        if(target.kind==='archer')score += 28;
       }else{
         score += Math.max(0,6-d)*4;
-        if(target.kind==='archer')score += 18;
+        if(target.kind==='archer')score += 20;
       }
     }
 
@@ -1320,7 +1708,13 @@ button{font:inherit}
 
   function evaluateEnemyAction(unit){
     const data=dijkstra(unit,availableMove(unit));
-    let best={score:-1e9,tile:{x:unit.x,y:unit.y},path:[],target:null};
+    let best={
+      score:-1e9,
+      tile:{x:unit.x,y:unit.y},
+      path:[],
+      target:null,
+      targetDist:distanceToClosestPlayerAt(unit.x,unit.y)
+    };
 
     for(const [k,cost] of data.best.entries()){
       const [x,y]=k.split(',').map(Number);
@@ -1336,7 +1730,10 @@ button{font:inherit}
       if(attackables.length){
         for(const target of attackables){
           const score=attackScore(unit,target,x,y)+moveBias;
-          if(score>best.score)best={score,tile,path,target};
+          const targetDist=distanceToClosestPlayerAt(x,y);
+          if(score>best.score || (Math.abs(score-best.score)<0.001 && targetDist<best.targetDist)){
+            best={score,tile,path,target,targetDist};
+          }
         }
       }else{
         let score=positionScore(unit,x,y,preferred)+moveBias;
@@ -1351,7 +1748,10 @@ button{font:inherit}
             if(preferred.kind==='archer')score += 15;
           }
         }
-        if(score>best.score)best={score,tile,path,target:null};
+        const targetDist=distanceToClosestPlayerAt(x,y);
+        if(score>best.score || (Math.abs(score-best.score)<0.001 && targetDist<best.targetDist)){
+          best={score,tile,path,target:null,targetDist};
+        }
       }
     }
     return best;
@@ -1390,6 +1790,24 @@ button{font:inherit}
     return 'soldier';
   }
 
+  function enemyBacklogNearCastle(){
+    const c=enemyCastleCenter();
+    return living('enemy').filter(u=>manhattan(u,c)<=4).length;
+  }
+
+  function enemyFrontlineCount(){
+    return living('enemy').filter(u=>distanceToClosestPlayerAt(u.x,u.y)<=8).length;
+  }
+
+  function shouldEnemyRecruit(){
+    // If a large queue is already standing around Casterly Rock while almost nobody
+    // is deployed forward, mobilise that army before adding yet another body.
+    const backlog=enemyBacklogNearCastle();
+    const front=enemyFrontlineCount();
+    if(backlog>=4 && front<=1 && !enemyCastlePressure())return false;
+    return true;
+  }
+
   function enemyRecruitPlan(){
     const kind=chooseEnemyRecruitType();
     const cost=UNIT_DEFS[kind].cost;
@@ -1417,7 +1835,12 @@ button{font:inherit}
     updateAll();
     setStatus('House Lannister turn…');
 
-    if(!teams.enemy.recruited){
+    if(!teams.enemy.recruited && !shouldEnemyRecruit()){
+      setStatus('House Lannister deploys its reserve before recruiting more units.');
+      await wait(180);
+    }
+
+    if(!teams.enemy.recruited && shouldEnemyRecruit()){
       const recruitPlan=enemyRecruitPlan();
       if(recruitPlan.canAfford){
         await centerCameraOnTile(barracks.enemy.x+0.5,barracks.enemy.y+0.5,220);
@@ -1433,10 +1856,18 @@ button{font:inherit}
     }
 
     const enemies=living('enemy').slice().sort((a,b)=>{
-      const rank={cavalry:0,soldier:1,archer:2};
-      if(rank[a.kind]!==rank[b.kind])return rank[a.kind]-rank[b.kind];
-      if(a.hp!==b.hp)return b.hp-a.hp;
-      return manhattan(a,{x:barracks.player.x+0.5,y:barracks.player.y+0.5}) - manhattan(b,{x:barracks.player.x+0.5,y:barracks.player.y+0.5});
+      const aCanAttack=living('player').some(p=>inRange(a,p));
+      const bCanAttack=living('player').some(p=>inRange(b,p));
+      if(aCanAttack!==bCanAttack)return aCanAttack?-1:1;
+
+      // After immediate attacks, move rear units first so the formation closes up
+      // before the leading units decide whether to advance again.
+      const ad=distanceToClosestPlayerAt(a.x,a.y);
+      const bd=distanceToClosestPlayerAt(b.x,b.y);
+      if(ad!==bd)return bd-ad;
+
+      const rank={soldier:0,cavalry:1,archer:2};
+      return rank[a.kind]-rank[b.kind];
     });
 
     for(const enemy of enemies){
@@ -1553,7 +1984,7 @@ button{font:inherit}
     if(!state.gameActive)return;
     try{
       localStorage.setItem(SAVE_KEY,JSON.stringify({
-        version:17,
+        version:19,
         state:{
           turn:state.turn,selectedUnitId:state.selectedUnitId,inspectedUnitId:state.inspectedUnitId,selectedBarracks:state.selectedBarracks,nextRecruitId:state.nextRecruitId,
           mapZoom:state.mapZoom,mapX:state.mapX,mapY:state.mapY
@@ -1563,6 +1994,7 @@ button{font:inherit}
           name:activeMap.name,
           created:activeMap.created,
           tiles:activeMap.tiles,
+          units:activeMap.units,
           castles:activeMap.castles
         },
         teams:teams, units:Object.values(units)
@@ -1790,6 +2222,10 @@ button{font:inherit}
     refreshMainMenu();
   }));
   document.getElementById('saveCreatedMap').addEventListener('click',createBlankMap);
+  document.getElementById('editorTerrainTool').addEventListener('click',()=>setEditorTool('terrain'));
+  document.getElementById('editorUnitsTool').addEventListener('click',()=>setEditorTool('units'));
+  window.addEventListener('pointerup',()=>{editorPainting=false;});
+  window.addEventListener('pointercancel',()=>{editorPainting=false;});
   document.getElementById('createMapName').addEventListener('keydown',e=>{
     if(e.key==='Enter')createBlankMap();
   });
