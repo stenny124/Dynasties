@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#182014">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dynasties — Mechanics Build v16</title>
+<title>Dynasties — Mechanics Build v17</title>
 <style>
 :root{
   --blue:#315f9b; --red:#93433d; --gold:#d7b96e; --cream:#f3e4bd;
@@ -294,9 +294,213 @@ button{font:inherit}
   #status{font-size:10px}
   .action{min-width:82px;min-height:44px;padding:5px 8px;font-size:12px}
 }
+
+/* ---------- Main menu / map library ---------- */
+#menuLayer{
+  position:fixed;
+  inset:0;
+  z-index:1000;
+  display:grid;
+  place-items:center;
+  padding:
+    calc(20px + env(safe-area-inset-top))
+    calc(16px + env(safe-area-inset-right))
+    calc(20px + env(safe-area-inset-bottom))
+    calc(16px + env(safe-area-inset-left));
+  background:
+    radial-gradient(circle at 50% 26%,rgba(124,91,47,.18),transparent 34%),
+    linear-gradient(rgba(8,9,7,.90),rgba(8,9,7,.97));
+  color:var(--cream);
+}
+#menuLayer[hidden]{display:none}
+.menuPanel{
+  width:min(92vw,430px);
+  max-height:92vh;
+  overflow:auto;
+  padding:20px 18px;
+  background:linear-gradient(#241b13,#100d09);
+  border:2px solid #9e783f;
+  border-radius:10px;
+  box-shadow:0 18px 50px rgba(0,0,0,.65),inset 0 0 0 2px rgba(255,224,153,.05);
+}
+.menuScreen[hidden]{display:none}
+.menuHouseRow{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:18px;
+  margin-bottom:4px;
+}
+.menuCrest{width:52px;height:60px;object-fit:contain}
+.menuTitle{
+  text-align:center;
+  margin:3px 0 0;
+  color:#f2ddb0;
+  font-size:34px;
+  letter-spacing:2px;
+}
+.menuSubtitle{
+  text-align:center;
+  color:#ad9870;
+  font-size:11px;
+  margin:2px 0 18px;
+  letter-spacing:1px;
+}
+.menuButtons{display:grid;gap:9px}
+.menuButton{
+  width:100%;
+  min-height:52px;
+  padding:10px 14px;
+  color:#fff0c7;
+  background:linear-gradient(#4a3826,#2a1f16);
+  border:2px solid #b28a4b;
+  border-radius:6px;
+  font-weight:bold;
+  font-size:17px;
+}
+.menuButton.primary{background:linear-gradient(#68402d,#3d241b)}
+.menuButton:disabled{opacity:.38}
+.menuButton.small{min-height:40px;font-size:13px}
+.menuSectionTitle{
+  font-size:22px;
+  color:#f2ddb0;
+  margin:0 0 4px;
+}
+.menuSectionSub{
+  color:#b9a47b;
+  font-size:11px;
+  line-height:1.4;
+  margin-bottom:12px;
+}
+.menuBackRow{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+.menuBack{
+  min-height:36px;padding:6px 10px;color:#e5c98f;background:#251b13;border:1px solid #816536;border-radius:5px;
+}
+#mapList{display:grid;gap:9px}
+.mapCard{
+  width:100%;
+  display:grid;
+  grid-template-columns:90px minmax(0,1fr);
+  gap:11px;
+  align-items:center;
+  padding:8px;
+  color:#f6e4bb;
+  background:#211910;
+  border:1px solid #775d34;
+  border-radius:6px;
+  text-align:left;
+}
+.mapCard:hover{border-color:#c39a55}
+.mapPreview{
+  position:relative;
+  width:90px;height:90px;
+  overflow:hidden;
+  border:1px solid #4d6d35;
+  background-image:url('./assets/grass_tile.png');
+  background-size:18px 18px;
+  image-rendering:pixelated;
+}
+.mapPreview .miniCastle{
+  position:absolute;width:26px;height:26px;object-fit:contain;image-rendering:pixelated;
+}
+.mapPreview .miniCastle.red{top:4px;left:32px}
+.mapPreview .miniCastle.blue{bottom:4px;left:32px}
+.mapCardName{font-size:15px;font-weight:bold;margin-bottom:3px}
+.mapCardMeta{font-size:10px;color:#ae9974;line-height:1.35}
+.emptyMaps{padding:12px;border:1px dashed #675433;color:#b9a47b;font-size:11px;text-align:center}
+.createFieldLabel{font-size:11px;color:#c7b185;margin:7px 0 4px}
+#createMapName{
+  width:100%;min-height:44px;padding:8px 10px;
+  color:#fff0c7;background:#15110d;border:1px solid #816536;border-radius:5px;
+  outline:none;font:15px Georgia,serif;
+}
+#createMapName:focus{border-color:#c9a15b}
+#creatorPreview{
+  width:100%;
+  aspect-ratio:1/1;
+  max-height:330px;
+  margin:10px auto 12px;
+  display:grid;
+  grid-template-columns:repeat(20,1fr);
+  grid-template-rows:repeat(20,1fr);
+  border:2px solid #4d6d35;
+  overflow:hidden;
+}
+.creatorTile{
+  min-width:0;min-height:0;
+  background-image:url('./assets/grass_tile.png');
+  background-size:100% 100%;
+  image-rendering:pixelated;
+  border-right:1px solid rgba(73,105,48,.22);
+  border-bottom:1px solid rgba(73,105,48,.22);
+}
+.creatorActions{display:flex;gap:8px}
+.creatorActions .menuButton{flex:1}
+.menuFooter{
+  text-align:center;margin-top:14px;color:#75684e;font-size:9px;line-height:1.35
+}
+@media(max-width:600px){
+  .menuPanel{padding:16px 13px}
+  .menuTitle{font-size:29px}
+  .menuCrest{width:44px;height:51px}
+  .mapCard{grid-template-columns:76px minmax(0,1fr)}
+  .mapPreview{width:76px;height:76px}
+  .mapPreview .miniCastle{width:22px;height:22px}
+  .mapPreview .miniCastle.red,.mapPreview .miniCastle.blue{left:27px}
+}
+
 </style>
 </head>
 <body>
+
+<div id="menuLayer">
+  <div class="menuPanel">
+    <section class="menuScreen" id="mainMenuScreen">
+      <div class="menuHouseRow">
+        <img class="menuCrest" src="./assets/house_stark_crest.png" alt="">
+        <div>
+          <div class="menuTitle">DYNASTIES</div>
+          <div class="menuSubtitle">STARK · LANNISTER</div>
+        </div>
+        <img class="menuCrest" src="./assets/house_lannister_crest.png" alt="">
+      </div>
+      <div class="menuButtons">
+        <button class="menuButton primary" id="menuLoadGame" type="button">Load Game</button>
+        <button class="menuButton" id="menuNewGame" type="button">New Game</button>
+        <button class="menuButton" id="menuCreateMap" type="button">Create Map</button>
+      </div>
+      <div class="menuFooter" id="saveStatus">No saved game found.</div>
+    </section>
+
+    <section class="menuScreen" id="newGameScreen" hidden>
+      <div class="menuBackRow">
+        <button class="menuBack" data-menu-back type="button">← Back</button>
+        <div class="menuSectionTitle">Choose Map</div>
+        <span></span>
+      </div>
+      <div class="menuSectionSub">Choose a map for the new battle. Your created maps are stored on this device.</div>
+      <div id="mapList"></div>
+    </section>
+
+    <section class="menuScreen" id="createMapScreen" hidden>
+      <div class="menuBackRow">
+        <button class="menuBack" data-menu-back type="button">← Back</button>
+        <div class="menuSectionTitle">Create Map</div>
+        <span></span>
+      </div>
+      <div class="menuSectionSub">
+        Map-library foundation. For now maps use the current 20×20 all-grass battlefield; terrain painting and placement tools can be added here next.
+      </div>
+      <div class="createFieldLabel">MAP NAME</div>
+      <input id="createMapName" maxlength="28" placeholder="e.g. The Kingsroad" autocomplete="off">
+      <div id="creatorPreview"></div>
+      <div class="creatorActions">
+        <button class="menuButton primary small" id="saveCreatedMap" type="button">Save Map</button>
+      </div>
+    </section>
+  </div>
+</div>
+
 <div id="game">
   <div id="topbar">
     <div class="team player">
@@ -377,7 +581,7 @@ button{font:inherit}
     </div>
     <div id="actions">
       <button class="action" id="attackInspected" type="button" hidden>Attack</button>
-      <button class="action" id="newGame" type="button">New Game</button>
+      <button class="action" id="newGame" type="button">Menu</button>
     </div>
   </div>
 </div>
@@ -385,7 +589,19 @@ button{font:inherit}
 <script>
 (() => {
   const COLS=20, ROWS=20, CELL=64;
-  const SAVE_KEY='dynasties-mechanics-v16';
+  const SAVE_KEY='dynasties-mechanics-v17';
+  const MAPS_KEY='dynasties-created-maps-v1';
+  const DEFAULT_MAP={
+    id:'default-grass',
+    name:'Default Grass Map',
+    created:false,
+    tiles:Array(COLS*ROWS).fill('grass'),
+    castles:{
+      player:{x:8,y:16},
+      enemy:{x:8,y:1}
+    }
+  };
+  let activeMap={...DEFAULT_MAP,tiles:[...DEFAULT_MAP.tiles],castles:{player:{...DEFAULT_MAP.castles.player},enemy:{...DEFAULT_MAP.castles.enemy}}};
   const UNIT_DEFS={
     soldier:{label:'Soldier',cost:300,hp:8,atk:3,def:2,maxMove:2,minRange:1,maxRange:1},
     archer:{label:'Archer',cost:400,hp:8,atk:3,def:1,maxMove:2,minRange:1,maxRange:3},
@@ -393,7 +609,7 @@ button{font:inherit}
   };
 
   const state={
-    turn:1,selectedUnitId:'blue-1',inspectedUnitId:null,selectedBarracks:null,busy:false,nextRecruitId:2,
+    turn:1,selectedUnitId:'blue-1',inspectedUnitId:null,selectedBarracks:null,busy:false,nextRecruitId:2,gameActive:false,
     mapZoom:.52,mapX:0,mapY:0,dragging:false,dragMoved:false,dragStartX:0,dragStartY:0,
     mapStartX:0,mapStartY:0,pointers:new Map(),pinching:false,pinchStartDist:0,pinchStartZoom:.52,
     pinchMapX:0,pinchMapY:0
@@ -424,6 +640,214 @@ button{font:inherit}
   };
 
   let units={};
+
+  function cloneMap(map){
+    return {
+      id:map.id,
+      name:map.name,
+      created:!!map.created,
+      createdAt:map.createdAt||null,
+      tiles:Array.isArray(map.tiles)?[...map.tiles]:Array(COLS*ROWS).fill('grass'),
+      castles:{
+        player:{...(map.castles?.player||DEFAULT_MAP.castles.player)},
+        enemy:{...(map.castles?.enemy||DEFAULT_MAP.castles.enemy)}
+      }
+    };
+  }
+
+  function getCreatedMaps(){
+    try{
+      const raw=localStorage.getItem(MAPS_KEY);
+      const maps=raw?JSON.parse(raw):[];
+      return Array.isArray(maps)?maps.filter(m=>m&&m.id&&m.name):[];
+    }catch(e){ return []; }
+  }
+
+  function saveCreatedMaps(maps){
+    try{ localStorage.setItem(MAPS_KEY,JSON.stringify(maps)); }catch(e){}
+  }
+
+  function findMap(id){
+    if(!id || id===DEFAULT_MAP.id)return cloneMap(DEFAULT_MAP);
+    const found=getCreatedMaps().find(m=>m.id===id);
+    return cloneMap(found||DEFAULT_MAP);
+  }
+
+  function applyMap(map){
+    activeMap=cloneMap(map);
+    const pc=activeMap.castles.player;
+    const ec=activeMap.castles.enemy;
+    barracks.player.x=pc.x;
+    barracks.player.y=pc.y;
+    barracks.enemy.x=ec.x;
+    barracks.enemy.y=ec.y;
+    positionStaticObjects();
+  }
+
+  function resetTeamState(){
+    teams.player.gold=300;
+    teams.player.income=100;
+    teams.player.recruited=false;
+    teams.enemy.gold=300;
+    teams.enemy.income=100;
+    teams.enemy.recruited=false;
+  }
+
+  function resetGameState(){
+    state.turn=1;
+    state.selectedUnitId='blue-1';
+    state.inspectedUnitId=null;
+    state.selectedBarracks=null;
+    state.busy=false;
+    state.nextRecruitId=2;
+    state.mapZoom=.52;
+    state.mapX=0;
+    state.mapY=0;
+    hideRecruitPopup();
+    resetTeamState();
+    unitLayer.innerHTML='';
+    resetUnits();
+  }
+
+  function hasSavedGame(){
+    try{
+      const raw=localStorage.getItem(SAVE_KEY);
+      if(!raw)return false;
+      const s=JSON.parse(raw);
+      return !!(s && s.version===16 && Array.isArray(s.units));
+    }catch(e){ return false; }
+  }
+
+  function showMenuScreen(id){
+    document.querySelectorAll('.menuScreen').forEach(s=>s.hidden=s.id!==id);
+  }
+
+  function refreshMainMenu(){
+    const hasSave=hasSavedGame();
+    const loadBtn=document.getElementById('menuLoadGame');
+    loadBtn.disabled=!hasSave;
+    document.getElementById('saveStatus').textContent=hasSave
+      ? 'A saved battle is available on this device.'
+      : 'No saved battle yet — start a new game.';
+  }
+
+  function showMainMenu(){
+    hideRecruitPopup();
+    document.getElementById('menuLayer').hidden=false;
+    showMenuScreen('mainMenuScreen');
+    refreshMainMenu();
+  }
+
+  function hideMainMenu(){
+    document.getElementById('menuLayer').hidden=true;
+  }
+
+  function mapPreviewMarkup(){
+    return `<div class="mapPreview">
+      <img class="miniCastle red" src="./assets/casterly_rock.png" alt="">
+      <img class="miniCastle blue" src="./assets/winterfell.png" alt="">
+    </div>`;
+  }
+
+  function renderMapList(){
+    const list=document.getElementById('mapList');
+    list.innerHTML='';
+    const created=getCreatedMaps();
+    const maps=[cloneMap(DEFAULT_MAP),...created.map(cloneMap)];
+
+    maps.forEach(map=>{
+      const btn=document.createElement('button');
+      btn.type='button';
+      btn.className='mapCard';
+      const meta=map.created
+        ? `Created map · 20×20 · Grass`
+        : `Built-in map · 20×20 · Grass`;
+      btn.innerHTML=`${mapPreviewMarkup()}
+        <div>
+          <div class="mapCardName">${escapeHtml(map.name)}</div>
+          <div class="mapCardMeta">${meta}<br>Winterfell vs Casterly Rock</div>
+        </div>`;
+      btn.addEventListener('click',()=>startNewGame(map));
+      list.appendChild(btn);
+    });
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g,c=>({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+    }[c]));
+  }
+
+  function renderCreatorPreview(){
+    const preview=document.getElementById('creatorPreview');
+    if(preview.children.length)return;
+    for(let i=0;i<COLS*ROWS;i++){
+      const tile=document.createElement('div');
+      tile.className='creatorTile';
+      preview.appendChild(tile);
+    }
+  }
+
+  function openNewGameScreen(){
+    renderMapList();
+    showMenuScreen('newGameScreen');
+  }
+
+  function openCreateMapScreen(){
+    document.getElementById('createMapName').value='';
+    renderCreatorPreview();
+    showMenuScreen('createMapScreen');
+  }
+
+  function createBlankMap(){
+    const input=document.getElementById('createMapName');
+    const name=input.value.trim();
+    if(!name){
+      input.focus();
+      return;
+    }
+    const maps=getCreatedMaps();
+    const id='map-'+Date.now().toString(36);
+    maps.push({
+      id,
+      name,
+      created:true,
+      createdAt:new Date().toISOString(),
+      tiles:Array(COLS*ROWS).fill('grass'),
+      castles:{
+        player:{x:8,y:16},
+        enemy:{x:8,y:1}
+      }
+    });
+    saveCreatedMaps(maps);
+    openNewGameScreen();
+  }
+
+  function startNewGame(map){
+    try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
+    applyMap(map);
+    resetGameState();
+    state.gameActive=true;
+    hideMainMenu();
+    updateAll();
+    setTimeout(focusMap,60);
+  }
+
+  function loadSavedGameFromMenu(){
+    const ok=load();
+    if(!ok){
+      refreshMainMenu();
+      return;
+    }
+    state.gameActive=true;
+    hideMainMenu();
+    updateAll();
+    setTimeout(()=>{
+      if(state.mapX===0 && state.mapY===0)focusMap();
+      else applyMapTransform();
+    },60);
+  }
+
   function resetUnits(){
     units={
       'blue-1':createUnit('player','soldier','blue-1',9,14,false,'right'),
@@ -1126,12 +1550,20 @@ button{font:inherit}
   }
 
   function save(){
+    if(!state.gameActive)return;
     try{
       localStorage.setItem(SAVE_KEY,JSON.stringify({
-        version:15,
+        version:16,
         state:{
           turn:state.turn,selectedUnitId:state.selectedUnitId,inspectedUnitId:state.inspectedUnitId,selectedBarracks:state.selectedBarracks,nextRecruitId:state.nextRecruitId,
           mapZoom:state.mapZoom,mapX:state.mapX,mapY:state.mapY
+        },
+        map:{
+          id:activeMap.id,
+          name:activeMap.name,
+          created:activeMap.created,
+          tiles:activeMap.tiles,
+          castles:activeMap.castles
         },
         teams:teams, units:Object.values(units)
       }));
@@ -1141,9 +1573,12 @@ button{font:inherit}
   function load(){
     try{
       const raw=localStorage.getItem(SAVE_KEY);
-      if(!raw)return;
+      if(!raw)return false;
       const s=JSON.parse(raw);
-      if(!s||s.version!==15||!Array.isArray(s.units))return;
+      if(!s||s.version!==16||!Array.isArray(s.units))return false;
+
+      applyMap(s.map ? cloneMap(s.map) : cloneMap(DEFAULT_MAP));
+
       state.turn=s.state?.turn||1;
       state.selectedUnitId=s.state?.selectedUnitId||null;
       state.inspectedUnitId=s.state?.inspectedUnitId||null;
@@ -1152,6 +1587,7 @@ button{font:inherit}
       state.mapZoom=s.state?.mapZoom ?? .52;
       state.mapX=s.state?.mapX ?? 0;
       state.mapY=s.state?.mapY ?? 0;
+
       for(const k of ['player','enemy']){
         if(s.teams?.[k]){
           teams[k].gold=s.teams[k].gold;
@@ -1159,10 +1595,15 @@ button{font:inherit}
           teams[k].recruited=!!s.teams[k].recruited;
         }
       }
+
+      unitLayer.innerHTML='';
       units={};
       s.units.forEach(u=>{ if(u&&u.id)units[u.id]=u; });
       if(!Object.keys(units).length)resetUnits();
-    }catch(e){}
+      return true;
+    }catch(e){
+      return false;
+    }
   }
 
   function updateAll(){
@@ -1188,7 +1629,7 @@ button{font:inherit}
     updateRecruitPopup();
     updateHighlights();
     applyMapTransform();
-    if(!state.busy)save();
+    if(!state.busy&&state.gameActive)save();
   }
 
   function clampZoom(z){ return Math.max(.28,Math.min(1.45,z)); }
@@ -1337,10 +1778,20 @@ button{font:inherit}
   });
   document.getElementById('endTurn').addEventListener('click',endTurn);
   document.getElementById('newGame').addEventListener('click',()=>{
-    if(confirm('Start a new game?')){
-      try{localStorage.removeItem(SAVE_KEY)}catch(e){}
-      location.reload();
-    }
+    save();
+    showMainMenu();
+  });
+
+  document.getElementById('menuLoadGame').addEventListener('click',loadSavedGameFromMenu);
+  document.getElementById('menuNewGame').addEventListener('click',openNewGameScreen);
+  document.getElementById('menuCreateMap').addEventListener('click',openCreateMapScreen);
+  document.querySelectorAll('[data-menu-back]').forEach(btn=>btn.addEventListener('click',()=>{
+    showMenuScreen('mainMenuScreen');
+    refreshMainMenu();
+  }));
+  document.getElementById('saveCreatedMap').addEventListener('click',createBlankMap);
+  document.getElementById('createMapName').addEventListener('keydown',e=>{
+    if(e.key==='Enter')createBlankMap();
   });
 
   if('serviceWorker' in navigator){
@@ -1365,12 +1816,9 @@ button{font:inherit}
   window.addEventListener('orientationchange',()=>setTimeout(focusMap,180));
 
   positionStaticObjects();
-  load();
+  state.gameActive=false;
   updateAll();
-  setTimeout(()=>{
-    if(state.mapX===0 && state.mapY===0) focusMap();
-    else applyMapTransform();
-  },80);
+  showMainMenu();
 })();
 </script>
 </body>
