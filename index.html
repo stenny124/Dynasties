@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#182014">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dynasties — Mechanics Build v22</title>
+<title>Dynasties — Mechanics Build v23</title>
 <style>
 :root{
   --blue:#315f9b; --red:#93433d; --gold:#d7b96e; --cream:#f3e4bd;
@@ -595,6 +595,32 @@ button{font:inherit}
 .saveSlotMeta{font-size:10px;line-height:1.4;color:#ae9974}
 .saveSlotEmpty{color:#7f735c;font-style:italic}
 
+
+.mapManagerButtons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.mapManagerList{display:grid;gap:9px}
+.mapManageCard{
+  display:grid;grid-template-columns:76px minmax(0,1fr);gap:10px;align-items:center;
+  padding:8px;background:#211910;border:1px solid #775d34;border-radius:6px;color:#f6e4bb;
+}
+.mapManageInfo{min-width:0}
+.mapManageName{font-size:15px;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mapManageMeta{font-size:10px;color:#ae9974;line-height:1.35;margin:3px 0 7px}
+.mapManageActions{display:flex;gap:6px;flex-wrap:wrap}
+.mapMiniBtn{
+  min-height:31px;padding:4px 8px;border:1px solid #8f6c3b;border-radius:4px;
+  background:#3b2b1e;color:#f3dfb4;font:bold 10px Georgia,serif;
+}
+.mapMiniBtn.primary{background:#59402b}
+#importMapInput{display:none}
+#mapManagerMessage{min-height:16px;margin-top:8px;text-align:center;color:#cbb388;font-size:10px}
+@media(max-width:600px){
+  .mapManagerButtons{grid-template-columns:1fr}
+  .mapManageCard{grid-template-columns:68px minmax(0,1fr)}
+  .mapManageCard .mapPreview{width:68px;height:68px}
+  .mapManageCard .mapPreview .miniCastle{width:20px;height:20px}
+  .mapManageCard .mapPreview .miniCastle.red,.mapManageCard .mapPreview .miniCastle.blue{left:24px}
+}
+
 </style>
 </head>
 <body>
@@ -629,6 +655,23 @@ button{font:inherit}
       <div class="saveSlotList" id="saveSlotList"></div>
     </section>
 
+
+    <section class="menuScreen" id="mapManagerScreen" hidden>
+      <div class="menuBackRow">
+        <button class="menuBack" data-menu-back type="button">← Back</button>
+        <div class="menuSectionTitle">Create Map</div>
+        <span></span>
+      </div>
+      <div class="menuSectionSub">Create a new map, edit one already stored on this device, or import a map exported from another device.</div>
+      <div class="mapManagerButtons">
+        <button class="menuButton primary small" id="mapCreateNew" type="button">Create New Map</button>
+        <button class="menuButton small" id="mapImportButton" type="button">Import Map</button>
+      </div>
+      <input id="importMapInput" type="file" accept=".dynmap,.json,application/json">
+      <div class="mapManagerList" id="mapManagerList"></div>
+      <div id="mapManagerMessage"></div>
+    </section>
+
     <section class="menuScreen" id="newGameScreen" hidden>
       <div class="menuBackRow">
         <button class="menuBack" data-menu-back type="button">← Back</button>
@@ -641,7 +684,7 @@ button{font:inherit}
 
     <section class="menuScreen" id="createMapScreen" hidden>
       <div class="editorTopLine">
-        <button class="editorBack" data-menu-back type="button">← Back</button>
+        <button class="editorBack" id="editorBackToMaps" type="button">← Back</button>
         <input id="createMapName" maxlength="28" placeholder="Map name" autocomplete="off">
         <button class="editorSave" id="saveCreatedMap" type="button">Save Map</button>
       </div>
@@ -776,6 +819,7 @@ button{font:inherit}
   const CELL=64, EDITOR_CELL=32, MAX_MAP_SIZE=200, MIN_MAP_SIZE=4;
   const LEGACY_SAVE_KEY='dynasties-mechanics-v21';
   const SAVE_SLOT_PREFIX='dynasties-save-slot-v1-';
+  const MAP_FILE_VERSION=1;
   const MAPS_KEY='dynasties-created-maps-v1';
   const DEFAULT_MAP={
     id:'default-grass',
@@ -863,6 +907,8 @@ button{font:inherit}
       name:map?.name||'Untitled Map',
       created:!!map?.created,
       createdAt:map?.createdAt||null,
+      updatedAt:map?.updatedAt||null,
+      imported:!!map?.imported,
       width,height,tiles,
       units:Array.isArray(map?.units)?map.units.map(u=>({...u})):fallbackUnits,
       castles:{
@@ -882,6 +928,138 @@ button{font:inherit}
 
   function saveCreatedMaps(maps){
     try{ localStorage.setItem(MAPS_KEY,JSON.stringify(maps)); }catch(e){}
+  }
+
+
+  function slugifyMapName(name){
+    return String(name||'dynasties-map')
+      .trim().toLowerCase()
+      .replace(/[^a-z0-9]+/g,'-')
+      .replace(/^-+|-+$/g,'') || 'dynasties-map';
+  }
+
+  function exportMapFile(map){
+    const clean=cloneMap(map);
+    const payload={
+      format:'dynasties-map',
+      version:MAP_FILE_VERSION,
+      exportedAt:new Date().toISOString(),
+      map:{
+        name:clean.name,
+        width:clean.width,
+        height:clean.height,
+        tiles:clean.tiles,
+        units:clean.units,
+        castles:clean.castles
+      }
+    };
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=`${slugifyMapName(clean.name)}.dynmap`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1200);
+  }
+
+  function validateImportedMap(raw){
+    const payload=(raw&&raw.format==='dynasties-map')?raw.map:raw?.map||raw;
+    if(!payload||typeof payload!=='object')throw new Error('This file does not contain a Dynasties map.');
+    const width=Number(payload.width),height=Number(payload.height);
+    if(!Number.isInteger(width)||!Number.isInteger(height)||width<MIN_MAP_SIZE||height<MIN_MAP_SIZE||width>MAX_MAP_SIZE||height>MAX_MAP_SIZE){
+      throw new Error(`Map dimensions must be between ${MIN_MAP_SIZE} and ${MAX_MAP_SIZE} tiles.`);
+    }
+    if(!Array.isArray(payload.tiles)||payload.tiles.length!==width*height)throw new Error('Terrain data is incomplete.');
+    const tiles=payload.tiles.map(t=>t==='sea'?'sea':'grass');
+    const validTeams=new Set(['player','enemy']);
+    const validKinds=new Set(Object.keys(UNIT_DEFS));
+    const units=(Array.isArray(payload.units)?payload.units:[])
+      .filter(u=>u&&validTeams.has(u.team)&&validKinds.has(u.kind)&&Number.isInteger(Number(u.x))&&Number.isInteger(Number(u.y)))
+      .map(u=>({team:u.team,kind:u.kind,x:Number(u.x),y:Number(u.y)}))
+      .filter(u=>u.x>=0&&u.x<width&&u.y>=0&&u.y<height&&tiles[u.y*width+u.x]!=='sea');
+    const defaults=defaultCastlePositions(width,height);
+    const castleFor=team=>{
+      const c=payload.castles?.[team];
+      const x=Number(c?.x),y=Number(c?.y);
+      if(!Number.isInteger(x)||!Number.isInteger(y)||x<0||y<0||x+1>=width||y+1>=height)return {...defaults[team]};
+      return {x,y};
+    };
+    const castles={player:castleFor('player'),enemy:castleFor('enemy')};
+    const overlaps=!(castles.player.x+1<castles.enemy.x||castles.player.x>castles.enemy.x+1||castles.player.y+1<castles.enemy.y||castles.player.y>castles.enemy.y+1);
+    if(overlaps)throw new Error('The two HQs overlap.');
+    for(const team of ['player','enemy']){
+      const c=castles[team];
+      for(let y=c.y;y<c.y+2;y++)for(let x=c.x;x<c.x+2;x++)tiles[y*width+x]='grass';
+    }
+    const safeUnits=units.filter(u=>{
+      for(const team of ['player','enemy']){
+        const c=castles[team];
+        if(u.x>=c.x&&u.x<c.x+2&&u.y>=c.y&&u.y<c.y+2)return false;
+      }
+      return true;
+    });
+    return {
+      id:'map-import-'+Date.now().toString(36),
+      name:String(payload.name||'Imported Map').slice(0,28),
+      created:true,
+      imported:true,
+      createdAt:new Date().toISOString(),
+      updatedAt:new Date().toISOString(),
+      width,height,tiles,units:safeUnits,castles
+    };
+  }
+
+  async function importMapFile(file){
+    if(!file)return;
+    const msg=document.getElementById('mapManagerMessage');
+    try{
+      const text=await file.text();
+      const parsed=JSON.parse(text);
+      const map=validateImportedMap(parsed);
+      const maps=getCreatedMaps();
+      maps.push(map);
+      saveCreatedMaps(maps);
+      msg.textContent=`Imported “${map.name}”.`;
+      renderMapManager();
+    }catch(e){
+      msg.textContent=e?.message||'Could not import this map.';
+    }
+  }
+
+  function renderMapManager(){
+    const list=document.getElementById('mapManagerList');
+    list.innerHTML='';
+    const maps=getCreatedMaps().map(cloneMap);
+    if(!maps.length){
+      list.innerHTML='<div class="emptyMaps">No created or imported maps on this device yet.</div>';
+      return;
+    }
+    maps.forEach(map=>{
+      const card=document.createElement('div');
+      card.className='mapManageCard';
+      const source=map.imported?'Imported':'Created here';
+      const sea=map.tiles.filter(t=>t==='sea').length;
+      card.innerHTML=`${mapPreviewMarkup()}
+        <div class="mapManageInfo">
+          <div class="mapManageName">${escapeHtml(map.name)}</div>
+          <div class="mapManageMeta">${source} · ${map.width}×${map.height} · ${sea} sea tiles · ${map.units.length} units</div>
+          <div class="mapManageActions">
+            <button class="mapMiniBtn primary" type="button" data-edit-map="${map.id}">Edit</button>
+            <button class="mapMiniBtn" type="button" data-export-map="${map.id}">Export</button>
+          </div>
+        </div>`;
+      card.querySelector('[data-edit-map]').addEventListener('click',()=>openCreateMapScreen(map));
+      card.querySelector('[data-export-map]').addEventListener('click',()=>exportMapFile(map));
+      list.appendChild(card);
+    });
+  }
+
+  function openMapManagerScreen(){
+    document.getElementById('mapManagerMessage').textContent='';
+    renderMapManager();
+    showMenuScreen('mapManagerScreen');
   }
 
   function findMap(id){
@@ -951,7 +1129,7 @@ button{font:inherit}
       const raw=localStorage.getItem(slotKey(slot));
       if(!raw)return null;
       const s=JSON.parse(raw);
-      if(!s || s.version!==21 || !Array.isArray(s.units))return null;
+      if(!s || ![21,22].includes(s.version) || !Array.isArray(s.units))return null;
       return s;
     }catch(e){ return null; }
   }
@@ -981,7 +1159,7 @@ button{font:inherit}
 
   function makeSaveSnapshot(slot){
     return {
-      version:21,
+      version:22,
       slot,
       savedAt:new Date().toISOString(),
       state:{
@@ -1452,15 +1630,21 @@ button{font:inherit}
     showMenuScreen('newGameScreen');
   }
 
-  function openCreateMapScreen(){
-    const width=20,height=20,castles=defaultCastlePositions(width,height);
-    editorMap={id:null,name:'',created:true,width,height,tiles:Array(width*height).fill('grass'),units:[],castles};
-    document.getElementById('createMapName').value='';
-    document.getElementById('editorMapWidth').value=width;document.getElementById('editorMapHeight').value=height;
+  function openCreateMapScreen(map=null){
+    if(map){
+      editorMap=cloneMap(map);
+    }else{
+      const width=20,height=20,castles=defaultCastlePositions(width,height);
+      editorMap={id:null,name:'',created:true,imported:false,width,height,tiles:Array(width*height).fill('grass'),units:[],castles};
+    }
+    document.getElementById('createMapName').value=editorMap.name==='Untitled Map'?'':editorMap.name;
+    document.getElementById('editorMapWidth').value=editorMap.width;
+    document.getElementById('editorMapHeight').value=editorMap.height;
     showMenuScreen('createMapScreen');
     editorTool='terrain';editorSelection='grass';editorPaletteOpen=true;
     document.getElementById('editorTerrainTool').classList.add('active');document.getElementById('editorUnitsTool').classList.remove('active');
     renderEditorPalette();renderCreatorPreview();setupEditorPanZoom();
+    setEditorMessage(map?'Editing existing map. Save Map will update it.':'');
     setTimeout(focusEditorMap,30);
   }
 
@@ -1480,13 +1664,22 @@ button{font:inherit}
       return;
     }
     const maps=getCreatedMaps();
-    const id='map-'+Date.now().toString(36);
-    maps.push({
-      ...cloneMap({...editorMap,id,name,created:true,createdAt:new Date().toISOString()}),
-      id,name,created:true,createdAt:new Date().toISOString()
-    });
+    const existingIndex=editorMap.id?maps.findIndex(m=>m.id===editorMap.id):-1;
+    const now=new Date().toISOString();
+    const id=existingIndex>=0?editorMap.id:'map-'+Date.now().toString(36);
+    const saved={
+      ...cloneMap({...editorMap,id,name,created:true}),
+      id,name,created:true,
+      imported:!!editorMap.imported,
+      createdAt:existingIndex>=0?(maps[existingIndex].createdAt||now):(editorMap.createdAt||now),
+      updatedAt:now
+    };
+    if(existingIndex>=0)maps[existingIndex]=saved;
+    else maps.push(saved);
     saveCreatedMaps(maps);
-    openNewGameScreen();
+    editorMap=cloneMap(saved);
+    openMapManagerScreen();
+    document.getElementById('mapManagerMessage').textContent=`Saved “${name}”.`;
   }
 
   function startNewGame(map){
@@ -2580,7 +2773,17 @@ button{font:inherit}
     }
   });
   document.getElementById('menuNewGame').addEventListener('click',openNewGameScreen);
-  document.getElementById('menuCreateMap').addEventListener('click',openCreateMapScreen);
+  document.getElementById('menuCreateMap').addEventListener('click',openMapManagerScreen);
+  document.getElementById('mapCreateNew').addEventListener('click',()=>openCreateMapScreen(null));
+  document.getElementById('mapImportButton').addEventListener('click',()=>{
+    const input=document.getElementById('importMapInput');
+    input.value='';
+    input.click();
+  });
+  document.getElementById('importMapInput').addEventListener('change',e=>{
+    importMapFile(e.target.files?.[0]||null);
+  });
+  document.getElementById('editorBackToMaps').addEventListener('click',openMapManagerScreen);
   document.querySelectorAll('[data-menu-back]').forEach(btn=>btn.addEventListener('click',()=>{
     showMenuScreen('mainMenuScreen');
     refreshMainMenu();
