@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#182014">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dynasties — Mechanics Build v20</title>
+<title>Dynasties — Mechanics Build v21</title>
 <style>
 :root{
   --blue:#315f9b; --red:#93433d; --gold:#d7b96e; --cream:#f3e4bd;
@@ -435,10 +435,17 @@ button{font:inherit}
   border:2px solid #8c6741;border-radius:4px;outline:none;font:14px Georgia,serif;text-align:center;
 }
 #createMapName:focus{border-color:#5b4027}
+#editorSizeBar{
+  position:absolute;z-index:9;left:50%;top:calc(51px + env(safe-area-inset-top));transform:translateX(-50%);
+  display:flex;align-items:center;gap:5px;padding:4px 6px;background:#f2e2bf;border:2px solid #8c6741;border-radius:4px;
+  box-shadow:0 2px 4px rgba(65,45,24,.18);font:10px Georgia,serif;color:#513a24;white-space:nowrap;
+}
+.editorSizeInput{width:50px;min-height:27px;padding:2px 4px;text-align:center;background:#fff3d8;border:1px solid #8c6741;border-radius:3px;color:#3a2a1b;font:11px Georgia,serif}
+#editorResizeMap{min-height:27px;padding:2px 7px;background:#ddc59b;border:1px solid #80603b;border-radius:3px;color:#4a3420;font:bold 10px Georgia,serif}
 #editorStage{
   position:absolute;
   left:18px;right:18px;
-  top:calc(54px + env(safe-area-inset-top));
+  top:calc(91px + env(safe-area-inset-top));
   bottom:calc(18px + env(safe-area-inset-bottom));
   display:grid;place-items:center;
 }
@@ -452,14 +459,14 @@ button{font:inherit}
   border:2px solid #8e6840;
   box-shadow:0 4px 18px rgba(73,49,25,.26),inset 0 0 0 2px rgba(255,248,225,.6);
 }
-#creatorViewport{position:absolute;inset:5px;overflow:hidden;background:#7baa3e;border:2px solid #78613b}
+#creatorViewport{position:absolute;inset:5px;overflow:hidden;background:#7baa3e;border:2px solid #78613b;touch-action:none;cursor:crosshair}
+#creatorViewport.panMode{cursor:grab}
+#creatorViewport.panMode.dragging{cursor:grabbing}
+#creatorMapContent{position:absolute;left:0;top:0;transform-origin:0 0;touch-action:none}
 #creatorPreview{
-  position:absolute;inset:0;
+  position:absolute;left:0;top:0;
   display:grid;
-  grid-template-columns:repeat(20,1fr);
-  grid-template-rows:repeat(20,1fr);
   touch-action:none;
-  cursor:crosshair;
 }
 .creatorTile{
   position:relative;min-width:0;min-height:0;
@@ -469,16 +476,15 @@ button{font:inherit}
 }
 .creatorTile.sea{background-image:url('./assets/terrain_sea.png')}
 .creatorTile.locked::after{content:"";position:absolute;inset:0;box-shadow:inset 0 0 0 1px rgba(255,233,178,.14);pointer-events:none}
-#creatorObjectLayer,#creatorUnitLayer{position:absolute;inset:0;pointer-events:none}
+#creatorObjectLayer,#creatorUnitLayer{position:absolute;left:0;top:0;pointer-events:none}
 .editorCastle{
-  position:absolute;width:10%;height:16.6667%;object-fit:contain;image-rendering:pixelated;
+  position:absolute;object-fit:contain;image-rendering:pixelated;
   filter:drop-shadow(0 2px 2px rgba(0,0,0,.32));pointer-events:none;
 }
 .editorPlacedUnit{
-  position:absolute;width:5%;height:8.3333%;object-fit:contain;image-rendering:pixelated;
-  transform:translate(0,-18%);filter:drop-shadow(0 1px 1px rgba(0,0,0,.4));pointer-events:none;
+  position:absolute;object-fit:contain;image-rendering:pixelated;
+  transform:translate(0,-22%);filter:drop-shadow(0 1px 1px rgba(0,0,0,.4));pointer-events:none;
 }
-.editorPlacedUnit.cavalry{width:5.7%;height:9.4%;transform:translate(-6%,-25%)}
 #editorToolbar{
   position:absolute;z-index:10;left:50%;top:-18px;transform:translateX(-50%);
   display:flex;gap:2px;padding:3px;border:2px solid #80603b;border-radius:4px;
@@ -495,6 +501,12 @@ button{font:inherit}
   box-shadow:0 5px 12px rgba(65,45,24,.3);
 }
 #editorPalette[hidden]{display:none}
+#editorMapControls{position:absolute;z-index:25;right:7px;top:7px;display:flex;flex-direction:column;gap:4px}
+.editorMapBtn{width:34px;height:34px;padding:0;border-radius:50%;background:rgba(245,230,199,.94);border:2px solid #80603b;color:#513a24;font:bold 17px Georgia,serif;box-shadow:0 2px 5px rgba(60,42,24,.24)}
+.editorPaletteHead{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.editorPaletteClose{width:24px;height:22px;padding:0;border:1px solid #8b6841;border-radius:3px;background:#e4cda4;color:#583e25;font:bold 15px Arial;line-height:18px}
+.editorHQChoice img{background:rgba(255,255,255,.18)}
+
 .editorPaletteTitle{font:bold 10px Georgia,serif;color:#62492e;margin:0 3px 4px}
 .editorChoices{display:flex;gap:4px;overflow-x:auto;max-width:100%;padding-bottom:2px}
 .editorChoice{
@@ -517,7 +529,10 @@ button{font:inherit}
   .editorTopLine{grid-template-columns:auto 1fr auto;top:calc(5px + env(safe-area-inset-top));}
   .editorBack,.editorSave{min-height:34px;padding:4px 7px;font-size:11px}
   #createMapName{min-height:34px;font-size:12px}
-  #editorStage{left:7px;right:7px;top:calc(48px + env(safe-area-inset-top));bottom:calc(74px + env(safe-area-inset-bottom));}
+  #editorSizeBar{top:calc(43px + env(safe-area-inset-top));font-size:9px;padding:3px 5px}
+  .editorSizeInput{width:43px;min-height:24px;font-size:10px}
+  #editorResizeMap{min-height:24px;font-size:9px}
+  #editorStage{left:7px;right:7px;top:calc(77px + env(safe-area-inset-top));bottom:calc(74px + env(safe-area-inset-bottom));}
   #editorMapFrame{width:min(96vw,calc((100vh - 145px) * 1.18));aspect-ratio:1/1;}
   #editorToolbar{top:-20px}
   #editorPalette{top:31px;max-width:96vw}
@@ -547,7 +562,7 @@ button{font:inherit}
   <div class="menuPanel">
     <section class="menuScreen" id="mainMenuScreen">
       <div class="menuHouseRow">
-        <img class="menuCrest" src="./assets/house_stark_crest.png" alt="">
+        <img class="menuCrest" src="./assets/white_walker_crest.png" alt="">
         <div>
           <div class="menuTitle">DYNASTIES</div>
           <div class="menuSubtitle">WHITE WALKERS · LANNISTER</div>
@@ -579,6 +594,12 @@ button{font:inherit}
         <button class="editorSave" id="saveCreatedMap" type="button">Save Map</button>
       </div>
 
+      <div id="editorSizeBar">
+        <span>W</span><input class="editorSizeInput" id="editorMapWidth" type="number" min="4" max="200" value="20" inputmode="numeric">
+        <span>H</span><input class="editorSizeInput" id="editorMapHeight" type="number" min="4" max="200" value="20" inputmode="numeric">
+        <span>tiles</span><button id="editorResizeMap" type="button">Resize</button>
+      </div>
+
       <div id="editorStage">
         <div id="editorMapFrame">
           <div id="editorToolbar">
@@ -592,9 +613,16 @@ button{font:inherit}
           <div id="editorPalette"></div>
 
           <div id="creatorViewport">
-            <div id="creatorPreview"></div>
-            <div id="creatorObjectLayer"></div>
-            <div id="creatorUnitLayer"></div>
+            <div id="editorMapControls">
+              <button class="editorMapBtn" id="editorZoomIn" type="button" aria-label="Zoom in">+</button>
+              <button class="editorMapBtn" id="editorZoomOut" type="button" aria-label="Zoom out">−</button>
+              <button class="editorMapBtn" id="editorFocusMap" type="button" aria-label="Fit map">◎</button>
+            </div>
+            <div id="creatorMapContent">
+              <div id="creatorPreview"></div>
+              <div id="creatorObjectLayer"></div>
+              <div id="creatorUnitLayer"></div>
+            </div>
           </div>
           <div id="editorHint">Terrain: choose Grass or Sea, then paint directly onto the map.</div>
           <div id="editorMessage"></div>
@@ -607,7 +635,7 @@ button{font:inherit}
 <div id="game">
   <div id="topbar">
     <div class="team player">
-      <div class="crest"><img src="./assets/house_stark_crest.png" alt="White Walkers crest"></div>
+      <div class="crest"><img src="./assets/white_walker_crest.png" alt="White Walkers crest"></div>
       <div>
         <div class="teamName">White Walkers</div>
         <div class="econ"><span class="goldAmount"><img class="goldIcon" src="./assets/gold_icon.png" alt="gold"><b id="pGold">300</b></span> · <span class="income">+100/turn</span> · <span id="pCount">1</span> units</div>
@@ -691,14 +719,17 @@ button{font:inherit}
 
 <script>
 (() => {
-  const COLS=20, ROWS=20, CELL=64;
-  const SAVE_KEY='dynasties-mechanics-v20';
+  let COLS=20, ROWS=20;
+  const CELL=64, EDITOR_CELL=32, MAX_MAP_SIZE=200, MIN_MAP_SIZE=4;
+  const SAVE_KEY='dynasties-mechanics-v21';
   const MAPS_KEY='dynasties-created-maps-v1';
   const DEFAULT_MAP={
     id:'default-grass',
     name:'Default Grass Map',
     created:false,
-    tiles:Array(COLS*ROWS).fill('grass'),
+    width:20,
+    height:20,
+    tiles:Array(20*20).fill('grass'),
     units:[
       {team:'player',kind:'soldier',x:9,y:14},
       {team:'enemy',kind:'soldier',x:9,y:4}
@@ -753,18 +784,36 @@ button{font:inherit}
 
   let units={};
 
+  function clampMapDimension(v){
+    return Math.max(MIN_MAP_SIZE,Math.min(MAX_MAP_SIZE,Math.round(Number(v)||20)));
+  }
+
+  function defaultCastlePositions(width,height){
+    if(width<8||height<8){
+      return {player:{x:Math.max(0,width-2),y:Math.max(0,height-2)},enemy:{x:0,y:0}};
+    }
+    const x=Math.max(0,Math.min(width-2,Math.floor(width/2)-1));
+    return {player:{x,y:Math.max(0,height-4)},enemy:{x,y:1}};
+  }
+
   function cloneMap(map){
-    const fallbackUnits=DEFAULT_MAP.units.map(u=>({...u}));
+    const width=clampMapDimension(map?.width||20);
+    const height=clampMapDimension(map?.height||20);
+    const defaults=defaultCastlePositions(width,height);
+    const fallbackUnits=DEFAULT_MAP.units.map(u=>({...u})).filter(u=>u.x<width&&u.y<height);
+    const tiles=(Array.isArray(map?.tiles)&&map.tiles.length===width*height)
+      ? [...map.tiles]
+      : Array(width*height).fill('grass');
     return {
-      id:map.id,
-      name:map.name,
-      created:!!map.created,
-      createdAt:map.createdAt||null,
-      tiles:Array.isArray(map.tiles)&&map.tiles.length===COLS*ROWS?[...map.tiles]:Array(COLS*ROWS).fill('grass'),
-      units:Array.isArray(map.units)?map.units.map(u=>({...u})):fallbackUnits,
+      id:map?.id||null,
+      name:map?.name||'Untitled Map',
+      created:!!map?.created,
+      createdAt:map?.createdAt||null,
+      width,height,tiles,
+      units:Array.isArray(map?.units)?map.units.map(u=>({...u})):fallbackUnits,
       castles:{
-        player:{...(map.castles?.player||DEFAULT_MAP.castles.player)},
-        enemy:{...(map.castles?.enemy||DEFAULT_MAP.castles.enemy)}
+        player:{...(map?.castles?.player||defaults.player)},
+        enemy:{...(map?.castles?.enemy||defaults.enemy)}
       }
     };
   }
@@ -787,14 +836,29 @@ button{font:inherit}
     return cloneMap(found||DEFAULT_MAP);
   }
 
+  function updateBarracksSpawn(team){
+    const b=barracks[team];
+    const pts=[];
+    for(let y=b.y-1;y<=b.y+(b.h||2);y++){
+      for(let x=b.x-1;x<=b.x+(b.w||2);x++){
+        const insideCastle=x>=b.x&&x<b.x+(b.w||2)&&y>=b.y&&y<b.y+(b.h||2);
+        if(!insideCastle)pts.push({x,y});
+      }
+    }
+    b.spawn=pts;
+  }
+
   function applyMap(map){
     activeMap=cloneMap(map);
+    COLS=activeMap.width;
+    ROWS=activeMap.height;
     const pc=activeMap.castles.player;
     const ec=activeMap.castles.enemy;
-    barracks.player.x=pc.x;
-    barracks.player.y=pc.y;
-    barracks.enemy.x=ec.x;
-    barracks.enemy.y=ec.y;
+    barracks.player.x=pc.x;barracks.player.y=pc.y;
+    barracks.enemy.x=ec.x;barracks.enemy.y=ec.y;
+    updateBarracksSpawn('player');
+    updateBarracksSpawn('enemy');
+    if(typeof rebuildGameGrid==='function')rebuildGameGrid();
     positionStaticObjects();
     if(typeof renderActiveMapTerrain==='function')renderActiveMapTerrain();
   }
@@ -831,7 +895,7 @@ button{font:inherit}
       const raw=localStorage.getItem(SAVE_KEY);
       if(!raw)return false;
       const s=JSON.parse(raw);
-      return !!(s && s.version===19 && Array.isArray(s.units));
+      return !!(s && s.version===20 && Array.isArray(s.units));
     }catch(e){ return false; }
   }
 
@@ -877,8 +941,8 @@ button{font:inherit}
       btn.type='button';
       btn.className='mapCard';
       const meta=map.created
-        ? `Created map · 20×20 · ${map.tiles.filter(t=>t==='sea').length} sea tiles · ${map.units.length} units`
-        : `Built-in map · 20×20 · Grass · ${map.units.length} units`;
+        ? `Created map · ${map.width}×${map.height} · ${map.tiles.filter(t=>t==='sea').length} sea tiles · ${map.units.length} units`
+        : `Built-in map · ${map.width}×${map.height} · Grass · ${map.units.length} units`;
       btn.innerHTML=`${mapPreviewMarkup()}
         <div>
           <div class="mapCardName">${escapeHtml(map.name)}</div>
@@ -899,21 +963,27 @@ button{font:inherit}
   let editorTool='terrain';
   let editorSelection='grass';
   let editorPainting=false;
+  let editorPaletteOpen=true;
+  let editorZoom=1, editorX=0, editorY=0;
+  let editorDragging=false, editorDragMoved=false, editorDragStartX=0, editorDragStartY=0, editorStartX=0, editorStartY=0;
+  let editorPointers=new Map(), editorPinching=false, editorPinchStartDist=0, editorPinchStartZoom=1, editorPinchMapX=0, editorPinchMapY=0;
 
-  function editorCastleAt(x,y){
-    const pcs=editorMap?.castles?.player||DEFAULT_MAP.castles.player;
-    const ecs=editorMap?.castles?.enemy||DEFAULT_MAP.castles.enemy;
-    const inFootprint=(c)=>x>=c.x&&x<c.x+2&&y>=c.y&&y<c.y+2;
-    return inFootprint(pcs)||inFootprint(ecs);
-  }
+  function editorCols(){return editorMap?.width||20}
+  function editorRows(){return editorMap?.height||20}
+  function editorIndex(x,y){return y*editorCols()+x}
+  function editorInside(x,y){return x>=0&&x<editorCols()&&y>=0&&y<editorRows()}
 
-  function editorTerrainAt(x,y){
-    return editorMap?.tiles?.[y*COLS+x]||'grass';
+  function editorCastleTeamAt(x,y){
+    if(!editorMap)return null;
+    for(const team of ['player','enemy']){
+      const c=editorMap.castles[team];
+      if(x>=c.x&&x<c.x+2&&y>=c.y&&y<c.y+2)return team;
+    }
+    return null;
   }
-
-  function editorUnitAt(x,y){
-    return editorMap?.units?.find(u=>u.x===x&&u.y===y)||null;
-  }
+  function editorCastleAt(x,y){return !!editorCastleTeamAt(x,y)}
+  function editorTerrainAt(x,y){return editorMap?.tiles?.[editorIndex(x,y)]||'grass'}
+  function editorUnitAt(x,y){return editorMap?.units?.find(u=>u.x===x&&u.y===y)||null}
 
   function editorUnitSprite(u){
     if(u.kind==='archer')return u.team==='player'?'./assets/team_blue_archer.png':'./assets/team_red_archer.png';
@@ -921,85 +991,121 @@ button{font:inherit}
     return u.team==='player'?'./assets/team_blue_soldier.png':'./assets/team_red_soldier.png';
   }
 
+  function applyEditorTransform(){
+    const content=document.getElementById('creatorMapContent');
+    content.style.transform=`translate(${editorX}px,${editorY}px) scale(${editorZoom})`;
+  }
+  function clampEditorZoom(z){return Math.max(.04,Math.min(3.5,z))}
+  function focusEditorMap(){
+    if(!editorMap)return;
+    const viewport=document.getElementById('creatorViewport');
+    const r=viewport.getBoundingClientRect();
+    const mw=editorCols()*EDITOR_CELL, mh=editorRows()*EDITOR_CELL;
+    const z=clampEditorZoom(Math.min((r.width-20)/mw,(r.height-20)/mh,1.35));
+    editorZoom=z;
+    editorX=(r.width-mw*z)/2;
+    editorY=(r.height-mh*z)/2;
+    applyEditorTransform();
+  }
+  function zoomEditorAt(factor,cx=null,cy=null){
+    const viewport=document.getElementById('creatorViewport');
+    const r=viewport.getBoundingClientRect();
+    if(cx===null){cx=r.width/2;cy=r.height/2}
+    const old=editorZoom,next=clampEditorZoom(old*factor);
+    const mx=(cx-editorX)/old,my=(cy-editorY)/old;
+    editorZoom=next;editorX=cx-mx*next;editorY=cy-my*next;
+    applyEditorTransform();
+  }
+
   function renderCreatorPreview(){
+    if(!editorMap)return;
     const preview=document.getElementById('creatorPreview');
+    const content=document.getElementById('creatorMapContent');
+    const objectLayer=document.getElementById('creatorObjectLayer');
+    const unitLayerEl=document.getElementById('creatorUnitLayer');
+    const widthPx=editorCols()*EDITOR_CELL,heightPx=editorRows()*EDITOR_CELL;
+    for(const el of [content,preview,objectLayer,unitLayerEl]){
+      el.style.width=`${widthPx}px`;el.style.height=`${heightPx}px`;
+    }
+    preview.style.gridTemplateColumns=`repeat(${editorCols()},${EDITOR_CELL}px)`;
+    preview.style.gridTemplateRows=`repeat(${editorRows()},${EDITOR_CELL}px)`;
     preview.innerHTML='';
-    for(let y=0;y<ROWS;y++){
-      for(let x=0;x<COLS;x++){
+    for(let y=0;y<editorRows();y++){
+      for(let x=0;x<editorCols();x++){
         const tile=document.createElement('div');
         tile.className='creatorTile';
-        tile.dataset.x=x;
-        tile.dataset.y=y;
+        tile.dataset.x=x;tile.dataset.y=y;
+        tile.style.width=`${EDITOR_CELL}px`;tile.style.height=`${EDITOR_CELL}px`;
         if(editorTerrainAt(x,y)==='sea')tile.classList.add('sea');
         if(editorCastleAt(x,y))tile.classList.add('locked');
         tile.addEventListener('pointerdown',e=>{
+          if(!editorPaletteOpen)return;
           e.preventDefault();
           editorPainting=true;
           applyEditorBrush(x,y);
         });
         tile.addEventListener('pointerenter',()=>{
-          if(editorPainting&&editorTool==='terrain')applyEditorBrush(x,y);
+          if(editorPainting&&editorPaletteOpen&&editorTool==='terrain')applyEditorBrush(x,y);
         });
         preview.appendChild(tile);
       }
     }
     preview.onpointermove=e=>{
-      if(!editorPainting||editorTool!=='terrain')return;
+      if(!editorPainting||!editorPaletteOpen||editorTool!=='terrain'||editorPinching)return;
       const r=preview.getBoundingClientRect();
-      const px=e.clientX-r.left, py=e.clientY-r.top;
+      if(!r.width||!r.height)return;
+      const px=e.clientX-r.left,py=e.clientY-r.top;
       if(px<0||py<0||px>=r.width||py>=r.height)return;
-      const x=Math.min(COLS-1,Math.floor(px/r.width*COLS));
-      const y=Math.min(ROWS-1,Math.floor(py/r.height*ROWS));
+      const x=Math.min(editorCols()-1,Math.floor(px/r.width*editorCols()));
+      const y=Math.min(editorRows()-1,Math.floor(py/r.height*editorRows()));
       applyEditorBrush(x,y);
     };
     renderEditorObjects();
+    applyEditorTransform();
   }
 
   function renderEditorObjects(){
     if(!editorMap)return;
     const objectLayer=document.getElementById('creatorObjectLayer');
     const unitLayerEl=document.getElementById('creatorUnitLayer');
-    objectLayer.innerHTML='';
-    unitLayerEl.innerHTML='';
+    objectLayer.innerHTML='';unitLayerEl.innerHTML='';
 
     for(const [team,src] of [['enemy','./assets/casterly_rock.png'],['player','./assets/winterfell.png']]){
       const c=editorMap.castles[team];
       const img=document.createElement('img');
-      img.className='editorCastle';
-      img.src=src;
-      img.style.left=`${c.x/20*100}%`;
-      img.style.top=`${c.y/20*100}%`;
-      img.style.width='10%';
-      img.style.height='10%';
+      img.className='editorCastle';img.src=src;
+      img.style.left=`${c.x*EDITOR_CELL}px`;img.style.top=`${c.y*EDITOR_CELL}px`;
+      img.style.width=`${EDITOR_CELL*2}px`;img.style.height=`${EDITOR_CELL*2}px`;
       objectLayer.appendChild(img);
     }
-
     editorMap.units.forEach(u=>{
       const img=document.createElement('img');
-      img.className='editorPlacedUnit '+u.kind;
-      img.src=editorUnitSprite(u);
-      img.style.left=`${u.x/20*100}%`;
-      img.style.top=`${u.y/20*100}%`;
+      img.className='editorPlacedUnit '+u.kind;img.src=editorUnitSprite(u);
+      img.style.left=`${u.x*EDITOR_CELL}px`;img.style.top=`${u.y*EDITOR_CELL}px`;
+      img.style.width=`${EDITOR_CELL}px`;img.style.height=`${EDITOR_CELL*1.22}px`;
       unitLayerEl.appendChild(img);
     });
   }
 
-  function setEditorMessage(msg){
-    document.getElementById('editorMessage').textContent=msg||'';
+  function setEditorMessage(msg){document.getElementById('editorMessage').textContent=msg||''}
+
+  function canPlaceHQ(team,x,y){
+    if(x<0||y<0||x+1>=editorCols()||y+1>=editorRows())return {ok:false,msg:'HQ needs a full 2×2 area inside the map.'};
+    const other=team==='player'?'enemy':'player';
+    const oc=editorMap.castles[other];
+    const overlaps=!(x+1<oc.x||x>oc.x+1||y+1<oc.y||y>oc.y+1);
+    if(overlaps)return {ok:false,msg:'HQs cannot overlap.'};
+    for(let yy=y;yy<y+2;yy++)for(let xx=x;xx<x+2;xx++)if(editorTerrainAt(xx,yy)==='sea')return {ok:false,msg:'HQs need a 2×2 grass area.'};
+    return {ok:true};
   }
 
   function applyEditorBrush(x,y){
-    if(!editorMap)return;
-    if(editorCastleAt(x,y)){
-      setEditorMessage('Castle tiles are fixed for now.');
-      return;
-    }
+    if(!editorMap||!editorInside(x,y))return;
 
     if(editorTool==='terrain'){
-      editorMap.tiles[y*COLS+x]=editorSelection;
-      if(editorSelection==='sea'){
-        editorMap.units=editorMap.units.filter(u=>!(u.x===x&&u.y===y));
-      }
+      if(editorCastleAt(x,y)){setEditorMessage('Move the HQ first before changing terrain beneath it.');return;}
+      editorMap.tiles[editorIndex(x,y)]=editorSelection;
+      if(editorSelection==='sea')editorMap.units=editorMap.units.filter(u=>!(u.x===x&&u.y===y));
       const tile=document.querySelector(`.creatorTile[data-x="${x}"][data-y="${y}"]`);
       if(tile)tile.classList.toggle('sea',editorSelection==='sea');
       renderEditorObjects();
@@ -1008,17 +1114,24 @@ button{font:inherit}
     }
 
     if(editorTool==='units'){
+      if(editorSelection.startsWith('hq:')){
+        const team=editorSelection.split(':')[1];
+        const check=canPlaceHQ(team,x,y);
+        if(!check.ok){setEditorMessage(check.msg);return;}
+        editorMap.castles[team]={x,y};
+        editorMap.units=editorMap.units.filter(u=>!(u.x>=x&&u.x<x+2&&u.y>=y&&u.y<y+2));
+        renderCreatorPreview();
+        setEditorMessage(team==='player'?'White Walker HQ moved.':'Lannister HQ moved.');
+        return;
+      }
+      if(editorCastleAt(x,y)){setEditorMessage('Units cannot be placed on an HQ.');return;}
       if(editorSelection==='remove'){
         const before=editorMap.units.length;
         editorMap.units=editorMap.units.filter(u=>!(u.x===x&&u.y===y));
         if(before!==editorMap.units.length)setEditorMessage('Unit removed.');
-        renderEditorObjects();
-        return;
+        renderEditorObjects();return;
       }
-      if(editorTerrainAt(x,y)==='sea'){
-        setEditorMessage('Units cannot be placed on sea.');
-        return;
-      }
+      if(editorTerrainAt(x,y)==='sea'){setEditorMessage('Units cannot be placed on sea.');return;}
       const [team,kind]=editorSelection.split(':');
       editorMap.units=editorMap.units.filter(u=>!(u.x===x&&u.y===y));
       editorMap.units.push({team,kind,x,y});
@@ -1027,48 +1140,125 @@ button{font:inherit}
     }
   }
 
+  function closeEditorPalette(){
+    editorPaletteOpen=false;
+    document.getElementById('editorPalette').hidden=true;
+    document.getElementById('creatorViewport').classList.add('panMode');
+    document.getElementById('editorHint').textContent='Palette hidden — drag to pan, pinch or use +/− to zoom. Tap a tool above to reopen it.';
+  }
+
   function renderEditorPalette(){
     const palette=document.getElementById('editorPalette');
-    palette.hidden=false;
+    editorPaletteOpen=true;palette.hidden=false;
+    document.getElementById('creatorViewport').classList.remove('panMode');
     if(editorTool==='terrain'){
       palette.innerHTML=`
-        <div class="editorPaletteTitle">TERRAIN</div>
+        <div class="editorPaletteHead"><div class="editorPaletteTitle">TERRAIN</div><button class="editorPaletteClose" id="editorPaletteClose" type="button">×</button></div>
         <div class="editorChoices">
-          <button class="editorChoice ${editorSelection==='grass'?'active':''}" data-editor-select="grass" type="button">
-            <img src="./assets/grass_tile.png" alt="Grass"><span>Grass</span>
-          </button>
-          <button class="editorChoice ${editorSelection==='sea'?'active':''}" data-editor-select="sea" type="button">
-            <img src="./assets/terrain_sea.png" alt="Sea"><span>Sea</span>
-          </button>
+          <button class="editorChoice ${editorSelection==='grass'?'active':''}" data-editor-select="grass" type="button"><img src="./assets/grass_tile.png" alt="Grass"><span>Grass</span></button>
+          <button class="editorChoice ${editorSelection==='sea'?'active':''}" data-editor-select="sea" type="button"><img src="./assets/terrain_sea.png" alt="Sea"><span>Sea</span></button>
         </div>`;
-      document.getElementById('editorHint').textContent='Terrain: select a tile, then tap or drag across the map to paint.';
+      document.getElementById('editorHint').textContent='Terrain: choose Grass or Sea, then paint directly onto the map.';
     }else{
       const unitChoice=(team,kind)=>`<button class="editorChoice ${editorSelection===team+':'+kind?'active':''}" data-editor-select="${team}:${kind}" type="button"><img src="${editorUnitSprite({team,kind})}" alt=""><span>${UNIT_DEFS[kind].label}</span></button>`;
+      const hqChoice=(team,src,label)=>`<button class="editorChoice editorHQChoice ${editorSelection==='hq:'+team?'active':''}" data-editor-select="hq:${team}" type="button"><img src="${src}" alt=""><span>${label}</span></button>`;
       palette.innerHTML=`
-        <div class="editorPaletteTitle">STARTING UNITS</div>
+        <div class="editorPaletteHead"><div class="editorPaletteTitle">STARTING UNITS & HQ</div><button class="editorPaletteClose" id="editorPaletteClose" type="button">×</button></div>
         <div class="editorChoices">
           <span class="editorFactionLabel">WHITE WALKERS</span>
-          ${unitChoice('player','soldier')}${unitChoice('player','archer')}${unitChoice('player','cavalry')}
+          ${unitChoice('player','soldier')}${unitChoice('player','archer')}${unitChoice('player','cavalry')}${hqChoice('player','./assets/winterfell.png','WW HQ')}
           <span class="editorFactionLabel">LANNISTER</span>
-          ${unitChoice('enemy','soldier')}${unitChoice('enemy','archer')}${unitChoice('enemy','cavalry')}
+          ${unitChoice('enemy','soldier')}${unitChoice('enemy','archer')}${unitChoice('enemy','cavalry')}${hqChoice('enemy','./assets/casterly_rock.png','Lannister HQ')}
           <button class="editorChoice removeChoice ${editorSelection==='remove'?'active':''}" data-editor-select="remove" type="button"><span class="removeIcon">×</span><span>Remove</span></button>
         </div>`;
-      document.getElementById('editorHint').textContent='Units: select a unit and tap a grass tile to set its starting position.';
+      document.getElementById('editorHint').textContent='Units/HQ: place starting units or move either 2×2 HQ onto grass.';
     }
-
-    palette.querySelectorAll('[data-editor-select]').forEach(btn=>btn.addEventListener('click',()=>{
-      editorSelection=btn.dataset.editorSelect;
-      renderEditorPalette();
-    }));
+    palette.querySelectorAll('[data-editor-select]').forEach(btn=>btn.addEventListener('click',()=>{editorSelection=btn.dataset.editorSelect;renderEditorPalette();}));
+    document.getElementById('editorPaletteClose').addEventListener('click',closeEditorPalette);
   }
 
   function setEditorTool(tool){
+    if(editorTool===tool && editorPaletteOpen){closeEditorPalette();return;}
     editorTool=tool;
-    editorSelection=tool==='terrain'?'grass':'player:soldier';
+    if(tool==='terrain' && !['grass','sea'].includes(editorSelection))editorSelection='grass';
+    if(tool==='units' && !String(editorSelection).includes(':') && editorSelection!=='remove')editorSelection='player:soldier';
     document.getElementById('editorTerrainTool').classList.toggle('active',tool==='terrain');
     document.getElementById('editorUnitsTool').classList.toggle('active',tool==='units');
-    renderEditorPalette();
-    setEditorMessage('');
+    renderEditorPalette();setEditorMessage('');
+  }
+
+  function resizeEditorMap(){
+    if(!editorMap)return;
+    const newW=clampMapDimension(document.getElementById('editorMapWidth').value);
+    const newH=clampMapDimension(document.getElementById('editorMapHeight').value);
+    document.getElementById('editorMapWidth').value=newW;document.getElementById('editorMapHeight').value=newH;
+    const oldW=editorMap.width,oldH=editorMap.height,oldTiles=editorMap.tiles;
+    const newTiles=Array(newW*newH).fill('grass');
+    for(let y=0;y<Math.min(oldH,newH);y++)for(let x=0;x<Math.min(oldW,newW);x++)newTiles[y*newW+x]=oldTiles[y*oldW+x]||'grass';
+    editorMap.width=newW;editorMap.height=newH;editorMap.tiles=newTiles;
+    editorMap.units=editorMap.units.filter(u=>u.x>=0&&u.x<newW&&u.y>=0&&u.y<newH);
+    const defaults=defaultCastlePositions(newW,newH);
+    for(const team of ['player','enemy']){
+      const c=editorMap.castles[team];
+      if(!c||c.x<0||c.y<0||c.x+1>=newW||c.y+1>=newH)editorMap.castles[team]={...defaults[team]};
+      else editorMap.castles[team]={x:Math.min(c.x,newW-2),y:Math.min(c.y,newH-2)};
+    }
+    // If resize caused HQ overlap, restore sensible opposite ends.
+    const p=editorMap.castles.player,e=editorMap.castles.enemy;
+    if(!(p.x+1<e.x||p.x>e.x+1||p.y+1<e.y||p.y>e.y+1))editorMap.castles={player:{...defaults.player},enemy:{...defaults.enemy}};
+    for(const team of ['player','enemy']){
+      const c=editorMap.castles[team];
+      for(let y=c.y;y<c.y+2;y++)for(let x=c.x;x<c.x+2;x++)editorMap.tiles[y*newW+x]='grass';
+    }
+    editorMap.units=editorMap.units.filter(u=>!editorCastleAt(u.x,u.y));
+    renderCreatorPreview();setTimeout(focusEditorMap,10);
+    setEditorMessage(`Map resized to ${newW}×${newH}.`);
+  }
+
+  function editorPointerDistance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+  function editorPointerCenter(a,b){return{x:(a.x+b.x)/2,y:(a.y+b.y)/2}}
+
+  function setupEditorPanZoom(){
+    const viewport=document.getElementById('creatorViewport');
+    if(viewport.dataset.panZoomReady)return;
+    viewport.dataset.panZoomReady='1';
+    viewport.addEventListener('pointerdown',e=>{
+      if(e.target.closest('#editorMapControls'))return;
+      const r=viewport.getBoundingClientRect();
+      editorPointers.set(e.pointerId,{x:e.clientX-r.left,y:e.clientY-r.top});
+      try{viewport.setPointerCapture(e.pointerId)}catch(err){}
+      if(editorPointers.size===2){
+        const pts=[...editorPointers.values()];const c=editorPointerCenter(pts[0],pts[1]);
+        editorPinching=true;editorDragging=false;editorPainting=false;
+        editorPinchStartDist=Math.max(20,editorPointerDistance(pts[0],pts[1]));editorPinchStartZoom=editorZoom;
+        editorPinchMapX=(c.x-editorX)/editorZoom;editorPinchMapY=(c.y-editorY)/editorZoom;
+        return;
+      }
+      if(!editorPaletteOpen){
+        editorDragging=true;editorDragMoved=false;editorDragStartX=e.clientX;editorDragStartY=e.clientY;editorStartX=editorX;editorStartY=editorY;
+      }
+    });
+    viewport.addEventListener('pointermove',e=>{
+      if(!editorPointers.has(e.pointerId))return;
+      const r=viewport.getBoundingClientRect();editorPointers.set(e.pointerId,{x:e.clientX-r.left,y:e.clientY-r.top});
+      if(editorPointers.size>=2){
+        const pts=[...editorPointers.values()].slice(0,2),c=editorPointerCenter(pts[0],pts[1]);
+        const dist=Math.max(20,editorPointerDistance(pts[0],pts[1]));editorZoom=clampEditorZoom(editorPinchStartZoom*(dist/editorPinchStartDist));
+        editorX=c.x-editorPinchMapX*editorZoom;editorY=c.y-editorPinchMapY*editorZoom;applyEditorTransform();return;
+      }
+      if(editorDragging&&!editorPaletteOpen){
+        const dx=e.clientX-editorDragStartX,dy=e.clientY-editorDragStartY;
+        if(Math.hypot(dx,dy)>4){editorDragMoved=true;viewport.classList.add('dragging')}
+        if(editorDragMoved){editorX=editorStartX+dx;editorY=editorStartY+dy;applyEditorTransform()}
+      }
+    });
+    const endPointer=e=>{
+      editorPointers.delete(e.pointerId);try{viewport.releasePointerCapture(e.pointerId)}catch(err){}
+      if(editorPointers.size<2)editorPinching=false;
+      if(editorPointers.size===0){editorDragging=false;editorPainting=false;viewport.classList.remove('dragging')}
+    };
+    viewport.addEventListener('pointerup',endPointer);viewport.addEventListener('pointercancel',endPointer);
+    viewport.addEventListener('wheel',e=>{e.preventDefault();const r=viewport.getBoundingClientRect();zoomEditorAt(e.deltaY<0?1.12:.89,e.clientX-r.left,e.clientY-r.top)},{passive:false});
   }
 
   function openNewGameScreen(){
@@ -1077,18 +1267,15 @@ button{font:inherit}
   }
 
   function openCreateMapScreen(){
-    editorMap={
-      id:null,
-      name:'',
-      created:true,
-      tiles:Array(COLS*ROWS).fill('grass'),
-      units:[],
-      castles:{player:{...DEFAULT_MAP.castles.player},enemy:{...DEFAULT_MAP.castles.enemy}}
-    };
+    const width=20,height=20,castles=defaultCastlePositions(width,height);
+    editorMap={id:null,name:'',created:true,width,height,tiles:Array(width*height).fill('grass'),units:[],castles};
     document.getElementById('createMapName').value='';
+    document.getElementById('editorMapWidth').value=width;document.getElementById('editorMapHeight').value=height;
     showMenuScreen('createMapScreen');
-    setEditorTool('terrain');
-    renderCreatorPreview();
+    editorTool='terrain';editorSelection='grass';editorPaletteOpen=true;
+    document.getElementById('editorTerrainTool').classList.add('active');document.getElementById('editorUnitsTool').classList.remove('active');
+    renderEditorPalette();renderCreatorPreview();setupEditorPanZoom();
+    setTimeout(focusEditorMap,30);
   }
 
   function createBlankMap(){
@@ -1176,15 +1363,21 @@ button{font:inherit}
   const fieldViewport=document.getElementById('fieldViewport');
   const recruitPopup=document.getElementById('recruitPopup');
 
-  for(let y=0;y<ROWS;y++){
-    for(let x=0;x<COLS;x++){
-      const c=document.createElement('div');
-      c.className='grassCell'+(((x+y)%2)?' alt':'');
-      c.addEventListener('click',()=>onTileClick(x,y));
-      c.addEventListener('pointerenter',()=>previewPath(x,y));
-      grass.appendChild(c);
+  function rebuildGameGrid(){
+    if(!grass||!board)return;
+    board.style.width=`${COLS*CELL}px`;board.style.height=`${ROWS*CELL}px`;
+    grass.style.gridTemplateColumns=`repeat(${COLS},${CELL}px)`;grass.style.gridTemplateRows=`repeat(${ROWS},${CELL}px)`;
+    grass.innerHTML='';
+    for(let y=0;y<ROWS;y++){
+      for(let x=0;x<COLS;x++){
+        const c=document.createElement('div');c.className='grassCell'+(((x+y)%2)?' alt':'');
+        c.addEventListener('click',()=>onTileClick(x,y));c.addEventListener('pointerenter',()=>previewPath(x,y));grass.appendChild(c);
+      }
     }
+    if(typeof renderActiveMapTerrain==='function')renderActiveMapTerrain();
   }
+
+  rebuildGameGrid();
 
   function terrainAt(x,y){
     return activeMap.tiles?.[y*COLS+x]||'grass';
@@ -1984,7 +2177,7 @@ button{font:inherit}
     if(!state.gameActive)return;
     try{
       localStorage.setItem(SAVE_KEY,JSON.stringify({
-        version:19,
+        version:20,
         state:{
           turn:state.turn,selectedUnitId:state.selectedUnitId,inspectedUnitId:state.inspectedUnitId,selectedBarracks:state.selectedBarracks,nextRecruitId:state.nextRecruitId,
           mapZoom:state.mapZoom,mapX:state.mapX,mapY:state.mapY
@@ -1993,6 +2186,8 @@ button{font:inherit}
           id:activeMap.id,
           name:activeMap.name,
           created:activeMap.created,
+          width:activeMap.width,
+          height:activeMap.height,
           tiles:activeMap.tiles,
           units:activeMap.units,
           castles:activeMap.castles
@@ -2007,7 +2202,7 @@ button{font:inherit}
       const raw=localStorage.getItem(SAVE_KEY);
       if(!raw)return false;
       const s=JSON.parse(raw);
-      if(!s||s.version!==16||!Array.isArray(s.units))return false;
+      if(!s||s.version!==20||!Array.isArray(s.units))return false;
 
       applyMap(s.map ? cloneMap(s.map) : cloneMap(DEFAULT_MAP));
 
@@ -2086,8 +2281,9 @@ button{font:inherit}
   function focusMap(){
     const r=fieldViewport.getBoundingClientRect();
     const portrait=window.matchMedia('(orientation:portrait)').matches;
-    const targetZoom=portrait ? Math.min(.62,r.width/(8*CELL)) : Math.min(.78,r.width/(12*CELL));
-    centerMapOn(9.5,9.5,targetZoom);
+    const visibleCols=portrait?8:12,visibleRows=portrait?11:8;
+    const targetZoom=Math.min(portrait?.62:.78,r.width/(Math.min(COLS,visibleCols)*CELL),r.height/(Math.min(ROWS,visibleRows)*CELL));
+    centerMapOn((COLS-1)/2,(ROWS-1)/2,targetZoom);
   }
   function zoomMapAt(factor,cx=null,cy=null){
     const r=fieldViewport.getBoundingClientRect();
@@ -2224,6 +2420,10 @@ button{font:inherit}
   document.getElementById('saveCreatedMap').addEventListener('click',createBlankMap);
   document.getElementById('editorTerrainTool').addEventListener('click',()=>setEditorTool('terrain'));
   document.getElementById('editorUnitsTool').addEventListener('click',()=>setEditorTool('units'));
+  document.getElementById('editorResizeMap').addEventListener('click',resizeEditorMap);
+  document.getElementById('editorZoomIn').addEventListener('click',()=>zoomEditorAt(1.2));
+  document.getElementById('editorZoomOut').addEventListener('click',()=>zoomEditorAt(.83));
+  document.getElementById('editorFocusMap').addEventListener('click',focusEditorMap);
   window.addEventListener('pointerup',()=>{editorPainting=false;});
   window.addEventListener('pointercancel',()=>{editorPainting=false;});
   document.getElementById('createMapName').addEventListener('keydown',e=>{
@@ -2248,9 +2448,10 @@ button{font:inherit}
     window.visualViewport.addEventListener('scroll',updateVisibleViewportHeight);
   }
 
-  window.addEventListener('resize',()=>setTimeout(focusMap,60));
+  window.addEventListener('resize',()=>{setTimeout(focusMap,60);if(editorMap&&!document.getElementById('createMapScreen').hidden)setTimeout(focusEditorMap,70)});
   window.addEventListener('orientationchange',()=>setTimeout(focusMap,180));
 
+  updateBarracksSpawn('player');updateBarracksSpawn('enemy');
   positionStaticObjects();
   state.gameActive=false;
   updateAll();

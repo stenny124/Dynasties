@@ -1,4 +1,4 @@
-const CACHE='dynasties-mechanics-v20';
+const CACHE='dynasties-mechanics-v21';
 const STATIC=[
   './index.html',
   './assets/team_blue_soldier.png',
@@ -15,6 +15,7 @@ const STATIC=[
   './assets/gold_icon.png',
   './assets/house_stark_crest.png',
   './assets/house_lannister_crest.png',
+  './assets/white_walker_crest.png',
   './assets/winterfell.png',
   './assets/casterly_rock.png'
 ];
