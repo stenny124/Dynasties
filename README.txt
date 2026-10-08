@@ -1,16 +1,21 @@
-Dynasties — Mechanics Build v24
+Dynasties — Mechanics Build v25
 
-IMPORT / EXPORT
-- Exports now download as `<map-name>.dynmap.json` using standard JSON MIME type.
-- Removed the restrictive file-picker `accept` filter, so iPhone/iOS Files can select both new JSON exports and older `.dynmap` files.
-- Import validation accepts grass, sea, forest and mountain terrain.
+TERRAIN MOVEMENT
+- Grass: cost 1 movement for all units.
+- Forest: cost 2 movement for Soldiers/Archers and 3 movement for Cavalry.
+- Mountain: cost 2 movement for Soldiers/Archers; Cavalry cannot enter.
+- Sea: impassable to all units.
+- Player and AI pathfinding both use the same terrain costs.
+- Actual remaining MOV now deducts the true terrain cost for every tile entered.
+- Recruitment spawn selection respects the recruited unit's terrain access.
+- Map-editor starting-unit placement follows the same terrain restrictions.
 
-MAP EDITOR
-- Restored reliable press-and-drag terrain painting on desktop and touch.
-- Drag painting is handled at the viewport level so pointer capture/pan/zoom no longer interrupts painting.
-- Added Forest terrain.
-- Added Mountain terrain.
-- Forest and Mountain backgrounds were adjusted to match the current grass base colour and avoid obvious tile seams.
-- Mountain and Sea are impassable in battle and cannot contain units.
-- Forest remains passable for now.
-- HQs still require a 2x2 grass footprint.
+FOREST ART
+- Rebuilt terrain_forest.png as a 64×64 tile using the supplied pixel trees over the exact game grass base.
+- Trees are contained inside each tile instead of being cut off at the tile boundaries, so repeated forest tiles form a clean regular pattern.
+
+MAP LIBRARY
+- Added Delete beside Edit and Export for every created/imported map.
+- Deletion requires confirmation.
+
+Save slots and .dynmap.json import/export remain compatible with v24.

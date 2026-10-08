@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#182014">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dynasties — Mechanics Build v24</title>
+<title>Dynasties — Mechanics Build v25</title>
 <style>
 :root{
   --blue:#315f9b; --red:#93433d; --gold:#d7b96e; --cream:#f3e4bd;
@@ -623,6 +623,7 @@ button{font:inherit}
   min-height:31px;padding:4px 8px;border:1px solid #8f6c3b;border-radius:4px;
   background:#3b2b1e;color:#f3dfb4;font:bold 10px Georgia,serif;
 }
+.mapMiniBtn.danger{border-color:#93433d;color:#f0b0a7;background:#321814}
 .mapMiniBtn.primary{background:#59402b}
 #importMapInput{display:none}
 #mapManagerMessage{min-height:16px;margin-top:8px;text-align:center;color:#cbb388;font-size:10px}
@@ -1042,6 +1043,16 @@ button{font:inherit}
     }
   }
 
+  function deleteCreatedMap(id){
+    const maps=getCreatedMaps();
+    const map=maps.find(m=>m.id===id);
+    if(!map)return;
+    if(!confirm(`Delete “${map.name}”? This cannot be undone.`))return;
+    saveCreatedMaps(maps.filter(m=>m.id!==id));
+    document.getElementById('mapManagerMessage').textContent=`Deleted “${map.name}”.`;
+    renderMapManager();
+  }
+
   function renderMapManager(){
     const list=document.getElementById('mapManagerList');
     list.innerHTML='';
@@ -1062,10 +1073,12 @@ button{font:inherit}
           <div class="mapManageActions">
             <button class="mapMiniBtn primary" type="button" data-edit-map="${map.id}">Edit</button>
             <button class="mapMiniBtn" type="button" data-export-map="${map.id}">Export</button>
+            <button class="mapMiniBtn danger" type="button" data-delete-map="${map.id}">Delete</button>
           </div>
         </div>`;
       card.querySelector('[data-edit-map]').addEventListener('click',()=>openCreateMapScreen(map));
       card.querySelector('[data-export-map]').addEventListener('click',()=>exportMapFile(map));
+      card.querySelector('[data-delete-map]').addEventListener('click',()=>deleteCreatedMap(map.id));
       list.appendChild(card);
     });
   }
@@ -1484,7 +1497,11 @@ button{font:inherit}
     if(editorTool==='terrain'){
       if(editorCastleAt(x,y)){setEditorMessage('Move the HQ first before changing terrain beneath it.');return;}
       editorMap.tiles[editorIndex(x,y)]=editorSelection;
-      if(['sea','mountain'].includes(editorSelection))editorMap.units=editorMap.units.filter(u=>!(u.x===x&&u.y===y));
+      if(editorSelection==='sea'){
+        editorMap.units=editorMap.units.filter(u=>!(u.x===x&&u.y===y));
+      }else if(editorSelection==='mountain'){
+        editorMap.units=editorMap.units.filter(u=>!(u.x===x&&u.y===y&&u.kind==='cavalry'));
+      }
       const tile=document.querySelector(`.creatorTile[data-x="${x}"][data-y="${y}"]`);
       if(tile){
         tile.classList.remove('sea','forest','mountain');
@@ -1514,8 +1531,10 @@ button{font:inherit}
         if(before!==editorMap.units.length)setEditorMessage('Unit removed.');
         renderEditorObjects();return;
       }
-      if(['sea','mountain'].includes(editorTerrainAt(x,y))){setEditorMessage('Units cannot be placed on sea or mountain.');return;}
       const [team,kind]=editorSelection.split(':');
+      const terrain=editorTerrainAt(x,y);
+      if(terrain==='sea'){setEditorMessage('Units cannot be placed on sea.');return;}
+      if(terrain==='mountain'&&kind==='cavalry'){setEditorMessage('Cavalry cannot enter mountains.');return;}
       editorMap.units=editorMap.units.filter(u=>!(u.x===x&&u.y===y));
       editorMap.units.push({team,kind,x,y});
       renderEditorObjects();
@@ -1543,7 +1562,7 @@ button{font:inherit}
           <button class="editorChoice ${editorSelection==='forest'?'active':''}" data-editor-select="forest" type="button"><img src="./assets/terrain_forest.png" alt="Forest"><span>Forest</span></button>
           <button class="editorChoice ${editorSelection==='mountain'?'active':''}" data-editor-select="mountain" type="button"><img src="./assets/terrain_mountain.png" alt="Mountain"><span>Mountain</span></button>
         </div>`;
-      document.getElementById('editorHint').textContent='Terrain: choose Grass, Sea, Forest or Mountain, then press and drag to paint.';
+      document.getElementById('editorHint').textContent='Terrain: drag to paint. Forest costs 2 MOV (3 cavalry); Mountain costs 2 MOV for foot units and blocks cavalry; Sea blocks all units.';
     }else{
       const unitChoice=(team,kind)=>`<button class="editorChoice ${editorSelection===team+':'+kind?'active':''}" data-editor-select="${team}:${kind}" type="button"><img src="${editorUnitSprite({team,kind})}" alt=""><span>${UNIT_DEFS[kind].label}</span></button>`;
       const hqChoice=(team,src,label)=>`<button class="editorChoice editorHQChoice ${editorSelection==='hq:'+team?'active':''}" data-editor-select="hq:${team}" type="button"><img src="${src}" alt=""><span>${label}</span></button>`;
@@ -1798,8 +1817,20 @@ button{font:inherit}
     return activeMap.tiles?.[y*COLS+x]||'grass';
   }
 
-  function terrainPassable(x,y){
-    return !['sea','mountain'].includes(terrainAt(x,y));
+  function terrainMoveCostForKind(kind,x,y){
+    const terrain=terrainAt(x,y);
+    if(terrain==='sea')return Infinity;
+    if(terrain==='mountain')return kind==='cavalry'?Infinity:2;
+    if(terrain==='forest')return kind==='cavalry'?3:2;
+    return 1;
+  }
+
+  function terrainMoveCost(unit,x,y){
+    return terrainMoveCostForKind(unit.kind,x,y);
+  }
+
+  function terrainPassable(x,y,kind='soldier'){
+    return Number.isFinite(terrainMoveCostForKind(kind,x,y));
   }
 
   function renderActiveMapTerrain(){
@@ -1908,10 +1939,12 @@ button{font:inherit}
       if(cur.c!==best.get(ck))continue;
       for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
         const nx=cur.x+dx, ny=cur.y+dy;
-        if(!inside(nx,ny)||!terrainPassable(nx,ny)||barracksAt(nx,ny))continue;
+        if(!inside(nx,ny)||barracksAt(nx,ny))continue;
+        const stepCost=terrainMoveCost(u,nx,ny);
+        if(!Number.isFinite(stepCost))continue;
         const occ=unitAt(nx,ny);
         if(occ&&occ.id!==u.id)continue;
-        const nc=cur.c+1;
+        const nc=cur.c+stepCost;
         if(nc>maxCost)continue;
         const nk=key(nx,ny);
         if(!best.has(nk)||nc<best.get(nk)){ best.set(nk,nc); prev.set(nk,ck); q.push({x:nx,y:ny,c:nc}); }
@@ -1978,7 +2011,7 @@ button{font:inherit}
     state.busy=true; clearOverlay();
     for(const step of path){
       faceTowardStep(u,step);
-      u.move=Math.max(0,u.move-1);
+      u.move=Math.max(0,u.move-terrainMoveCost(u,step.x,step.y));
       u.x=step.x; u.y=step.y;
       setUnitPos(u);
       await new Promise(r=>setTimeout(r,130));
@@ -2042,16 +2075,18 @@ button{font:inherit}
 
   function updateRecruitPopup(){
     const t=teams.player;
-    const noSpace=!nextSpawn('player');
+    const soldierSpace=!!nextSpawn('player','soldier');
+    const archerSpace=!!nextSpawn('player','archer');
+    const cavalrySpace=!!nextSpawn('player','cavalry');
     const soldierBtn=document.getElementById('popupRecruitSoldier');
     const archerBtn=document.getElementById('popupRecruitArcher');
     const cavalryBtn=document.getElementById('popupRecruitCavalry');
-    soldierBtn.disabled=t.recruited||noSpace||t.gold<UNIT_DEFS.soldier.cost;
-    archerBtn.disabled=t.recruited||noSpace||t.gold<UNIT_DEFS.archer.cost;
-    cavalryBtn.disabled=t.recruited||noSpace||t.gold<UNIT_DEFS.cavalry.cost;
+    soldierBtn.disabled=t.recruited||!soldierSpace||t.gold<UNIT_DEFS.soldier.cost;
+    archerBtn.disabled=t.recruited||!archerSpace||t.gold<UNIT_DEFS.archer.cost;
+    cavalryBtn.disabled=t.recruited||!cavalrySpace||t.gold<UNIT_DEFS.cavalry.cost;
     const note=document.getElementById('recruitNote');
     if(t.recruited) note.textContent='A unit has already been recruited this turn.';
-    else if(noSpace) note.textContent='No free tile beside the barracks.';
+    else if(!soldierSpace&&!archerSpace&&!cavalrySpace) note.textContent='No usable free tile beside the HQ.';
     else note.textContent=`White Walkers gold: ${t.gold}`;
     positionRecruitPopup();
   }
@@ -2070,7 +2105,7 @@ button{font:inherit}
     state.selectedUnitId=id;
     state.inspectedUnitId=null;
     state.selectedBarracks=null;
-    if(archerEngaged(u)) setStatus(`${u.name} is engaged by an enemy soldier — it can attack, but cannot move away this turn.`);
+    if(archerEngaged(u)) setStatus(`${u.name} is engaged by enemy infantry/cavalry — it can attack, but cannot move away this turn.`);
     else setStatus(`${u.name} selected.`);
     updateAll();
   }
@@ -2103,15 +2138,15 @@ button{font:inherit}
     updateAll();
   }
 
-  function nextSpawn(team){
-    return barracks[team].spawn.find(p=>inside(p.x,p.y)&&terrainPassable(p.x,p.y)&&!unitAt(p.x,p.y)&&!barracksAt(p.x,p.y))||null;
+  function nextSpawn(team,kind='soldier'){
+    return barracks[team].spawn.find(p=>inside(p.x,p.y)&&terrainPassable(p.x,p.y,kind)&&!unitAt(p.x,p.y)&&!barracksAt(p.x,p.y))||null;
   }
 
   function recruit(team,kind='soldier',announce=true){
     const t=teams[team];
     const def=UNIT_DEFS[kind];
     if(t.gold<def.cost||t.recruited)return null;
-    const spawn=nextSpawn(team);
+    const spawn=nextSpawn(team,kind);
     if(!spawn)return null;
     t.gold-=def.cost; t.recruited=true;
     const n=state.nextRecruitId++;
@@ -2495,7 +2530,7 @@ button{font:inherit}
       if(plan.path && plan.path.length){
         for(const step of plan.path){
           faceTowardStep(enemy,step);
-          enemy.move=Math.max(0,enemy.move-1);
+          enemy.move=Math.max(0,enemy.move-terrainMoveCost(enemy,step.x,step.y));
           enemy.x=step.x;
           enemy.y=step.y;
           setUnitPos(enemy);
