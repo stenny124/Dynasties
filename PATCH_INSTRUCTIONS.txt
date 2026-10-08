@@ -1,6 +1,6 @@
 Overwrite these files in your existing repo with the files in this patch ZIP.
 Changed files:
-service-worker.js
-manifest.webmanifest
-assets/terrain_forest.png
-assets/terrain_forest_overlay.png
+- index.html
+- service-worker.js
+
+v34 adds the runtime palette-swap engine. No extra colour PNG files are needed.
