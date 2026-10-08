@@ -1361,6 +1361,8 @@ button{font:inherit}
   const WG_GRASS_VARIANTS=Array.from({length:25},(_,i)=>`./assets/wg_grass_${i}.png`);
   const WG_SEA_AUTOTILES=Array.from({length:16},(_,i)=>`./assets/wg_sea_auto_${i}.png`);
   const WG_MOUNTAIN_AUTOTILES=Array.from({length:16},(_,i)=>`./assets/wg_mountain_auto_${i}.png`);
+  const WG_COAST_OVERLAYS=Array.from({length:16},(_,i)=>`./assets/wg_coast_overlay_${i}.png`);
+  const WG_MOUNTAIN_FULLS=Array.from({length:3},(_,i)=>`./assets/wg_mountain_full_${i}.png`);
 
   function terrainHash(x,y){
     let n=((x+11)*374761393)^((y+29)*668265263);
@@ -1378,8 +1380,25 @@ button{font:inherit}
     return WG_GRASS_VARIANTS[terrainHash(x,y)%WG_GRASS_VARIANTS.length];
   }
 
+  function popcount4(n){
+    let c=0; while(n){ c+=n&1; n>>=1; } return c;
+  }
+
+  function oppositeMask(mask){
+    return ((mask&1)?4:0) | ((mask&2)?8:0) | ((mask&4)?1:0) | ((mask&8)?2:0);
+  }
+
+  function mountainVisual(mask,x,y){
+    const count=popcount4(mask);
+    if(count<=1){
+      return WG_MOUNTAIN_FULLS[terrainHash(x,y)%WG_MOUNTAIN_FULLS.length];
+    }
+    return WG_MOUNTAIN_AUTOTILES[mask];
+  }
+
   function applyTerrainVisual(el,terrain,x,y,size,map,width,height){
     const grass=grassVariant(x,y);
+    const coastMask=terrainMask(map,'sea',x,y,width,height);
     el.style.backgroundColor='#8ab141';
     el.style.backgroundRepeat='no-repeat';
     el.style.imageRendering='pixelated';
@@ -1398,13 +1417,25 @@ button{font:inherit}
 
     if(terrain==='mountain'){
       const mask=terrainMask(map,'mountain',x,y,width,height);
-      el.style.backgroundImage=`url('${WG_MOUNTAIN_AUTOTILES[mask]}'), url('${grass}')`;
+      const mountain=mountainVisual(mask,x,y);
+      el.style.backgroundImage=`url('${mountain}'), url('${grass}')`;
       el.style.backgroundSize=`${size}px ${size}px, ${size}px ${size}px`;
       return;
     }
 
     if(terrain==='forest'){
-      el.style.backgroundImage=`url('./assets/terrain_forest_overlay.png'), url('${grass}')`;
+      if(coastMask){
+        el.style.backgroundImage=`url('./assets/terrain_forest_overlay.png'), url('${WG_COAST_OVERLAYS[coastMask]}'), url('${grass}')`;
+        el.style.backgroundSize=`${size}px ${size}px, ${size}px ${size}px, ${size}px ${size}px`;
+      }else{
+        el.style.backgroundImage=`url('./assets/terrain_forest_overlay.png'), url('${grass}')`;
+        el.style.backgroundSize=`${size}px ${size}px, ${size}px ${size}px`;
+      }
+      return;
+    }
+
+    if(coastMask){
+      el.style.backgroundImage=`url('${WG_COAST_OVERLAYS[coastMask]}'), url('${grass}')`;
       el.style.backgroundSize=`${size}px ${size}px, ${size}px ${size}px`;
       return;
     }

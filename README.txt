@@ -1,4 +1,4 @@
-Dynasties — Mechanics Build v27
+Dynasties — Mechanics Build v28
 
 WARGROOVE AUTOTILING
 - Replaced v26's random terrain-variant approach with neighbour-aware autotiling.
