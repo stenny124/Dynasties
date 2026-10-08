@@ -1,11 +1,21 @@
-Dynasties — Mechanics Build v21
+Dynasties — Mechanics Build v22
 
-Map editor upgrades:
-- Width and Height are selectable from 4 to 200 tiles.
-- Existing terrain/units are preserved where possible when resizing.
-- Create Map now supports drag/pinch/wheel zoom plus +/-/fit controls.
-- Terrain/Unit palettes have a close button. With the palette hidden, drag pans the editor map.
-- Units palette now includes White Walker HQ and Lannister HQ placement tools. HQs remain 2x2, require grass, and can be moved anywhere valid.
-- Saved maps store their own width, height, terrain, starting units and HQ positions.
-- Playable battles now use each map's actual dimensions and HQ positions.
-- White Walker crest replaced by a new icy snowflake shield with the same 500x550 shield canvas dimensions.
+SAVE GAME
+- Replaced the old single/autosave system with three explicit save slots.
+- Added Save Game to the in-game action bar.
+- Saving opens Slot 1 / Slot 2 / Slot 3 and allows overwriting an existing slot.
+- Main-menu Load Game now opens the same three slots.
+- Save-slot cards show map name, turn number and saved date/time.
+- New Game no longer deletes existing saves.
+- Menu no longer silently overwrites a save.
+- A valid v21 single save is migrated into Slot 1 when possible.
+
+SEA TILE FIX
+- Sea editor tiles now use blue background and blue grid-edge colours.
+- Playable sea tiles use the same blue edge treatment.
+- This removes the green grass-coloured dots/seams at tile corners.
+
+CROSS-DEVICE NOTE
+- Created maps and save slots remain browser-local in this build.
+- GitHub Pages is a static host, so the same URL does not automatically share
+  localStorage between laptop and phone.

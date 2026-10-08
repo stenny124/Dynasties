@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#182014">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dynasties — Mechanics Build v21</title>
+<title>Dynasties — Mechanics Build v22</title>
 <style>
 :root{
   --blue:#315f9b; --red:#93433d; --gold:#d7b96e; --cream:#f3e4bd;
@@ -106,6 +106,11 @@ button{font:inherit}
   background-image:url('./assets/grass_tile.png');background-size:64px 64px;background-repeat:no-repeat;image-rendering:pixelated;
 }
 .grassCell.alt{background-image:url('./assets/grass_tile.png')}
+.grassCell[data-terrain="sea"]{
+  background-color:#2e6fb0;
+  border-right-color:#2e6fb0;
+  border-bottom-color:#2e6fb0;
+}
 
 #overlay{position:absolute;inset:0;z-index:4;pointer-events:none}
 .moveCell,.attackCell,.pathCell{position:absolute;width:64px;height:64px;pointer-events:auto}
@@ -474,7 +479,12 @@ button{font:inherit}
   background-size:100% 100%;background-repeat:no-repeat;image-rendering:pixelated;
   border-right:1px solid rgba(65,96,41,.19);border-bottom:1px solid rgba(65,96,41,.19);
 }
-.creatorTile.sea{background-image:url('./assets/terrain_sea.png')}
+.creatorTile.sea{
+  background-image:url('./assets/terrain_sea.png');
+  background-color:#2e6fb0;
+  border-right-color:#2e6fb0;
+  border-bottom-color:#2e6fb0;
+}
 .creatorTile.locked::after{content:"";position:absolute;inset:0;box-shadow:inset 0 0 0 1px rgba(255,233,178,.14);pointer-events:none}
 #creatorObjectLayer,#creatorUnitLayer{position:absolute;left:0;top:0;pointer-events:none}
 .editorCastle{
@@ -554,6 +564,37 @@ button{font:inherit}
   .mapPreview .miniCastle.red,.mapPreview .miniCastle.blue{left:27px}
 }
 
+
+.saveSlotList{display:grid;gap:9px}
+.saveSlotCard{
+  width:100%;
+  min-height:72px;
+  display:grid;
+  grid-template-columns:56px minmax(0,1fr);
+  align-items:center;
+  gap:10px;
+  padding:9px 10px;
+  color:#f6e4bb;
+  background:#211910;
+  border:1px solid #775d34;
+  border-radius:6px;
+  text-align:left;
+}
+.saveSlotCard:not(:disabled):hover{border-color:#c39a55}
+.saveSlotCard:disabled{opacity:.42}
+.saveSlotNumber{
+  display:grid;place-items:center;
+  width:50px;height:50px;
+  border:2px solid #9d7740;
+  border-radius:5px;
+  background:#392a1d;
+  color:#f1d79e;
+  font:bold 20px Georgia,serif;
+}
+.saveSlotTitle{font-size:15px;font-weight:bold;margin-bottom:3px}
+.saveSlotMeta{font-size:10px;line-height:1.4;color:#ae9974}
+.saveSlotEmpty{color:#7f735c;font-style:italic}
+
 </style>
 </head>
 <body>
@@ -575,6 +616,17 @@ button{font:inherit}
         <button class="menuButton" id="menuCreateMap" type="button">Create Map</button>
       </div>
       <div class="menuFooter" id="saveStatus">No saved game found.</div>
+    </section>
+
+
+    <section class="menuScreen" id="saveSlotsScreen" hidden>
+      <div class="menuBackRow">
+        <button class="menuBack" id="saveSlotsBack" type="button">← Back</button>
+        <div class="menuSectionTitle" id="saveSlotsTitle">Save Game</div>
+        <span></span>
+      </div>
+      <div class="menuSectionSub" id="saveSlotsSubtitle">Choose one of three save slots.</div>
+      <div class="saveSlotList" id="saveSlotList"></div>
     </section>
 
     <section class="menuScreen" id="newGameScreen" hidden>
@@ -712,6 +764,7 @@ button{font:inherit}
     </div>
     <div id="actions">
       <button class="action" id="attackInspected" type="button" hidden>Attack</button>
+      <button class="action" id="saveGame" type="button">Save Game</button>
       <button class="action" id="newGame" type="button">Menu</button>
     </div>
   </div>
@@ -721,7 +774,8 @@ button{font:inherit}
 (() => {
   let COLS=20, ROWS=20;
   const CELL=64, EDITOR_CELL=32, MAX_MAP_SIZE=200, MIN_MAP_SIZE=4;
-  const SAVE_KEY='dynasties-mechanics-v21';
+  const LEGACY_SAVE_KEY='dynasties-mechanics-v21';
+  const SAVE_SLOT_PREFIX='dynasties-save-slot-v1-';
   const MAPS_KEY='dynasties-created-maps-v1';
   const DEFAULT_MAP={
     id:'default-grass',
@@ -752,7 +806,7 @@ button{font:inherit}
   };
 
   const state={
-    turn:1,selectedUnitId:'blue-1',inspectedUnitId:null,selectedBarracks:null,busy:false,nextRecruitId:2,gameActive:false,
+    turn:1,selectedUnitId:'blue-1',inspectedUnitId:null,selectedBarracks:null,busy:false,nextRecruitId:2,gameActive:false,currentSaveSlot:null,
     mapZoom:.52,mapX:0,mapY:0,dragging:false,dragMoved:false,dragStartX:0,dragStartY:0,
     mapStartX:0,mapStartY:0,pointers:new Map(),pinching:false,pinchStartDist:0,pinchStartZoom:.52,
     pinchMapX:0,pinchMapY:0
@@ -890,13 +944,145 @@ button{font:inherit}
     state.selectedUnitId=firstPlayer?firstPlayer.id:null;
   }
 
-  function hasSavedGame(){
+  const slotKey=slot=>`${SAVE_SLOT_PREFIX}${slot}`;
+
+  function readSaveSlot(slot){
     try{
-      const raw=localStorage.getItem(SAVE_KEY);
-      if(!raw)return false;
+      const raw=localStorage.getItem(slotKey(slot));
+      if(!raw)return null;
       const s=JSON.parse(raw);
-      return !!(s && s.version===20 && Array.isArray(s.units));
-    }catch(e){ return false; }
+      if(!s || s.version!==21 || !Array.isArray(s.units))return null;
+      return s;
+    }catch(e){ return null; }
+  }
+
+  function usedSaveSlots(){
+    return [1,2,3].filter(slot=>!!readSaveSlot(slot));
+  }
+
+  function hasSavedGame(){
+    return usedSaveSlots().length>0;
+  }
+
+  function migrateLegacySave(){
+    try{
+      if(readSaveSlot(1))return;
+      const raw=localStorage.getItem(LEGACY_SAVE_KEY);
+      if(!raw)return;
+      const old=JSON.parse(raw);
+      if(!old || old.version!==20 || !Array.isArray(old.units))return;
+
+      old.version=21;
+      old.slot=1;
+      old.savedAt=new Date().toISOString();
+      localStorage.setItem(slotKey(1),JSON.stringify(old));
+    }catch(e){}
+  }
+
+  function makeSaveSnapshot(slot){
+    return {
+      version:21,
+      slot,
+      savedAt:new Date().toISOString(),
+      state:{
+        turn:state.turn,
+        selectedUnitId:state.selectedUnitId,
+        inspectedUnitId:state.inspectedUnitId,
+        selectedBarracks:state.selectedBarracks,
+        nextRecruitId:state.nextRecruitId,
+        mapZoom:state.mapZoom,
+        mapX:state.mapX,
+        mapY:state.mapY
+      },
+      map:{
+        id:activeMap.id,
+        name:activeMap.name,
+        created:activeMap.created,
+        width:activeMap.width,
+        height:activeMap.height,
+        tiles:activeMap.tiles,
+        units:activeMap.units,
+        castles:activeMap.castles
+      },
+      teams:teams,
+      units:Object.values(units)
+    };
+  }
+
+  function writeSaveSlot(slot){
+    if(!state.gameActive)return false;
+    try{
+      localStorage.setItem(slotKey(slot),JSON.stringify(makeSaveSnapshot(slot)));
+      state.currentSaveSlot=slot;
+      setStatus(`Game saved to Slot ${slot}.`);
+      return true;
+    }catch(e){
+      setStatus('Could not save this game.');
+      return false;
+    }
+  }
+
+  let saveSlotMode='load';
+  let saveSlotReturn='main';
+
+  function renderSaveSlots(mode='load'){
+    saveSlotMode=mode;
+    const list=document.getElementById('saveSlotList');
+    list.innerHTML='';
+    document.getElementById('saveSlotsTitle').textContent=mode==='save'?'Save Game':'Load Game';
+    document.getElementById('saveSlotsSubtitle').textContent=mode==='save'
+      ? 'Choose a slot. Saving over an occupied slot replaces it.'
+      : 'Choose one of your saved battles.';
+
+    [1,2,3].forEach(slot=>{
+      const saved=readSaveSlot(slot);
+      const btn=document.createElement('button');
+      btn.type='button';
+      btn.className='saveSlotCard';
+
+      if(mode==='load' && !saved)btn.disabled=true;
+
+      let details='';
+      if(saved){
+        const mapName=saved.map?.name||'Unknown Map';
+        const turn=saved.state?.turn||1;
+        let when='Saved game';
+        try{
+          if(saved.savedAt)when=new Date(saved.savedAt).toLocaleString();
+        }catch(e){}
+        details=`
+          <div>
+            <div class="saveSlotTitle">${escapeHtml(mapName)}</div>
+            <div class="saveSlotMeta">Turn ${turn} · ${escapeHtml(when)}</div>
+          </div>`;
+      }else{
+        details=`
+          <div>
+            <div class="saveSlotTitle">Empty Slot</div>
+            <div class="saveSlotMeta saveSlotEmpty">${mode==='save'?'Available for saving':'No saved game'}</div>
+          </div>`;
+      }
+
+      btn.innerHTML=`<div class="saveSlotNumber">${slot}</div>${details}`;
+      btn.addEventListener('click',()=>{
+        if(mode==='save'){
+          if(saved && !confirm(`Overwrite Save Slot ${slot}?`))return;
+          if(writeSaveSlot(slot)){
+            document.getElementById('menuLayer').hidden=true;
+          }
+        }else if(saved){
+          loadSavedGameFromSlot(slot);
+        }
+      });
+      list.appendChild(btn);
+    });
+  }
+
+  function openSaveSlots(mode,returnTo='main'){
+    saveSlotReturn=returnTo;
+    document.getElementById('menuLayer').hidden=false;
+    renderSaveSlots(mode);
+    showMenuScreen('saveSlotsScreen');
   }
 
   function showMenuScreen(id){
@@ -904,12 +1090,12 @@ button{font:inherit}
   }
 
   function refreshMainMenu(){
-    const hasSave=hasSavedGame();
+    const used=usedSaveSlots();
     const loadBtn=document.getElementById('menuLoadGame');
-    loadBtn.disabled=!hasSave;
-    document.getElementById('saveStatus').textContent=hasSave
-      ? 'A saved battle is available on this device.'
-      : 'No saved battle yet — start a new game.';
+    loadBtn.disabled=used.length===0;
+    document.getElementById('saveStatus').textContent=used.length
+      ? `${used.length}/3 save slot${used.length===1?'':'s'} used on this device.`
+      : 'No saved battles yet — start a new game.';
   }
 
   function showMainMenu(){
@@ -1304,7 +1490,6 @@ button{font:inherit}
   }
 
   function startNewGame(map){
-    try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
     applyMap(map);
     resetGameState();
     state.gameActive=true;
@@ -1313,12 +1498,13 @@ button{font:inherit}
     setTimeout(focusMap,60);
   }
 
-  function loadSavedGameFromMenu(){
-    const ok=load();
+  function loadSavedGameFromSlot(slot){
+    const ok=load(slot);
     if(!ok){
-      refreshMainMenu();
+      renderSaveSlots('load');
       return;
     }
+    state.currentSaveSlot=slot;
     state.gameActive=true;
     hideMainMenu();
     updateAll();
@@ -2173,36 +2359,10 @@ button{font:inherit}
     updateRecruitPopup();
   }
 
-  function save(){
-    if(!state.gameActive)return;
+  function load(slot){
     try{
-      localStorage.setItem(SAVE_KEY,JSON.stringify({
-        version:20,
-        state:{
-          turn:state.turn,selectedUnitId:state.selectedUnitId,inspectedUnitId:state.inspectedUnitId,selectedBarracks:state.selectedBarracks,nextRecruitId:state.nextRecruitId,
-          mapZoom:state.mapZoom,mapX:state.mapX,mapY:state.mapY
-        },
-        map:{
-          id:activeMap.id,
-          name:activeMap.name,
-          created:activeMap.created,
-          width:activeMap.width,
-          height:activeMap.height,
-          tiles:activeMap.tiles,
-          units:activeMap.units,
-          castles:activeMap.castles
-        },
-        teams:teams, units:Object.values(units)
-      }));
-    }catch(e){}
-  }
-
-  function load(){
-    try{
-      const raw=localStorage.getItem(SAVE_KEY);
-      if(!raw)return false;
-      const s=JSON.parse(raw);
-      if(!s||s.version!==20||!Array.isArray(s.units))return false;
+      const s=readSaveSlot(slot);
+      if(!s)return false;
 
       applyMap(s.map ? cloneMap(s.map) : cloneMap(DEFAULT_MAP));
 
@@ -2225,7 +2385,7 @@ button{font:inherit}
 
       unitLayer.innerHTML='';
       units={};
-      s.units.forEach(u=>{ if(u&&u.id)units[u.id]=u; });
+      s.units.forEach(u=>{if(u&&u.id)units[u.id]=u;});
       if(!Object.keys(units).length)resetUnits();
       return true;
     }catch(e){
@@ -2256,7 +2416,7 @@ button{font:inherit}
     updateRecruitPopup();
     updateHighlights();
     applyMapTransform();
-    if(!state.busy&&state.gameActive)save();
+
   }
 
   function clampZoom(z){ return Math.max(.28,Math.min(1.45,z)); }
@@ -2406,11 +2566,19 @@ button{font:inherit}
   });
   document.getElementById('endTurn').addEventListener('click',endTurn);
   document.getElementById('newGame').addEventListener('click',()=>{
-    save();
     showMainMenu();
   });
 
-  document.getElementById('menuLoadGame').addEventListener('click',loadSavedGameFromMenu);
+  document.getElementById('menuLoadGame').addEventListener('click',()=>openSaveSlots('load','main'));
+  document.getElementById('saveGame').addEventListener('click',()=>openSaveSlots('save','game'));
+  document.getElementById('saveSlotsBack').addEventListener('click',()=>{
+    if(saveSlotReturn==='game'){
+      document.getElementById('menuLayer').hidden=true;
+    }else{
+      showMenuScreen('mainMenuScreen');
+      refreshMainMenu();
+    }
+  });
   document.getElementById('menuNewGame').addEventListener('click',openNewGameScreen);
   document.getElementById('menuCreateMap').addEventListener('click',openCreateMapScreen);
   document.querySelectorAll('[data-menu-back]').forEach(btn=>btn.addEventListener('click',()=>{
@@ -2453,6 +2621,7 @@ button{font:inherit}
 
   updateBarracksSpawn('player');updateBarracksSpawn('enemy');
   positionStaticObjects();
+  migrateLegacySave();
   state.gameActive=false;
   updateAll();
   showMainMenu();
