@@ -1,21 +1,19 @@
-Dynasties — Mechanics Build v25
+Dynasties — Mechanics Build v27
 
-TERRAIN MOVEMENT
-- Grass: cost 1 movement for all units.
-- Forest: cost 2 movement for Soldiers/Archers and 3 movement for Cavalry.
-- Mountain: cost 2 movement for Soldiers/Archers; Cavalry cannot enter.
-- Sea: impassable to all units.
-- Player and AI pathfinding both use the same terrain costs.
-- Actual remaining MOV now deducts the true terrain cost for every tile entered.
-- Recruitment spawn selection respects the recruited unit's terrain access.
-- Map-editor starting-unit placement follows the same terrain restrictions.
+WARGROOVE AUTOTILING
+- Replaced v26's random terrain-variant approach with neighbour-aware autotiling.
+- Sea uses 16 exact coastline configurations extracted from the uploaded Wargroove beach tileset.
+- The visual tile is selected from its N/E/S/W sea neighbours.
+- Painting or erasing sea automatically recalculates the changed tile and its adjacent tiles.
+- Mountains now use the same neighbour mask to choose connected Wargroove mountain pieces.
+- Grass uses 25 deterministic variants from the uploaded Wargroove plains tileset.
+- Forest trees are now layered over Wargroove grass so their ground colour matches the new plains art.
+- The same autotiling is used in Create Map and in playable maps.
 
-FOREST ART
-- Rebuilt terrain_forest.png as a 64×64 tile using the supplied pixel trees over the exact game grass base.
-- Trees are contained inside each tile instead of being cut off at the tile boundaries, so repeated forest tiles form a clean regular pattern.
+Gameplay terrain rules remain unchanged from v25:
+- Grass: cost 1.
+- Forest: foot cost 2, cavalry cost 3.
+- Mountain: foot cost 2, cavalry impassable.
+- Sea: impassable.
 
-MAP LIBRARY
-- Added Delete beside Edit and Export for every created/imported map.
-- Deletion requires confirmation.
-
-Save slots and .dynmap.json import/export remain compatible with v24.
+Save slots and .dynmap.json map files retain the same format for compatibility.

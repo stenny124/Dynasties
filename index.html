@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#182014">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dynasties — Mechanics Build v25</title>
+<title>Dynasties — Mechanics Build v27</title>
 <style>
 :root{
   --blue:#315f9b; --red:#93433d; --gold:#d7b96e; --cream:#f3e4bd;
@@ -102,20 +102,11 @@ button{font:inherit}
   border:3px solid #3e5f2a;box-shadow:0 8px 24px rgba(0,0,0,.34);background:var(--grass-a);
 }
 .grassCell{
-  position:relative;width:64px;height:64px;border-right:1px solid rgba(71,116,44,.42);border-bottom:1px solid rgba(71,116,44,.42);
-  background-image:url('./assets/grass_tile.png');background-size:64px 64px;background-repeat:no-repeat;image-rendering:pixelated;
+  position:relative;width:64px;height:64px;
+  border-top:1px solid rgba(255,255,255,.05);border-left:1px solid rgba(255,255,255,.05);
+  border-right:1px solid rgba(71,116,44,.30);border-bottom:1px solid rgba(71,116,44,.30);
+  background-repeat:no-repeat;image-rendering:pixelated;
 }
-.grassCell.alt{background-image:url('./assets/grass_tile.png')}
-.grassCell[data-terrain="sea"]{
-  background-color:#2e6fb0;
-  border-right-color:#2e6fb0;
-  border-bottom-color:#2e6fb0;
-}
-.grassCell[data-terrain="forest"],
-.grassCell[data-terrain="mountain"]{
-  background-color:#8ab141;
-}
-
 
 #overlay{position:absolute;inset:0;z-index:4;pointer-events:none}
 .moveCell,.attackCell,.pathCell{position:absolute;width:64px;height:64px;pointer-events:auto}
@@ -1367,112 +1358,74 @@ button{font:inherit}
     return u.team==='player'?'./assets/team_blue_soldier.png':'./assets/team_red_soldier.png';
   }
 
+  const WG_GRASS_VARIANTS=Array.from({length:25},(_,i)=>`./assets/wg_grass_${i}.png`);
+  const WG_SEA_AUTOTILES=Array.from({length:16},(_,i)=>`./assets/wg_sea_auto_${i}.png`);
+  const WG_MOUNTAIN_AUTOTILES=Array.from({length:16},(_,i)=>`./assets/wg_mountain_auto_${i}.png`);
 
-  const WG_TERRAIN_VARIANTS = {
-    "grass": [
-        "./assets/wg_grass_0.png",
-        "./assets/wg_grass_1.png",
-        "./assets/wg_grass_2.png",
-        "./assets/wg_grass_3.png",
-        "./assets/wg_grass_4.png",
-        "./assets/wg_grass_5.png",
-        "./assets/wg_grass_6.png",
-        "./assets/wg_grass_7.png",
-        "./assets/wg_grass_8.png",
-        "./assets/wg_grass_9.png",
-        "./assets/wg_grass_10.png",
-        "./assets/wg_grass_11.png",
-        "./assets/wg_grass_12.png",
-        "./assets/wg_grass_13.png",
-        "./assets/wg_grass_14.png",
-        "./assets/wg_grass_15.png",
-        "./assets/wg_grass_16.png",
-        "./assets/wg_grass_17.png",
-        "./assets/wg_grass_18.png",
-        "./assets/wg_grass_19.png",
-        "./assets/wg_grass_20.png",
-        "./assets/wg_grass_21.png",
-        "./assets/wg_grass_22.png",
-        "./assets/wg_grass_23.png",
-        "./assets/wg_grass_24.png"
-    ],
-    "sea": [
-        "./assets/wg_sea_0.png",
-        "./assets/wg_sea_1.png",
-        "./assets/wg_sea_2.png",
-        "./assets/wg_sea_3.png",
-        "./assets/wg_sea_4.png",
-        "./assets/wg_sea_5.png",
-        "./assets/wg_sea_6.png",
-        "./assets/wg_sea_7.png",
-        "./assets/wg_sea_8.png",
-        "./assets/wg_sea_9.png",
-        "./assets/wg_sea_10.png",
-        "./assets/wg_sea_11.png"
-    ],
-    "mountain": [
-        "./assets/wg_mountain_0.png",
-        "./assets/wg_mountain_1.png",
-        "./assets/wg_mountain_2.png",
-        "./assets/wg_mountain_3.png",
-        "./assets/wg_mountain_4.png",
-        "./assets/wg_mountain_5.png",
-        "./assets/wg_mountain_6.png",
-        "./assets/wg_mountain_7.png",
-        "./assets/wg_mountain_8.png",
-        "./assets/wg_mountain_9.png",
-        "./assets/wg_mountain_10.png",
-        "./assets/wg_mountain_11.png"
-    ]
-};
-
-  function terrainHash(x,y,seed=0){
-    let n=(x+1)*374761393 + (y+1)*668265263 + seed*1442695040888963407;
+  function terrainHash(x,y){
+    let n=((x+11)*374761393)^((y+29)*668265263);
     n=(n^(n>>>13))*1274126177;
-    n=(n^(n>>>16))>>>0;
-    return n;
+    return (n^(n>>>16))>>>0;
   }
 
-  function pickTerrainVariant(kind,x,y){
-    const arr=WG_TERRAIN_VARIANTS[kind]||[];
-    if(!arr.length)return '';
-    return arr[terrainHash(x,y,kind.length)%arr.length];
+  function terrainMask(map,terrain,x,y,width,height){
+    const tiles=map?.tiles||[];
+    const same=(xx,yy)=>xx>=0&&yy>=0&&xx<width&&yy<height&&tiles[yy*width+xx]===terrain;
+    return (same(x,y-1)?1:0) | (same(x+1,y)?2:0) | (same(x,y+1)?4:0) | (same(x-1,y)?8:0);
   }
 
-  function applyTerrainVisual(el,terrain,x,y,size){
-    const grassPath=pickTerrainVariant('grass',x,y);
-    const border='1px solid rgba(71,116,44,.42)';
+  function grassVariant(x,y){
+    return WG_GRASS_VARIANTS[terrainHash(x,y)%WG_GRASS_VARIANTS.length];
+  }
+
+  function applyTerrainVisual(el,terrain,x,y,size,map,width,height){
+    const grass=grassVariant(x,y);
+    el.style.backgroundColor='#8ab141';
     el.style.backgroundRepeat='no-repeat';
     el.style.imageRendering='pixelated';
-    el.style.backgroundOrigin='border-box';
-    el.style.backgroundClip='border-box';
-    el.style.borderRight=border;
-    el.style.borderBottom=border;
+    el.style.backgroundPosition='0 0';
+    el.style.borderRight='1px solid rgba(65,96,41,.23)';
+    el.style.borderBottom='1px solid rgba(65,96,41,.23)';
+
     if(terrain==='sea'){
-      const seaPath=pickTerrainVariant('sea',x,y);
-      el.style.backgroundColor='#2e6fb0';
-      el.style.backgroundImage=`url('${seaPath}')`;
+      const mask=terrainMask(map,'sea',x,y,width,height);
+      el.style.backgroundImage=`url('${WG_SEA_AUTOTILES[mask]}')`;
       el.style.backgroundSize=`${size}px ${size}px`;
-      el.style.borderRight='1px solid rgba(40,86,134,.55)';
-      el.style.borderBottom='1px solid rgba(40,86,134,.55)';
+      el.style.borderRight='1px solid rgba(48,105,142,.18)';
+      el.style.borderBottom='1px solid rgba(48,105,142,.18)';
       return;
     }
+
     if(terrain==='mountain'){
-      const mountainPath=pickTerrainVariant('mountain',x,y);
-      el.style.backgroundColor='#8ab141';
-      el.style.backgroundImage=`url('${mountainPath}'), url('${grassPath}')`;
+      const mask=terrainMask(map,'mountain',x,y,width,height);
+      el.style.backgroundImage=`url('${WG_MOUNTAIN_AUTOTILES[mask]}'), url('${grass}')`;
       el.style.backgroundSize=`${size}px ${size}px, ${size}px ${size}px`;
       return;
     }
+
     if(terrain==='forest'){
-      el.style.backgroundColor='#8ab141';
-      el.style.backgroundImage=`url('./assets/terrain_forest.png'), url('${grassPath}')`;
+      el.style.backgroundImage=`url('./assets/terrain_forest_overlay.png'), url('${grass}')`;
       el.style.backgroundSize=`${size}px ${size}px, ${size}px ${size}px`;
       return;
     }
-    el.style.backgroundColor='#8ab141';
-    el.style.backgroundImage=`url('${grassPath}')`;
+
+    el.style.backgroundImage=`url('${grass}')`;
     el.style.backgroundSize=`${size}px ${size}px`;
+  }
+
+  function refreshEditorTerrainCell(x,y){
+    if(!editorMap||x<0||y<0||x>=editorCols()||y>=editorRows())return;
+    const tile=document.querySelector(`.creatorTile[data-x="${x}"][data-y="${y}"]`);
+    if(!tile)return;
+    const terrain=editorTerrainAt(x,y);
+    tile.dataset.terrain=terrain;
+    applyTerrainVisual(tile,terrain,x,y,EDITOR_CELL,editorMap,editorCols(),editorRows());
+  }
+
+  function refreshEditorTerrainNeighborhood(x,y){
+    for(const [dx,dy] of [[0,0],[0,-1],[1,0],[0,1],[-1,0]]){
+      refreshEditorTerrainCell(x+dx,y+dy);
+    }
   }
 
   function applyEditorTransform(){
@@ -1522,7 +1475,7 @@ button{font:inherit}
         tile.style.width=`${EDITOR_CELL}px`;tile.style.height=`${EDITOR_CELL}px`;
         const terrain=editorTerrainAt(x,y);
         tile.dataset.terrain=terrain;
-        applyTerrainVisual(tile,terrain,x,y,EDITOR_CELL);
+        applyTerrainVisual(tile,terrain,x,y,EDITOR_CELL,editorMap,editorCols(),editorRows());
         if(editorCastleAt(x,y))tile.classList.add('locked');
         tile.addEventListener('pointerdown',e=>{
           if(!editorPaletteOpen)return;
@@ -1596,11 +1549,7 @@ button{font:inherit}
       }else if(editorSelection==='mountain'){
         editorMap.units=editorMap.units.filter(u=>!(u.x===x&&u.y===y&&u.kind==='cavalry'));
       }
-      const tile=document.querySelector(`.creatorTile[data-x="${x}"][data-y="${y}"]`);
-      if(tile){
-        tile.dataset.terrain=editorSelection;
-        applyTerrainVisual(tile,editorSelection,x,y,EDITOR_CELL);
-      }
+      refreshEditorTerrainNeighborhood(x,y);
       renderEditorObjects();
       const terrainName={grass:'Grass',sea:'Sea',forest:'Forest',mountain:'Mountain'}[editorSelection]||'Terrain';
       setEditorMessage(`${terrainName} painted.`);
@@ -1930,9 +1879,9 @@ button{font:inherit}
   function renderActiveMapTerrain(){
     [...grass.children].forEach((cell,i)=>{
       const terrain=activeMap.tiles?.[i]||'grass';
-      const x=i%COLS, y=Math.floor(i/COLS);
+      const x=i%COLS,y=Math.floor(i/COLS);
       cell.dataset.terrain=terrain;
-      applyTerrainVisual(cell,terrain,x,y,CELL);
+      applyTerrainVisual(cell,terrain,x,y,CELL,activeMap,COLS,ROWS);
     });
   }
 
