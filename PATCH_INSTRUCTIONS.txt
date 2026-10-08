@@ -2,5 +2,5 @@ Overwrite these files in your existing repo with the files in this patch ZIP.
 Changed files:
 service-worker.js
 manifest.webmanifest
-assets/terrain_forest_overlay.png
 assets/terrain_forest.png
+assets/terrain_forest_overlay.png
