@@ -1,7 +1,1 @@
-Overwrite these files in your existing repo:
-- index.html
-- service-worker.js
-
-v35 adds Team Colour selection to New Game.
-Available colours: Red, Blue, Green, Yellow, Purple, Orange, Grey, Cyan.
-The chosen colours are stored in battle save slots.
+Overwrite index.html, service-worker.js and README.txt in your repo.

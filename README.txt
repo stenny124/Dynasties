@@ -1,13 +1,18 @@
-Dynasties — Mechanics Build v29
+Dynasties — Mechanics Build v36
 
-Terrain visual refinement:
-- Sea is now pure open water rather than using beach/coast sprites.
-- Out-of-bounds space counts as sea when calculating sea adjacency, so island maps
-  can run cleanly to the edge without generating false coastline around the border.
-- Grass / forest / mountain tiles next to sea receive only a thin rocky cliff lip.
-- Beach graphics are deliberately not used; Beach will be added later as its own
-  selectable terrain type.
-- Mountains with all four cardinal neighbours occupied by mountains use a snowy peak.
-- Mountains with 0–2 mountain neighbours use fuller peak sprites to reduce the
-  half-mountain artefacts seen at grass/sea boundaries.
-- Terrain movement rules and map save/import compatibility are unchanged.
+Changes in v36:
+- New Game now lets each side choose a House/Faction as well as a team colour.
+- Available factions:
+  * House Lannister — human units
+  * House Stark — human units
+  * White Walkers — skeleton units
+- The selected faction crest appears beside each house selector.
+- The in-game top bar updates to the selected house names and crests.
+- Stark currently shares the human unit master artwork with Lannister; palette swapping gives it the selected team colour.
+- Fixed the human palette swap so the additional red/magenta helmet/plume shade is recoloured too.
+- Faction and colour selections are preserved in battle save slots.
+
+Patch files:
+- index.html
+- service-worker.js
+- README.txt

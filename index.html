@@ -629,14 +629,22 @@ button{font:inherit}
 .teamSetupGrid{display:grid;gap:7px}
 .teamSetupRow{
   display:grid;
-  grid-template-columns:48px minmax(0,1fr) 18px;
-  gap:9px;
+  grid-template-columns:48px 38px minmax(0,1fr) 18px;
+  gap:8px;
   align-items:center;
-  min-height:54px;
+  min-height:58px;
   padding:6px 7px;
   background:#241b13;
   border:1px solid #5f4a2b;
   border-radius:5px;
+}
+.teamHouseCrest{
+  width:34px;height:40px;object-fit:contain;justify-self:center;
+}
+.teamHouseSelect{
+  width:100%;min-height:30px;padding:3px 6px;margin-bottom:4px;
+  color:#f1dfb7;background:#110e0a;border:1px solid #775d34;border-radius:4px;
+  font:bold 12px Georgia,serif;
 }
 .teamSetupPreview{
   width:46px;
@@ -729,19 +737,21 @@ button{font:inherit}
         <div class="teamSetupHeading">TEAM COLOURS</div>
         <div class="teamSetupGrid">
           <div class="teamSetupRow">
-            <img class="teamSetupPreview" id="playerColourPreview" src="./assets/team_blue_soldier.png" alt="">
+            <img class="teamSetupPreview" id="playerColourPreview" src="./assets/team_blue_soldier.png" alt="Player unit preview">
+            <img class="teamHouseCrest" id="playerHouseCrest" src="./assets/white_walker_crest.png" alt="White Walkers crest">
             <div>
-              <div class="teamSetupName">White Walkers</div>
-              <select class="teamColourSelect" id="playerColourSelect" aria-label="White Walkers colour"></select>
+              <select class="teamHouseSelect" id="playerHouseSelect" aria-label="Player house"></select>
+              <select class="teamColourSelect" id="playerColourSelect" aria-label="Player colour"></select>
             </div>
             <span class="teamColourSwatch" id="playerColourSwatch"></span>
           </div>
 
           <div class="teamSetupRow">
-            <img class="teamSetupPreview" id="enemyColourPreview" src="./assets/team_red_soldier.png" alt="">
+            <img class="teamSetupPreview" id="enemyColourPreview" src="./assets/team_red_soldier.png" alt="Opponent unit preview">
+            <img class="teamHouseCrest" id="enemyHouseCrest" src="./assets/house_lannister_crest.png" alt="House Lannister crest">
             <div>
-              <div class="teamSetupName">Lannister</div>
-              <select class="teamColourSelect" id="enemyColourSelect" aria-label="Lannister colour"></select>
+              <select class="teamHouseSelect" id="enemyHouseSelect" aria-label="Opponent house"></select>
+              <select class="teamColourSelect" id="enemyColourSelect" aria-label="Opponent colour"></select>
             </div>
             <span class="teamColourSwatch" id="enemyColourSwatch"></span>
           </div>
@@ -800,9 +810,9 @@ button{font:inherit}
 <div id="game">
   <div id="topbar">
     <div class="team player">
-      <div class="crest"><img src="./assets/white_walker_crest.png" alt="White Walkers crest"></div>
+      <div class="crest"><img id="playerTopCrest" src="./assets/white_walker_crest.png" alt="White Walkers crest"></div>
       <div>
-        <div class="teamName">White Walkers</div>
+        <div class="teamName" id="playerTopName">White Walkers</div>
         <div class="econ"><span class="goldAmount"><img class="goldIcon" src="./assets/gold_icon.png" alt="gold"><b id="pGold">300</b></span> · <span class="income">+100/turn</span> · <span id="pCount">1</span> units</div>
       </div>
     </div>
@@ -815,10 +825,10 @@ button{font:inherit}
 
     <div class="team enemy">
       <div>
-        <div class="teamName">House Lannister</div>
+        <div class="teamName" id="enemyTopName">House Lannister</div>
         <div class="econ"><span id="eCount">1</span> units · <span class="income">+100/turn</span> · <span class="goldAmount"><img class="goldIcon" src="./assets/gold_icon.png" alt="gold"><b id="eGold">300</b></span></div>
       </div>
-      <div class="crest"><img src="./assets/house_lannister_crest.png" alt="House Lannister crest"></div>
+      <div class="crest"><img id="enemyTopCrest" src="./assets/house_lannister_crest.png" alt="House Lannister crest"></div>
     </div>
   </div>
 
@@ -829,7 +839,7 @@ button{font:inherit}
       <button class="mapBtn" id="focusMap" type="button" aria-label="Recenter map">◎</button>
     </div>
     <div id="recruitPopup" hidden>
-      <div class="recruitTitle">Recruit at Ice Fortress</div>
+      <div class="recruitTitle">Recruit Units</div>
       <button class="recruitOption" id="popupRecruitSoldier" type="button">
         <img class="recruitSprite" src="./assets/team_blue_soldier.png" alt="">
         <span class="recruitName">Soldier</span>
@@ -951,6 +961,12 @@ button{font:inherit}
     cyan:  ['#10292f','#174851','#1d6c78','#2996a4','#42c8d5','#9cf6ff']
   };
 
+  const FACTION_CONFIG={
+    lannister:{label:'House Lannister',unitPrefix:'Lannister',crest:'./assets/house_lannister_crest.png'},
+    stark:{label:'House Stark',unitPrefix:'Stark',crest:'./assets/house_stark_crest.png'},
+    white_walkers:{label:'White Walkers',unitPrefix:'White Walker',crest:'./assets/white_walker_crest.png'}
+  };
+
   const FACTION_MASTER_SPRITES={
     white_walkers:{
       soldier:'./assets/team_blue_soldier.png',
@@ -958,6 +974,12 @@ button{font:inherit}
       cavalry:'./assets/team_blue_cavalry.png'
     },
     lannister:{
+      soldier:'./assets/team_red_soldier.png',
+      archer:'./assets/team_red_archer.png',
+      cavalry:'./assets/team_red_cavalry.png'
+    },
+    // Stark uses the human unit artwork too; palette swapping supplies its chosen colours.
+    stark:{
       soldier:'./assets/team_red_soldier.png',
       archer:'./assets/team_red_archer.png',
       cavalry:'./assets/team_red_cavalry.png'
@@ -970,6 +992,13 @@ button{font:inherit}
     lannister:[
       {rgb:[71,32,46],step:0},
       {rgb:[92,17,30],step:1},
+      {rgb:[170,0,63],step:3},
+      {rgb:[224,0,49],step:4}
+    ],
+    stark:[
+      {rgb:[71,32,46],step:0},
+      {rgb:[92,17,30],step:1},
+      {rgb:[170,0,63],step:3},
       {rgb:[224,0,49],step:4}
     ],
     white_walkers:[
@@ -1004,6 +1033,20 @@ button{font:inherit}
 
   function teamColour(team){
     return teams[team]?.colour || (team==='enemy'?'red':'blue');
+  }
+
+  function factionInfo(faction){
+    return FACTION_CONFIG[faction]||FACTION_CONFIG.white_walkers;
+  }
+
+  function syncTeamIdentity(team){
+    if(!teams[team])return;
+    const info=factionInfo(teams[team].faction);
+    teams[team].name=info.label;
+  }
+
+  function unitPrefixForTeam(team){
+    return factionInfo(teamFaction(team)).unitPrefix;
   }
 
   function paletteSpriteKey(faction,kind,colour){
@@ -1098,6 +1141,9 @@ button{font:inherit}
   }
 
   function refreshPaletteDependentUI(){
+    syncTeamIdentity('player');
+    syncTeamIdentity('enemy');
+
     const soldier=document.querySelector('#popupRecruitSoldier .recruitSprite');
     const archer=document.querySelector('#popupRecruitArcher .recruitSprite');
     const cavalry=document.querySelector('#popupRecruitCavalry .recruitSprite');
@@ -1105,7 +1151,18 @@ button{font:inherit}
     if(archer)archer.src=teamSprite('player','archer');
     if(cavalry)cavalry.src=teamSprite('player','cavalry');
 
-    if(typeof renderEditorPalette==='function' && editorMap){
+    const pInfo=factionInfo(teams.player.faction);
+    const eInfo=factionInfo(teams.enemy.faction);
+    const pName=document.getElementById('playerTopName');
+    const eName=document.getElementById('enemyTopName');
+    const pCrest=document.getElementById('playerTopCrest');
+    const eCrest=document.getElementById('enemyTopCrest');
+    if(pName)pName.textContent=pInfo.label;
+    if(eName)eName.textContent=eInfo.label;
+    if(pCrest){pCrest.src=pInfo.crest;pCrest.alt=`${pInfo.label} crest`;}
+    if(eCrest){eCrest.src=eInfo.crest;eCrest.alt=`${eInfo.label} crest`;}
+
+    if(typeof renderEditorPalette==='function' && typeof editorMap!=='undefined' && editorMap){
       renderEditorPalette();
       renderEditorObjects();
     }
@@ -1567,6 +1624,23 @@ button{font:inherit}
     </div>`;
   }
 
+  const TEAM_FACTION_LABELS={
+    lannister:'House Lannister',
+    stark:'House Stark',
+    white_walkers:'White Walkers'
+  };
+
+  function populateTeamHouseSelect(selectId){
+    const select=document.getElementById(selectId);
+    if(!select||select.options.length)return;
+    Object.keys(FACTION_CONFIG).forEach(faction=>{
+      const option=document.createElement('option');
+      option.value=faction;
+      option.textContent=TEAM_FACTION_LABELS[faction]||factionInfo(faction).label;
+      select.appendChild(option);
+    });
+  }
+
   const TEAM_COLOUR_LABELS={
     red:'Red',
     blue:'Blue',
@@ -1595,20 +1669,33 @@ button{font:inherit}
   }
 
   function refreshNewGameTeamSetup(){
+    populateTeamHouseSelect('playerHouseSelect');
+    populateTeamHouseSelect('enemyHouseSelect');
     populateTeamColourSelect('playerColourSelect');
     populateTeamColourSelect('enemyColourSelect');
 
-    const playerSelect=document.getElementById('playerColourSelect');
-    const enemySelect=document.getElementById('enemyColourSelect');
-    if(!playerSelect||!enemySelect)return;
+    const playerHouse=document.getElementById('playerHouseSelect');
+    const enemyHouse=document.getElementById('enemyHouseSelect');
+    const playerColour=document.getElementById('playerColourSelect');
+    const enemyColour=document.getElementById('enemyColourSelect');
+    if(!playerHouse||!enemyHouse||!playerColour||!enemyColour)return;
 
-    playerSelect.value=teams.player.colour;
-    enemySelect.value=teams.enemy.colour;
+    playerHouse.value=teams.player.faction;
+    enemyHouse.value=teams.enemy.faction;
+    playerColour.value=teams.player.colour;
+    enemyColour.value=teams.enemy.colour;
 
     const playerPreview=document.getElementById('playerColourPreview');
     const enemyPreview=document.getElementById('enemyColourPreview');
     if(playerPreview)playerPreview.src=teamSprite('player','soldier');
     if(enemyPreview)enemyPreview.src=teamSprite('enemy','soldier');
+
+    const pInfo=factionInfo(teams.player.faction);
+    const eInfo=factionInfo(teams.enemy.faction);
+    const playerCrest=document.getElementById('playerHouseCrest');
+    const enemyCrest=document.getElementById('enemyHouseCrest');
+    if(playerCrest){playerCrest.src=pInfo.crest;playerCrest.alt=`${pInfo.label} crest`;}
+    if(enemyCrest){enemyCrest.src=eInfo.crest;enemyCrest.alt=`${eInfo.label} crest`;}
 
     const playerSwatch=document.getElementById('playerColourSwatch');
     const enemySwatch=document.getElementById('enemyColourSwatch');
@@ -1621,6 +1708,16 @@ button{font:inherit}
     teams[team].colour=colour;
     refreshPaletteDependentUI();
     refreshNewGameTeamSetup();
+    renderMapList();
+  }
+
+  function chooseNewGameFaction(team,faction){
+    if(!teams[team]||!FACTION_CONFIG[faction])return;
+    teams[team].faction=faction;
+    syncTeamIdentity(team);
+    refreshPaletteDependentUI();
+    refreshNewGameTeamSetup();
+    renderMapList();
   }
 
   function renderMapList(){
@@ -1639,7 +1736,7 @@ button{font:inherit}
       btn.innerHTML=`${mapPreviewMarkup()}
         <div>
           <div class="mapCardName">${escapeHtml(map.name)}</div>
-          <div class="mapCardMeta">${meta}<br>White Walkers vs Lannister · selected colours</div>
+          <div class="mapCardMeta">${meta}<br>${teams.player.name} vs ${teams.enemy.name} · selected colours</div>
         </div>`;
       btn.addEventListener('click',()=>startNewGame(map));
       list.appendChild(btn);
@@ -2181,12 +2278,12 @@ button{font:inherit}
 
   function createUnit(team,kind,id,x,y,recruited=false,facing=null){
     const def=UNIT_DEFS[kind];
-    const prefix=team==='player'?'White Walker':'Lannister';
+    const prefix=unitPrefixForTeam(team);
     const num=id==='blue-1'||id==='red-1' ? '1' : id.split('-').pop();
     return {
       id,team,kind,
       name:`${prefix} ${def.label} ${num}`,
-      title:`${def.label} · ${team==='player'?'White Walkers':'House Lannister'}`,
+      title:`${def.label} · ${teams[team].name}`,
       x,y,
       hp:def.hp,maxHp:def.hp,atk:def.atk,def:def.def,
       move:recruited?0:def.maxMove,maxMove:def.maxMove,
@@ -2480,7 +2577,7 @@ button{font:inherit}
     const note=document.getElementById('recruitNote');
     if(t.recruited) note.textContent='A unit has already been recruited this turn.';
     else if(!soldierSpace&&!archerSpace&&!cavalrySpace) note.textContent='No usable free tile beside the HQ.';
-    else note.textContent=`White Walkers gold: ${t.gold}`;
+    else note.textContent=`${teams.player.name} gold: ${t.gold}`;
     positionRecruitPopup();
   }
 
@@ -2546,7 +2643,7 @@ button{font:inherit}
     const id=`${team}-${kind}-${n}`;
     units[id]=createUnit(team,kind,id,spawn.x,spawn.y,true);
     ensureUnitEl(units[id]);
-    const prefix=team==='player'?'White Walker':'Lannister';
+    const prefix=unitPrefixForTeam(team);
     if(announce)setStatus(`${prefix} recruits an ${def.label.toLowerCase()} for ${def.cost} gold. It can act next turn.`);
     updateAll();
     return units[id];
@@ -2875,10 +2972,10 @@ button{font:inherit}
     hideRecruitPopup();
     state.busy=true;
     updateAll();
-    setStatus('House Lannister turn…');
+    setStatus(`${teams.enemy.name} turn…`);
 
     if(!teams.enemy.recruited && !shouldEnemyRecruit()){
-      setStatus('House Lannister deploys its reserve before recruiting more units.');
+      setStatus(`${teams.enemy.name} deploys its reserve before recruiting more units.`);
       await wait(180);
     }
 
@@ -2888,11 +2985,11 @@ button{font:inherit}
         await centerCameraOnTile(barracks.enemy.x+0.5,barracks.enemy.y+0.5,220);
         const nu=recruit('enemy',recruitPlan.kind,false);
         if(nu){
-          setStatus(`House Lannister recruits a ${UNIT_DEFS[recruitPlan.kind].label.toLowerCase()}.`);
+          setStatus(`${teams.enemy.name} recruits a ${UNIT_DEFS[recruitPlan.kind].label.toLowerCase()}.`);
           await followUnitCamera(nu,260);
         }
       }else if(recruitPlan.saving && teams.enemy.gold>=UNIT_DEFS.soldier.cost){
-        setStatus(`House Lannister holds ${teams.enemy.gold} gold, saving for ${UNIT_DEFS[recruitPlan.kind].label.toLowerCase()}.`);
+        setStatus(`${teams.enemy.name} holds ${teams.enemy.gold} gold, saving for ${UNIT_DEFS[recruitPlan.kind].label.toLowerCase()}.`);
         await wait(220);
       }
     }
@@ -2984,8 +3081,8 @@ button{font:inherit}
   }
 
   function checkGameOver(){
-    if(living('enemy').length===0){ alert('Victory — House Lannister has no units remaining.'); return true; }
-    if(living('player').length===0){ alert('Defeat — White Walkers have no units remaining.'); return true; }
+    if(living('enemy').length===0){ alert(`Victory — ${teams.enemy.name} has no units remaining.`); return true; }
+    if(living('player').length===0){ alert(`Defeat — ${teams.player.name} has no units remaining.`); return true; }
     return false;
   }
 
@@ -3045,6 +3142,7 @@ button{font:inherit}
           teams[k].recruited=!!s.teams[k].recruited;
           if(s.teams[k].faction&&FACTION_MASTER_SPRITES[s.teams[k].faction])teams[k].faction=s.teams[k].faction;
           if(s.teams[k].colour&&TEAM_COLOUR_PALETTES[s.teams[k].colour])teams[k].colour=s.teams[k].colour;
+          syncTeamIdentity(k);
         }
       }
 
@@ -3059,6 +3157,7 @@ button{font:inherit}
   }
 
   function updateAll(){
+    refreshPaletteDependentUI();
     Object.values(units).forEach(u=>{
       const el=ensureUnitEl(u);
       setUnitPos(u);
@@ -3244,6 +3343,8 @@ button{font:inherit}
       refreshMainMenu();
     }
   });
+  document.getElementById('playerHouseSelect').addEventListener('change',e=>chooseNewGameFaction('player',e.target.value));
+  document.getElementById('enemyHouseSelect').addEventListener('change',e=>chooseNewGameFaction('enemy',e.target.value));
   document.getElementById('playerColourSelect').addEventListener('change',e=>chooseNewGameTeamColour('player',e.target.value));
   document.getElementById('enemyColourSelect').addEventListener('change',e=>chooseNewGameTeamColour('enemy',e.target.value));
   document.getElementById('menuNewGame').addEventListener('click',openNewGameScreen);
