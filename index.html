@@ -611,6 +611,62 @@ button{font:inherit}
   .mapManageCard .mapPreview .miniCastle.red,.mapManageCard .mapPreview .miniCastle.blue{left:24px}
 }
 
+
+.teamSetup{
+  margin:0 0 13px;
+  padding:10px;
+  border:1px solid #775d34;
+  border-radius:6px;
+  background:#19130e;
+}
+.teamSetupHeading{
+  color:#e8c985;
+  font-size:11px;
+  font-weight:bold;
+  letter-spacing:.8px;
+  margin-bottom:8px;
+}
+.teamSetupGrid{display:grid;gap:7px}
+.teamSetupRow{
+  display:grid;
+  grid-template-columns:48px minmax(0,1fr) 18px;
+  gap:9px;
+  align-items:center;
+  min-height:54px;
+  padding:6px 7px;
+  background:#241b13;
+  border:1px solid #5f4a2b;
+  border-radius:5px;
+}
+.teamSetupPreview{
+  width:46px;
+  height:46px;
+  object-fit:contain;
+  image-rendering:pixelated;
+}
+.teamSetupName{
+  color:#f3dfb3;
+  font-size:13px;
+  font-weight:bold;
+  margin-bottom:4px;
+}
+.teamColourSelect{
+  width:100%;
+  min-height:30px;
+  padding:3px 6px;
+  color:#ead7ad;
+  background:#110e0a;
+  border:1px solid #775d34;
+  border-radius:4px;
+  font:12px Georgia,serif;
+}
+.teamColourSwatch{
+  width:16px;height:38px;
+  border:1px solid rgba(255,255,255,.45);
+  border-radius:3px;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.24);
+}
+
 </style>
 </head>
 <body>
@@ -665,10 +721,34 @@ button{font:inherit}
     <section class="menuScreen" id="newGameScreen" hidden>
       <div class="menuBackRow">
         <button class="menuBack" data-menu-back type="button">← Back</button>
-        <div class="menuSectionTitle">Choose Map</div>
+        <div class="menuSectionTitle">New Game</div>
         <span></span>
       </div>
-      <div class="menuSectionSub">Choose a map for the new battle. Your created maps are stored on this device.</div>
+
+      <div class="teamSetup">
+        <div class="teamSetupHeading">TEAM COLOURS</div>
+        <div class="teamSetupGrid">
+          <div class="teamSetupRow">
+            <img class="teamSetupPreview" id="playerColourPreview" src="./assets/team_blue_soldier.png" alt="">
+            <div>
+              <div class="teamSetupName">White Walkers</div>
+              <select class="teamColourSelect" id="playerColourSelect" aria-label="White Walkers colour"></select>
+            </div>
+            <span class="teamColourSwatch" id="playerColourSwatch"></span>
+          </div>
+
+          <div class="teamSetupRow">
+            <img class="teamSetupPreview" id="enemyColourPreview" src="./assets/team_red_soldier.png" alt="">
+            <div>
+              <div class="teamSetupName">Lannister</div>
+              <select class="teamColourSelect" id="enemyColourSelect" aria-label="Lannister colour"></select>
+            </div>
+            <span class="teamColourSwatch" id="enemyColourSwatch"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="menuSectionSub">Choose the team colours above, then select a map for the new battle.</div>
       <div id="mapList"></div>
     </section>
 
@@ -1487,6 +1567,62 @@ button{font:inherit}
     </div>`;
   }
 
+  const TEAM_COLOUR_LABELS={
+    red:'Red',
+    blue:'Blue',
+    green:'Green',
+    yellow:'Yellow',
+    purple:'Purple',
+    orange:'Orange',
+    grey:'Grey',
+    cyan:'Cyan'
+  };
+
+  function populateTeamColourSelect(selectId){
+    const select=document.getElementById(selectId);
+    if(!select||select.options.length)return;
+    Object.keys(TEAM_COLOUR_PALETTES).forEach(colour=>{
+      const option=document.createElement('option');
+      option.value=colour;
+      option.textContent=TEAM_COLOUR_LABELS[colour]||colour;
+      select.appendChild(option);
+    });
+  }
+
+  function teamColourDisplay(colour){
+    const ramp=TEAM_COLOUR_PALETTES[colour]||TEAM_COLOUR_PALETTES.blue;
+    return ramp[Math.min(4,ramp.length-1)];
+  }
+
+  function refreshNewGameTeamSetup(){
+    populateTeamColourSelect('playerColourSelect');
+    populateTeamColourSelect('enemyColourSelect');
+
+    const playerSelect=document.getElementById('playerColourSelect');
+    const enemySelect=document.getElementById('enemyColourSelect');
+    if(!playerSelect||!enemySelect)return;
+
+    playerSelect.value=teams.player.colour;
+    enemySelect.value=teams.enemy.colour;
+
+    const playerPreview=document.getElementById('playerColourPreview');
+    const enemyPreview=document.getElementById('enemyColourPreview');
+    if(playerPreview)playerPreview.src=teamSprite('player','soldier');
+    if(enemyPreview)enemyPreview.src=teamSprite('enemy','soldier');
+
+    const playerSwatch=document.getElementById('playerColourSwatch');
+    const enemySwatch=document.getElementById('enemyColourSwatch');
+    if(playerSwatch)playerSwatch.style.background=teamColourDisplay(teams.player.colour);
+    if(enemySwatch)enemySwatch.style.background=teamColourDisplay(teams.enemy.colour);
+  }
+
+  function chooseNewGameTeamColour(team,colour){
+    if(!teams[team]||!TEAM_COLOUR_PALETTES[colour])return;
+    teams[team].colour=colour;
+    refreshPaletteDependentUI();
+    refreshNewGameTeamSetup();
+  }
+
   function renderMapList(){
     const list=document.getElementById('mapList');
     list.innerHTML='';
@@ -1503,7 +1639,7 @@ button{font:inherit}
       btn.innerHTML=`${mapPreviewMarkup()}
         <div>
           <div class="mapCardName">${escapeHtml(map.name)}</div>
-          <div class="mapCardMeta">${meta}<br>White Walkers vs Lannister</div>
+          <div class="mapCardMeta">${meta}<br>White Walkers vs Lannister · selected colours</div>
         </div>`;
       btn.addEventListener('click',()=>startNewGame(map));
       list.appendChild(btn);
@@ -1951,6 +2087,7 @@ button{font:inherit}
   }
 
   function openNewGameScreen(){
+    refreshNewGameTeamSetup();
     renderMapList();
     showMenuScreen('newGameScreen');
   }
@@ -3107,6 +3244,8 @@ button{font:inherit}
       refreshMainMenu();
     }
   });
+  document.getElementById('playerColourSelect').addEventListener('change',e=>chooseNewGameTeamColour('player',e.target.value));
+  document.getElementById('enemyColourSelect').addEventListener('change',e=>chooseNewGameTeamColour('enemy',e.target.value));
   document.getElementById('menuNewGame').addEventListener('click',openNewGameScreen);
   document.getElementById('menuCreateMap').addEventListener('click',openMapManagerScreen);
   document.getElementById('mapCreateNew').addEventListener('click',()=>openCreateMapScreen(null));

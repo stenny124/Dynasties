@@ -1,6 +1,7 @@
-Overwrite these files in your existing repo with the files in this patch ZIP.
-Changed files:
+Overwrite these files in your existing repo:
 - index.html
 - service-worker.js
 
-v34 adds the runtime palette-swap engine. No extra colour PNG files are needed.
+v35 adds Team Colour selection to New Game.
+Available colours: Red, Blue, Green, Yellow, Purple, Orange, Grey, Cyan.
+The chosen colours are stored in battle save slots.
