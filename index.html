@@ -170,8 +170,23 @@ button{font:inherit}
 .unit.done{filter:saturate(.6) brightness(.77)}
 .unit.dead{display:none}
 .unit.cavalry{width:62px;height:76px;transform:translate(1px,-13px)}
-.hp{position:absolute;left:7px;top:1px;width:48px;height:7px;background:#3c1814;border:1px solid #f0d7a8;z-index:3}
-.hpFill{height:100%;background:#58ae53}
+.hp{display:none}
+.hpNumber{position:absolute;right:1px;bottom:4px;z-index:4;
+  min-width:19px;height:20px;display:flex;align-items:center;justify-content:center;
+  background:#f7f1d8;border:2px solid #282319;box-shadow:1px 2px 0 #0009;
+  color:#281c13;font:bold 15px/1 system-ui,sans-serif;image-rendering:pixelated;
+  pointer-events:none}
+.hpNumber[hidden]{display:none}
+.rangeCell{position:absolute;width:64px;height:64px;pointer-events:none;
+  background:rgba(250,116,70,.19);box-shadow:inset 0 0 0 2px rgba(255,140,96,.66)}
+#skipAi{position:absolute;top:12px;left:50%;transform:translateX(-50%);
+  z-index:45;border:2px solid #dbb270;border-radius:6px;
+  color:#fff0c7;background:#302218ee;font-weight:bold;padding:9px 12px;
+  box-shadow:0 3px 8px #0008;white-space:nowrap}
+#skipAi[hidden]{display:none}
+.teamControlSelect{width:100%;min-height:29px;background:#110e0a;
+  border:1px solid #775d34;color:#f0ddb3;border-radius:4px;
+  font:12px Georgia,serif;padding:3px 6px;margin-top:4px}
 
 #bottom{
   position:relative;z-index:20;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;
@@ -734,7 +749,7 @@ button{font:inherit}
       </div>
 
       <div class="teamSetup">
-        <div class="teamSetupHeading">TEAM COLOURS</div>
+        <div class="teamSetupHeading">HOUSE · COLOUR · CONTROLLER</div>
         <div class="teamSetupGrid">
           <div class="teamSetupRow">
             <img class="teamSetupPreview" id="playerColourPreview" src="./assets/team_blue_soldier.png" alt="Player unit preview">
@@ -742,6 +757,7 @@ button{font:inherit}
             <div>
               <select class="teamHouseSelect" id="playerHouseSelect" aria-label="Player house"></select>
               <select class="teamColourSelect" id="playerColourSelect" aria-label="Player colour"></select>
+              <select class="teamControlSelect" id="playerControlSelect" aria-label="Player controller"><option value="human">Human</option><option value="ai">AI</option></select>
             </div>
             <span class="teamColourSwatch" id="playerColourSwatch"></span>
           </div>
@@ -752,13 +768,14 @@ button{font:inherit}
             <div>
               <select class="teamHouseSelect" id="enemyHouseSelect" aria-label="Opponent house"></select>
               <select class="teamColourSelect" id="enemyColourSelect" aria-label="Opponent colour"></select>
+              <select class="teamControlSelect" id="enemyControlSelect" aria-label="Opponent controller"><option value="ai">AI</option><option value="human">Human</option></select>
             </div>
             <span class="teamColourSwatch" id="enemyColourSwatch"></span>
           </div>
         </div>
       </div>
 
-      <div class="menuSectionSub">Choose the team colours above, then select a map for the new battle.</div>
+      <div class="menuSectionSub">Choose each side’s house, colour and Human/AI controller, then select a map. Two humans take turns on this device.</div>
       <div id="mapList"></div>
     </section>
 
@@ -833,6 +850,7 @@ button{font:inherit}
   </div>
 
   <div id="fieldViewport">
+    <button id="skipAi" type="button" hidden>Skip AI movements »</button>
     <div id="mapControls">
       <button class="mapBtn" id="zoomIn" type="button" aria-label="Zoom in">+</button>
       <button class="mapBtn" id="zoomOut" type="button" aria-label="Zoom out">−</button>
@@ -875,7 +893,7 @@ button{font:inherit}
         <div id="selectedName">White Walker Soldier 1</div>
         <div id="selectedSub">Soldier · White Walkers</div>
         <div id="stats">
-          <span>HP <b id="statHP">8/8</b></span>
+          <span>HP <b id="statHP">10/10</b></span>
           <span>ATK <b id="statAtk">3</b></span>
           <span>DEF <b id="statDef">2</b></span>
           <span>MOV <b id="statMov">2/2</b></span>
@@ -924,20 +942,20 @@ button{font:inherit}
     castles:{player:{...DEFAULT_MAP.castles.player},enemy:{...DEFAULT_MAP.castles.enemy}}
   };
   const UNIT_DEFS={
-    soldier:{label:'Soldier',cost:300,hp:8,atk:3,def:2,maxMove:2,minRange:1,maxRange:1},
-    archer:{label:'Archer',cost:400,hp:8,atk:3,def:1,maxMove:2,minRange:1,maxRange:3},
-    cavalry:{label:'Cavalry',cost:600,hp:8,atk:4,def:2,maxMove:4,minRange:1,maxRange:1}
+    soldier:{label:'Soldier',cost:300,hp:10,atk:3,def:2,maxMove:2,minRange:1,maxRange:1},
+    archer:{label:'Archer',cost:400,hp:10,atk:3,def:1,maxMove:2,minRange:1,maxRange:3},
+    cavalry:{label:'Cavalry',cost:600,hp:10,atk:4,def:2,maxMove:4,minRange:1,maxRange:1}
   };
 
   const state={
-    turn:1,selectedUnitId:'blue-1',inspectedUnitId:null,selectedBarracks:null,busy:false,nextRecruitId:2,gameActive:false,currentSaveSlot:null,
+    turn:1,activeTeam:'player',skipAiView:false,watchingAi:false,gameOver:false,selectedUnitId:'blue-1',inspectedUnitId:null,selectedBarracks:null,busy:false,nextRecruitId:2,gameActive:false,currentSaveSlot:null,
     mapZoom:.52,mapX:0,mapY:0,dragging:false,dragMoved:false,dragStartX:0,dragStartY:0,
     mapStartX:0,mapStartY:0,pointers:new Map(),pinching:false,pinchStartDist:0,pinchStartZoom:.52,
     pinchMapX:0,pinchMapY:0
   };
   const teams={
-    player:{name:'White Walkers',faction:'white_walkers',colour:'blue',gold:300,income:100,recruited:false},
-    enemy:{name:'House Lannister',faction:'lannister',colour:'red',gold:300,income:100,recruited:false}
+    player:{name:'White Walkers',faction:'white_walkers',colour:'blue',control:'human',gold:300,income:100,recruited:false},
+    enemy:{name:'House Lannister',faction:'lannister',colour:'red',control:'ai',gold:300,income:100,recruited:false}
   };
 
   /*
@@ -993,13 +1011,15 @@ button{font:inherit}
       {rgb:[71,32,46],step:0},
       {rgb:[92,17,30],step:1},
       {rgb:[170,0,63],step:3},
-      {rgb:[224,0,49],step:4}
+      {rgb:[224,0,49],step:4},
+      {rgb:[245,108,73],step:5}
     ],
     stark:[
       {rgb:[71,32,46],step:0},
       {rgb:[92,17,30],step:1},
       {rgb:[170,0,63],step:3},
-      {rgb:[224,0,49],step:4}
+      {rgb:[224,0,49],step:4},
+      {rgb:[245,108,73],step:5}
     ],
     white_walkers:[
       {rgb:[29,26,44],step:0},
@@ -1147,9 +1167,9 @@ button{font:inherit}
     const soldier=document.querySelector('#popupRecruitSoldier .recruitSprite');
     const archer=document.querySelector('#popupRecruitArcher .recruitSprite');
     const cavalry=document.querySelector('#popupRecruitCavalry .recruitSprite');
-    if(soldier)soldier.src=teamSprite('player','soldier');
-    if(archer)archer.src=teamSprite('player','archer');
-    if(cavalry)cavalry.src=teamSprite('player','cavalry');
+    if(soldier)soldier.src=teamSprite(state.activeTeam,'soldier');
+    if(archer)archer.src=teamSprite(state.activeTeam,'archer');
+    if(cavalry)cavalry.src=teamSprite(state.activeTeam,'cavalry');
 
     const pInfo=factionInfo(teams.player.faction);
     const eInfo=factionInfo(teams.enemy.faction);
@@ -1436,6 +1456,7 @@ button{font:inherit}
 
   function resetGameState(){
     state.turn=1;
+    state.activeTeam='player';state.gameOver=false;state.skipAiView=false;state.watchingAi=false;
     state.selectedUnitId=null;
     state.inspectedUnitId=null;
     state.selectedBarracks=null;
@@ -1494,6 +1515,8 @@ button{font:inherit}
       savedAt:new Date().toISOString(),
       state:{
         turn:state.turn,
+        activeTeam:state.activeTeam,
+        gameOver:state.gameOver,
         selectedUnitId:state.selectedUnitId,
         inspectedUnitId:state.inspectedUnitId,
         selectedBarracks:state.selectedBarracks,
@@ -1684,6 +1707,8 @@ button{font:inherit}
     enemyHouse.value=teams.enemy.faction;
     playerColour.value=teams.player.colour;
     enemyColour.value=teams.enemy.colour;
+    document.getElementById('playerControlSelect').value=teams.player.control||'human';
+    document.getElementById('enemyControlSelect').value=teams.enemy.control||'ai';
 
     const playerPreview=document.getElementById('playerColourPreview');
     const enemyPreview=document.getElementById('enemyColourPreview');
@@ -2248,6 +2273,7 @@ button{font:inherit}
     hideMainMenu();
     updateAll();
     setTimeout(focusMap,60);
+    if(teams[state.activeTeam].control==='ai')scheduleAiTurn();
   }
 
   function loadSavedGameFromSlot(slot){
@@ -2263,6 +2289,7 @@ button{font:inherit}
     setTimeout(()=>{
       if(state.mapX===0 && state.mapY===0)focusMap();
       else applyMapTransform();
+      if(teams[state.activeTeam].control==='ai'&&!state.gameOver)scheduleAiTurn();
     },60);
   }
 
@@ -2363,6 +2390,9 @@ button{font:inherit}
   const rangeLabel=u=>u.minRange===u.maxRange?`${u.maxRange}`:`${u.minRange}-${u.maxRange}`;
 
   function enemyTeamFor(team){ return team==='player'?'enemy':'player'; }
+  function humanTurn(){return state.gameActive && !state.busy && !state.gameOver && teams[state.activeTeam]?.control==='human';}
+  function canHumanControl(team){return humanTurn() && state.activeTeam===team;}
+
 
   function archerEngaged(u){
     if(!u || u.kind!=='archer' || !u.alive)return false;
@@ -2383,13 +2413,13 @@ button{font:inherit}
     el.id='unit-'+u.id;
     el.className='unit '+(u.team==='enemy'?'enemy':'player')+' '+u.kind;
     el.setAttribute('aria-label',u.name);
-    el.innerHTML='<div class="hp"><div class="hpFill"></div></div><img alt="">';
+    el.innerHTML='<img alt=""><span class="hpNumber" hidden></span>';
     el.querySelector('img').src=spriteFor(u);
     el.querySelector('img').alt=u.name;
     el.addEventListener('click',e=>{
       e.stopPropagation();
       if(state.busy||!u.alive)return;
-      if(u.team==='player'){
+      if(u.team===state.activeTeam && canHumanControl(u.team)){
         selectUnit(u.id);
       }else{
         inspectUnit(u.id);
@@ -2464,8 +2494,17 @@ button{font:inherit}
 
   function updateHighlights(){
     clearOverlay();
+    if(!humanTurn())return;
+    const target=inspectedUnit();
+    if(target&&target.alive){
+      for(let dy=-target.maxRange;dy<=target.maxRange;dy++)for(let dx=-target.maxRange;dx<=target.maxRange;dx++){
+        const d=Math.abs(dx)+Math.abs(dy),x=target.x+dx,y=target.y+dy;
+        if(d>=target.minRange&&d<=target.maxRange&&inside(x,y))addOverlayCell(x,y,'rangeCell');
+      }
+      return;
+    }
     const u=selectedUnit();
-    if(!u||!u.alive||u.team!=='player'||state.busy||state.selectedBarracks)return;
+    if(!u||!u.alive||u.team!==state.activeTeam||state.selectedBarracks)return;
     const data=dijkstra(u,availableMove(u));
     for(const [k,cost] of data.best.entries()){
       if(cost===0)continue;
@@ -2473,13 +2512,13 @@ button{font:inherit}
       addOverlayCell(x,y,'moveCell',()=>moveSelectedTo(x,y));
     }
     if(!u.attacked){
-      living('enemy').forEach(e=>{ if(inRange(u,e)) addOverlayCell(e.x,e.y,'attackCell',()=>attack(u,e)); });
+      living(enemyTeamFor(u.team)).forEach(e=>{if(inRange(u,e))addOverlayCell(e.x,e.y,'attackCell',()=>attack(u,e));});
     }
   }
 
   function previewPath(x,y){
     const u=selectedUnit();
-    if(!u||state.busy||state.selectedBarracks)return;
+    if(!u||!canHumanControl(u.team)||state.selectedBarracks)return;
     const data=dijkstra(u,availableMove(u));
     if(!data.best.has(key(x,y)))return;
     updateHighlights();
@@ -2489,7 +2528,7 @@ button{font:inherit}
 
   async function moveSelectedTo(x,y){
     const u=selectedUnit();
-    if(!u||state.busy||state.selectedBarracks)return;
+    if(!u||!canHumanControl(u.team)||state.selectedBarracks)return;
     if(archerEngaged(u)){
       setStatus(`${u.name} is engaged by an enemy soldier and cannot disengage this turn.`);
       return;
@@ -2512,9 +2551,9 @@ button{font:inherit}
   }
 
   function onTileClick(x,y){
-    if(state.busy)return;
+    if(!humanTurn())return;
     const u=unitAt(x,y);
-    if(u){ if(u.team==='player') selectUnit(u.id); return; }
+    if(u){ if(u.team===state.activeTeam)selectUnit(u.id);else inspectUnit(u.id);return; }
     const castle=barracksAt(x,y);
     if(castle){
       const team=castle===barracks.player?'player':'enemy';
@@ -2525,7 +2564,7 @@ button{font:inherit}
   const damage=(a,d)=>Math.max(1,a.atk-Math.floor(d.def/2));
 
   function attack(a,d){
-    if(state.busy||!a.alive||!d.alive||!inRange(a,d))return;
+    if(!canHumanControl(a.team)||!a.alive||!d.alive||a.team===d.team||!inRange(a,d))return;
     if(a.attacked){ setStatus(`${a.name} has already attacked this turn.`); return; }
     const dmg=damage(a,d);
     d.hp=Math.max(0,d.hp-dmg);
@@ -2541,13 +2580,14 @@ button{font:inherit}
 
   function hideRecruitPopup(){
     recruitPopup.hidden=true;
-    if(state.selectedBarracks==='player')state.selectedBarracks=null;
+    state.selectedBarracks=null;
     document.getElementById('barracks-player').classList.remove('selected');
+    document.getElementById('barracks-enemy').classList.remove('selected');
   }
 
   function positionRecruitPopup(){
     if(recruitPopup.hidden)return;
-    const b=barracks.player;
+    const b=barracks[state.selectedBarracks||state.activeTeam];
     const r=fieldViewport.getBoundingClientRect();
     const bx=state.mapX+(b.x+(b.w||1)/2)*CELL*state.mapZoom;
     const by=state.mapY+(b.y+(b.h||1)/2)*CELL*state.mapZoom;
@@ -2564,10 +2604,11 @@ button{font:inherit}
   }
 
   function updateRecruitPopup(){
-    const t=teams.player;
-    const soldierSpace=!!nextSpawn('player','soldier');
-    const archerSpace=!!nextSpawn('player','archer');
-    const cavalrySpace=!!nextSpawn('player','cavalry');
+    const team=state.selectedBarracks||state.activeTeam;
+    const t=teams[team];
+    const soldierSpace=!!nextSpawn(team,'soldier');
+    const archerSpace=!!nextSpawn(team,'archer');
+    const cavalrySpace=!!nextSpawn(team,'cavalry');
     const soldierBtn=document.getElementById('popupRecruitSoldier');
     const archerBtn=document.getElementById('popupRecruitArcher');
     const cavalryBtn=document.getElementById('popupRecruitCavalry');
@@ -2577,20 +2618,20 @@ button{font:inherit}
     const note=document.getElementById('recruitNote');
     if(t.recruited) note.textContent='A unit has already been recruited this turn.';
     else if(!soldierSpace&&!archerSpace&&!cavalrySpace) note.textContent='No usable free tile beside the HQ.';
-    else note.textContent=`${teams.player.name} gold: ${t.gold}`;
+    else note.textContent=`${t.name} gold: ${t.gold}`;
     positionRecruitPopup();
   }
 
   function showRecruitPopup(){
-    state.selectedBarracks='player';
-    document.getElementById('barracks-player').classList.add('selected');
+    state.selectedBarracks=state.activeTeam;
+    document.getElementById('barracks-'+state.activeTeam).classList.add('selected');
     recruitPopup.hidden=false;
     updateRecruitPopup();
   }
 
   function selectUnit(id){
     const u=units[id];
-    if(!u||!u.alive||u.team!=='player'||state.busy)return;
+    if(!u||!u.alive||!canHumanControl(u.team))return;
     hideRecruitPopup();
     state.selectedUnitId=id;
     state.inspectedUnitId=null;
@@ -2602,12 +2643,12 @@ button{font:inherit}
 
   function inspectUnit(id){
     const u=units[id];
-    if(!u||!u.alive||u.team!=='enemy'||state.busy)return;
+    if(!u||!u.alive||!humanTurn()||u.team===state.activeTeam)return;
     hideRecruitPopup();
     state.inspectedUnitId=id;
     state.selectedBarracks=null;
     const attacker=selectedUnit();
-    if(attacker&&attacker.alive&&inRange(attacker,u)&&!attacker.attacked){
+    if(attacker&&attacker.alive&&attacker.team===state.activeTeam&&inRange(attacker,u)&&!attacker.attacked){
       setStatus(`${u.name} inspected. ${attacker.name} can attack this unit.`);
     }else{
       setStatus(`${u.name} inspected.`);
@@ -2615,17 +2656,13 @@ button{font:inherit}
     updateAll();
   }
   function selectBarracks(team){
-    if(state.busy)return;
-    if(team==='player'){
-      if(!recruitPopup.hidden){ hideRecruitPopup(); updateAll(); return; }
-      showRecruitPopup();
-      setStatus('Ice Fortress selected. Recruit from the castle.');
-      updateAll();
-      return;
+    if(!humanTurn())return;
+    if(team===state.activeTeam){
+      if(!recruitPopup.hidden){hideRecruitPopup();updateAll();return;}
+      showRecruitPopup();setStatus(`${teams[team].name} HQ. Recruit units.`);updateAll();
+    }else{
+      hideRecruitPopup();setStatus(`${teams[team].name} HQ.`);updateAll();
     }
-    hideRecruitPopup();
-    setStatus('Casterly Rock.');
-    updateAll();
   }
 
   function nextSpawn(team,kind='soldier'){
@@ -2649,6 +2686,7 @@ button{font:inherit}
     return units[id];
   }
 
+  let aiSide='enemy';
   function priorityPlayerTarget(unit,fromPos,target){
     let score=0;
     score += (target.maxHp-target.hp)*10;
@@ -2661,14 +2699,14 @@ button{font:inherit}
   }
 
   function preferredPlayerTarget(unit,fromPos){
-    return living('player').slice().sort((a,b)=>{
+    return living(enemyTeamFor(aiSide)).slice().sort((a,b)=>{
       return priorityPlayerTarget(unit,fromPos,b)-priorityPlayerTarget(unit,fromPos,a);
     })[0]||null;
   }
 
   function playerThreatCountAt(x,y){
     const pos={x,y};
-    return living('player').reduce((n,p)=>{
+    return living(enemyTeamFor(aiSide)).reduce((n,p)=>{
       const dist=manhattan(pos,p);
       const maxReach=p.maxMove + p.maxRange;
       return n + ((dist<=maxReach && dist>=p.minRange)?1:0);
@@ -2676,35 +2714,35 @@ button{font:inherit}
   }
 
   function allySupportCount(unit,x,y,range=2){
-    return living('enemy').filter(a=>a.id!==unit.id&&manhattan({x,y},a)<=range).length;
+    return living(aiSide).filter(a=>a.id!==unit.id&&manhattan({x,y},a)<=range).length;
   }
 
   function nearestPlayerDistance(x,y){
-    const ps=living('player');
+    const ps=living(enemyTeamFor(aiSide));
     if(!ps.length)return 99;
     return Math.min(...ps.map(p=>manhattan({x,y},p)));
   }
 
   function enemyCastlePressure(){
-    const castleCenter={x:barracks.enemy.x+0.5,y:barracks.enemy.y+0.5};
-    return living('player').some(p=>manhattan(castleCenter,p)<=7);
+    const castleCenter={x:barracks[aiSide].x+0.5,y:barracks[aiSide].y+0.5};
+    return living(enemyTeamFor(aiSide)).some(p=>manhattan(castleCenter,p)<=7);
   }
 
   function castleDefenseBonus(x,y){
     if(!enemyCastlePressure())return 0;
-    const center={x:barracks.enemy.x+0.5,y:barracks.enemy.y+0.5};
+    const center={x:barracks[aiSide].x+0.5,y:barracks[aiSide].y+0.5};
     const d=manhattan({x,y},center);
     return Math.max(0,7-d)*7;
   }
 
   function distanceToClosestPlayerAt(x,y){
-    const players=living('player');
+    const players=living(enemyTeamFor(aiSide));
     if(!players.length)return 99;
     return Math.min(...players.map(p=>manhattan({x,y},p)));
   }
 
   function enemyFormationDistance(excludeId=null){
-    const vals=living('enemy')
+    const vals=living(aiSide)
       .filter(u=>u.id!==excludeId)
       .map(u=>distanceToClosestPlayerAt(u.x,u.y))
       .sort((a,b)=>a-b);
@@ -2715,8 +2753,8 @@ button{font:inherit}
 
   function enemyCastleCenter(){
     return {
-      x:barracks.enemy.x+(barracks.enemy.w||1)/2,
-      y:barracks.enemy.y+(barracks.enemy.h||1)/2
+      x:barracks[aiSide].x+(barracks[aiSide].w||1)/2,
+      y:barracks[aiSide].y+(barracks[aiSide].h||1)/2
     };
   }
 
@@ -2767,7 +2805,7 @@ button{font:inherit}
     const threats=playerThreatCountAt(x,y);
     const allySupport=allySupportCount(unit,x,y,2);
     const closeSupport=allySupportCount(unit,x,y,1);
-    const nearbyArchers=living('enemy').filter(a=>a.id!==unit.id&&a.kind==='archer'&&manhattan({x,y},a)<=1).length;
+    const nearbyArchers=living(aiSide).filter(a=>a.id!==unit.id&&a.kind==='archer'&&manhattan({x,y},a)<=1).length;
 
     let score=strategicAdvanceScore(unit,x,y);
 
@@ -2776,7 +2814,7 @@ button{font:inherit}
     score += closeSupport*3;
 
     // Being totally isolated becomes dangerous only as contact approaches.
-    if(nearest<=7 && allySupport===0 && living('enemy').length>1)score -= 20;
+    if(nearest<=7 && allySupport===0 && living(aiSide).length>1)score -= 20;
     if(nearest<=6 && threats>=2 && allySupport===0)score -= 50;
     if(nearest<=6 && threats>allySupport+1)score -= (threats-allySupport-1)*16;
 
@@ -2861,7 +2899,7 @@ button{font:inherit}
       const path=reconstruct(data.prev,unit,tile)||[];
       const preferred=preferredPlayerTarget(unit,tile);
       const moveBias=-(cost*1.5);
-      const attackables=living('player').filter(t=>{
+      const attackables=living(enemyTeamFor(aiSide)).filter(t=>{
         const d=manhattan(tile,t);
         return d>=unit.minRange && d<=unit.maxRange;
       });
@@ -2897,13 +2935,13 @@ button{font:inherit}
   }
 
   function chooseEnemyRecruitType(){
-    const enemyArchers=living('enemy').filter(u=>u.kind==='archer').length;
-    const enemySoldiers=living('enemy').filter(u=>u.kind==='soldier').length;
-    const enemyCavalry=living('enemy').filter(u=>u.kind==='cavalry').length;
+    const enemyArchers=living(aiSide).filter(u=>u.kind==='archer').length;
+    const enemySoldiers=living(aiSide).filter(u=>u.kind==='soldier').length;
+    const enemyCavalry=living(aiSide).filter(u=>u.kind==='cavalry').length;
 
-    const playerArchers=living('player').filter(u=>u.kind==='archer').length;
-    const playerSoldiers=living('player').filter(u=>u.kind==='soldier').length;
-    const playerCavalry=living('player').filter(u=>u.kind==='cavalry').length;
+    const playerArchers=living(enemyTeamFor(aiSide)).filter(u=>u.kind==='archer').length;
+    const playerSoldiers=living(enemyTeamFor(aiSide)).filter(u=>u.kind==='soldier').length;
+    const playerCavalry=living(enemyTeamFor(aiSide)).filter(u=>u.kind==='cavalry').length;
 
     const enemyMelee=enemySoldiers+enemyCavalry;
     const playerMelee=playerSoldiers+playerCavalry;
@@ -2931,11 +2969,11 @@ button{font:inherit}
 
   function enemyBacklogNearCastle(){
     const c=enemyCastleCenter();
-    return living('enemy').filter(u=>manhattan(u,c)<=4).length;
+    return living(aiSide).filter(u=>manhattan(u,c)<=4).length;
   }
 
   function enemyFrontlineCount(){
-    return living('enemy').filter(u=>distanceToClosestPlayerAt(u.x,u.y)<=8).length;
+    return living(aiSide).filter(u=>distanceToClosestPlayerAt(u.x,u.y)<=8).length;
   }
 
   function shouldEnemyRecruit(){
@@ -2950,140 +2988,136 @@ button{font:inherit}
   function enemyRecruitPlan(){
     const kind=chooseEnemyRecruitType();
     const cost=UNIT_DEFS[kind].cost;
-    return {kind,cost,canAfford:teams.enemy.gold>=cost,saving:teams.enemy.gold<cost};
+    return {kind,cost,canAfford:teams[aiSide].gold>=cost,saving:teams[aiSide].gold<cost};
   }
 
   const wait=ms=>new Promise(r=>setTimeout(r,ms));
+  const spectateWait=ms=>state.skipAiView?Promise.resolve():wait(ms);
 
   async function followUnitCamera(u,hold=0){
-    if(!u||!u.alive)return;
+    if(!u||!u.alive||state.skipAiView)return;
     const r=fieldViewport.getBoundingClientRect();
-    const px=(u.x+0.5)*CELL;
-    const py=(u.y+0.5)*CELL;
+    const px=(u.x+.5)*CELL, py=(u.y+.5)*CELL;
     state.mapX=r.width/2-px*state.mapZoom;
     state.mapY=r.height/2-py*state.mapZoom;
-    board.style.transition='transform 180ms ease-out';
+    board.style.transition='transform 340ms ease-in-out';
     applyMapTransform();
-    await wait(190+hold);
+    await spectateWait(360+hold);
     board.style.transition='none';
   }
 
-  async function enemyPhase(){
-    hideRecruitPopup();
-    state.busy=true;
-    updateAll();
-    setStatus(`${teams.enemy.name} turn…`);
-
-    if(!teams.enemy.recruited && !shouldEnemyRecruit()){
-      setStatus(`${teams.enemy.name} deploys its reserve before recruiting more units.`);
-      await wait(180);
-    }
-
-    if(!teams.enemy.recruited && shouldEnemyRecruit()){
-      const recruitPlan=enemyRecruitPlan();
-      if(recruitPlan.canAfford){
-        await centerCameraOnTile(barracks.enemy.x+0.5,barracks.enemy.y+0.5,220);
-        const nu=recruit('enemy',recruitPlan.kind,false);
+  async function aiPhase(side){
+    aiSide=side;state.busy=true;state.watchingAi=true;state.skipAiView=false;
+    hideRecruitPopup();updateAll();setStatus(`${teams[side].name} (AI) is thinking…`);
+    if(!teams[side].recruited && shouldEnemyRecruit()){
+      const plan=enemyRecruitPlan();
+      if(plan.canAfford){
+        await centerCameraOnTile(barracks[side].x+.5,barracks[side].y+.5,200);
+        const nu=recruit(side,plan.kind,false);
         if(nu){
-          setStatus(`${teams.enemy.name} recruits a ${UNIT_DEFS[recruitPlan.kind].label.toLowerCase()}.`);
-          await followUnitCamera(nu,260);
+          setStatus(`${teams[side].name} recruits ${UNIT_DEFS[plan.kind].label}.`);
+          await followUnitCamera(nu,250);
         }
-      }else if(recruitPlan.saving && teams.enemy.gold>=UNIT_DEFS.soldier.cost){
-        setStatus(`${teams.enemy.name} holds ${teams.enemy.gold} gold, saving for ${UNIT_DEFS[recruitPlan.kind].label.toLowerCase()}.`);
-        await wait(220);
-      }
+      }else if(plan.saving) setStatus(`${teams[side].name} is saving for ${UNIT_DEFS[plan.kind].label}.`);
     }
-
-    const enemies=living('enemy').slice().sort((a,b)=>{
-      const aCanAttack=living('player').some(p=>inRange(a,p));
-      const bCanAttack=living('player').some(p=>inRange(b,p));
-      if(aCanAttack!==bCanAttack)return aCanAttack?-1:1;
-
-      // After immediate attacks, move rear units first so the formation closes up
-      // before the leading units decide whether to advance again.
-      const ad=distanceToClosestPlayerAt(a.x,a.y);
-      const bd=distanceToClosestPlayerAt(b.x,b.y);
-      if(ad!==bd)return bd-ad;
-
-      const rank={soldier:0,cavalry:1,archer:2};
-      return rank[a.kind]-rank[b.kind];
+    const ours=living(side).slice().sort((a,b)=>{
+      const their=living(enemyTeamFor(side));
+      const ad=Math.min(99,...their.map(p=>manhattan(a,p)));
+      const bd=Math.min(99,...their.map(p=>manhattan(b,p)));
+      const aAttack=their.some(p=>inRange(a,p)),bAttack=their.some(p=>inRange(b,p));
+      if(aAttack!==bAttack)return aAttack?-1:1;
+      return bd-ad;
     });
-
-    for(const enemy of enemies){
-      if(!enemy.alive || !living('player').length)break;
-      if(enemy.move<=0 && enemy.attacked)continue;
-
-      await followUnitCamera(enemy,80);
-      const plan=evaluateEnemyAction(enemy);
+    for(const unit of ours){
+      if(!unit.alive||!living(enemyTeamFor(side)).length||!state.gameActive)break;
+      if(unit.move<=0&&unit.attacked)continue;
+      await followUnitCamera(unit,90);
+      const plan=evaluateEnemyAction(unit);
       if(!plan)continue;
-
-      if(plan.path && plan.path.length){
-        for(const step of plan.path){
-          faceTowardStep(enemy,step);
-          enemy.move=Math.max(0,enemy.move-terrainMoveCost(enemy,step.x,step.y));
-          enemy.x=step.x;
-          enemy.y=step.y;
-          setUnitPos(enemy);
-
+      for(const step of (plan.path||[])){
+        faceTowardStep(unit,step);
+        unit.move=Math.max(0,unit.move-terrainMoveCost(unit,step.x,step.y));
+        unit.x=step.x;unit.y=step.y;setUnitPos(unit);
+        if(!state.skipAiView){
           const r=fieldViewport.getBoundingClientRect();
-          state.mapX=r.width/2-(enemy.x+0.5)*CELL*state.mapZoom;
-          state.mapY=r.height/2-(enemy.y+0.5)*CELL*state.mapZoom;
-          board.style.transition='transform 125ms linear';
+          state.mapX=r.width/2-(unit.x+.5)*CELL*state.mapZoom;
+          state.mapY=r.height/2-(unit.y+.5)*CELL*state.mapZoom;
+          board.style.transition='transform 215ms linear';
           applyMapTransform();
-          await wait(135);
+          await spectateWait(230);
           board.style.transition='none';
         }
       }
-
       let target=plan.target;
-      if(!target || !target.alive || !inRange(enemy,target)){
-        const attackables=living('player').filter(p=>inRange(enemy,p)).sort((a,b)=>{
-          return attackScore(enemy,b,enemy.x,enemy.y)-attackScore(enemy,a,enemy.x,enemy.y);
-        });
-        target=attackables[0]||null;
+      if(!target||!target.alive||!inRange(unit,target)){
+        target=living(enemyTeamFor(side)).filter(p=>inRange(unit,p))
+          .sort((a,b)=>attackScore(unit,b,unit.x,unit.y)-attackScore(unit,a,unit.x,unit.y))[0]||null;
       }
-
-      if(target && !enemy.attacked){
-        await followUnitCamera(enemy,40);
-        const dmg=damage(enemy,target);
+      if(target&&!unit.attacked){
+        await followUnitCamera(unit,40);
+        const dmg=damage(unit,target);
         target.hp=Math.max(0,target.hp-dmg);
-        enemy.attacked=true;
-        enemy.move=0;
-        setStatus(`${enemy.name} attacks ${target.name} for ${dmg} damage.`);
-        if(target.hp<=0){
-          target.alive=false;
-          if(state.inspectedUnitId===target.id)state.inspectedUnitId=null;
-        }
-        updateAll();
-        await wait(320);
+        unit.attacked=true;unit.move=0;
+        setStatus(`${unit.name} attacks ${target.name} for ${dmg}.`);
+        if(target.hp<=0){target.alive=false;if(state.inspectedUnitId===target.id)state.inspectedUnitId=null;}
+        updateAll();await spectateWait(420);
       }
+      if(state.gameOver||checkGameOver())break;
     }
-
-    board.style.transition='none';
-    state.busy=false;
+    board.style.transition='none';state.watchingAi=false;state.busy=false;state.skipAiView=false;
     updateAll();
   }
-  async function endTurn(){
-    if(state.busy)return;
-    await enemyPhase();
-    if(checkGameOver())return;
-    state.turn++;
-    teams.player.gold+=teams.player.income;
-    teams.enemy.gold+=teams.enemy.income;
-    teams.player.recruited=false; teams.enemy.recruited=false;
-    living('player').forEach(u=>{u.move=u.maxMove;u.attacked=false});
-    living('enemy').forEach(u=>{u.move=u.maxMove;u.attacked=false});
-    const first=living('player')[0]||null;
-    state.selectedUnitId=first?first.id:null; state.inspectedUnitId=null; state.selectedBarracks=null;
-    setStatus(`Turn ${state.turn}. Both teams gain 100 gold.`);
+
+  let aiScheduleToken=0;
+  function scheduleAiTurn(){
+    const token=++aiScheduleToken;
+    if(!state.gameActive||state.gameOver||teams[state.activeTeam].control!=='ai')return;
+    setTimeout(async()=>{
+      if(token!==aiScheduleToken||!state.gameActive||state.busy||state.gameOver)return;
+      const side=state.activeTeam;
+      await aiPhase(side);
+      if(!state.gameOver&&state.gameActive)advanceSide();
+    },200);
+  }
+
+  function advanceSide(){
+    if(state.gameOver||!state.gameActive)return;
+    hideRecruitPopup();
+    if(state.activeTeam==='enemy'){
+      state.turn++;
+      for(const side of ['player','enemy']){
+        teams[side].gold+=teams[side].income;
+        teams[side].recruited=false;
+        living(side).forEach(u=>{u.move=u.maxMove;u.attacked=false;});
+      }
+    }
+    state.activeTeam=state.activeTeam==='player'?'enemy':'player';
+    state.selectedBarracks=null;state.inspectedUnitId=null;
+    const first=living(state.activeTeam)[0]||null;
+    state.selectedUnitId=(teams[state.activeTeam].control==='human'&&first)?first.id:null;
+    setStatus(`${teams[state.activeTeam].name} · ${teams[state.activeTeam].control==='ai'?'AI':'Human'} turn · Round ${state.turn}.`);
     updateAll();
-    if(first) await followUnitCamera(first,40);
+    if(teams[state.activeTeam].control==='ai')scheduleAiTurn();
+    else if(first)followUnitCamera(first,60);
+  }
+
+  function endTurn(){
+    if(!humanTurn())return;
+    if(checkGameOver())return;
+    advanceSide();
   }
 
   function checkGameOver(){
-    if(living('enemy').length===0){ alert(`Victory — ${teams.enemy.name} has no units remaining.`); return true; }
-    if(living('player').length===0){ alert(`Defeat — ${teams.player.name} has no units remaining.`); return true; }
-    return false;
+    if(state.gameOver)return true;
+    let winner=null;
+    if(living('enemy').length===0)winner='player';
+    else if(living('player').length===0)winner='enemy';
+    if(!winner)return false;
+    state.gameOver=true;
+    const msg=`${teams[winner].name} wins!`;
+    setStatus(msg);updateAll();
+    setTimeout(()=>alert(msg),20);
+    return true;
   }
 
   function setStatus(msg){ document.getElementById('status').textContent=msg; }
@@ -3091,14 +3125,14 @@ button{font:inherit}
   function updateBottomInfo(){
     const inspected=inspectedUnit();
     const selected=selectedUnit();
-    const u=(inspected&&inspected.alive)?inspected:(selected||living('player')[0]||null);
+    const u=(inspected&&inspected.alive)?inspected:(selected||living(state.activeTeam)[0]||null);
     if(!u)return;
 
     const portrait=document.getElementById('portraitImg');
     portrait.style.display='';
     portrait.src=spriteFor(u);
     document.getElementById('selectedName').textContent=u.name;
-    document.getElementById('selectedSub').textContent=u.title + (u.team==='enemy'?' · Enemy':'');
+    document.getElementById('selectedSub').textContent=u.title + (u.team!==state.activeTeam?' · Opponent':'');
     document.getElementById('statHP').textContent=`${u.hp}/${u.maxHp}`;
     document.getElementById('statAtk').textContent=u.atk;
     document.getElementById('statDef').textContent=u.def;
@@ -3110,6 +3144,7 @@ button{font:inherit}
     const canAttack=!!(
       inspected && inspected.alive &&
       selected && selected.alive &&
+      canHumanControl(selected.team) &&
       !selected.attacked &&
       inRange(selected,inspected)
     );
@@ -3127,6 +3162,8 @@ button{font:inherit}
       applyMap(s.map ? cloneMap(s.map) : cloneMap(DEFAULT_MAP));
 
       state.turn=s.state?.turn||1;
+      state.activeTeam=s.state?.activeTeam==='enemy'?'enemy':'player';
+      state.gameOver=!!s.state?.gameOver;state.watchingAi=false;state.skipAiView=false;
       state.selectedUnitId=s.state?.selectedUnitId||null;
       state.inspectedUnitId=s.state?.inspectedUnitId||null;
       state.selectedBarracks=s.state?.selectedBarracks||null;
@@ -3140,6 +3177,7 @@ button{font:inherit}
           teams[k].gold=s.teams[k].gold;
           teams[k].income=100;
           teams[k].recruited=!!s.teams[k].recruited;
+          teams[k].control=s.teams[k].control==='human'?'human':(s.teams[k].control==='ai'?'ai':(k==='enemy'?'ai':'human'));
           if(s.teams[k].faction&&FACTION_MASTER_SPRITES[s.teams[k].faction])teams[k].faction=s.teams[k].faction;
           if(s.teams[k].colour&&TEAM_COLOUR_PALETTES[s.teams[k].colour])teams[k].colour=s.teams[k].colour;
           syncTeamIdentity(k);
@@ -3148,7 +3186,12 @@ button{font:inherit}
 
       unitLayer.innerHTML='';
       units={};
-      s.units.forEach(u=>{if(u&&u.id)units[u.id]=u;});
+      s.units.forEach(u=>{
+        if(!u||!u.id)return;
+        const oldMax=Number(u.maxHp)||8, oldHp=Number(u.hp)||0;
+        if(oldMax!==10){u.maxHp=10;u.hp=Math.max(0,10-(oldMax-oldHp));}
+        units[u.id]=u;
+      });
       if(!Object.keys(units).length)resetUnits();
       return true;
     }catch(e){
@@ -3162,10 +3205,12 @@ button{font:inherit}
       const el=ensureUnitEl(u);
       setUnitPos(u);
       el.classList.toggle('selected',u.id===state.selectedUnitId&&!state.selectedBarracks&&u.alive);
-      el.classList.toggle('inspected',u.id===state.inspectedUnitId&&u.team==='enemy'&&u.alive);
+      el.classList.toggle('inspected',u.id===state.inspectedUnitId&&u.team!==state.activeTeam&&u.alive);
       el.classList.toggle('done',u.alive&&u.move===0&&u.attacked);
       el.classList.toggle('dead',!u.alive);
-      el.querySelector('.hpFill').style.width=(u.hp/u.maxHp*100)+'%';
+      const hp=el.querySelector('.hpNumber');
+      hp.hidden=!u.alive||u.hp>=u.maxHp;
+      hp.textContent=u.hp;
       el.querySelector('img').src=spriteFor(u);
     });
     document.getElementById('barracks-player').classList.toggle('selected',state.selectedBarracks==='player');
@@ -3175,7 +3220,13 @@ button{font:inherit}
     document.getElementById('pCount').textContent=living('player').length;
     document.getElementById('eCount').textContent=living('enemy').length;
     document.getElementById('turnNo').textContent=state.turn;
-    document.getElementById('endTurn').disabled=state.busy;
+    document.getElementById('endTurn').disabled=!humanTurn();
+    document.getElementById('turnLabel').textContent=teams[state.activeTeam].name+(teams[state.activeTeam].control==='ai'?' · AI':' · Human');
+    document.getElementById('barracks-player').classList.toggle('selected',state.selectedBarracks==='player');
+    document.getElementById('barracks-enemy').classList.toggle('selected',state.selectedBarracks==='enemy');
+    document.getElementById('skipAi').hidden=!state.watchingAi||state.skipAiView;
+    document.getElementById('saveGame').disabled=state.busy;
+    document.getElementById('newGame').disabled=state.busy;
     updateBottomInfo();
     updateRecruitPopup();
     updateHighlights();
@@ -3197,9 +3248,10 @@ button{font:inherit}
     const r=fieldViewport.getBoundingClientRect();
     state.mapX=r.width/2-(x+0.5)*CELL*state.mapZoom;
     state.mapY=r.height/2-(y+0.5)*CELL*state.mapZoom;
-    board.style.transition='transform 180ms ease-out';
+    if(state.skipAiView)return;
+    board.style.transition='transform 340ms ease-in-out';
     applyMapTransform();
-    await wait(190+hold);
+    await spectateWait(360+hold);
     board.style.transition='none';
   }
   function focusMap(){
@@ -3301,7 +3353,6 @@ button{font:inherit}
       state.dragging=false;
       state.dragMoved=false;
       fieldViewport.classList.remove('dragging');
-      save();
     }
   }
   fieldViewport.addEventListener('pointerup',endPointer);
@@ -3318,9 +3369,9 @@ button{font:inherit}
 
   document.getElementById('barracks-player').addEventListener('click',e=>{ e.stopPropagation(); selectBarracks('player'); });
   document.getElementById('barracks-enemy').addEventListener('click',e=>{ e.stopPropagation(); selectBarracks('enemy'); });
-  document.getElementById('popupRecruitSoldier').addEventListener('click',()=>{ const u=recruit('player','soldier',true); if(u){hideRecruitPopup(); updateAll();} });
-  document.getElementById('popupRecruitArcher').addEventListener('click',()=>{ const u=recruit('player','archer',true); if(u){hideRecruitPopup(); updateAll();} });
-  document.getElementById('popupRecruitCavalry').addEventListener('click',()=>{ const u=recruit('player','cavalry',true); if(u){hideRecruitPopup(); updateAll();} });
+  document.getElementById('popupRecruitSoldier').addEventListener('click',()=>{ const u=recruit(state.activeTeam,'soldier',true); if(u){hideRecruitPopup(); updateAll();} });
+  document.getElementById('popupRecruitArcher').addEventListener('click',()=>{ const u=recruit(state.activeTeam,'archer',true); if(u){hideRecruitPopup(); updateAll();} });
+  document.getElementById('popupRecruitCavalry').addEventListener('click',()=>{ const u=recruit(state.activeTeam,'cavalry',true); if(u){hideRecruitPopup(); updateAll();} });
   document.getElementById('attackInspected').addEventListener('click',()=>{
     const attacker=selectedUnit();
     const target=inspectedUnit();
@@ -3342,6 +3393,13 @@ button{font:inherit}
       showMenuScreen('mainMenuScreen');
       refreshMainMenu();
     }
+  });
+  document.getElementById('playerControlSelect').addEventListener('change',e=>teams.player.control=e.target.value);
+  document.getElementById('enemyControlSelect').addEventListener('change',e=>teams.enemy.control=e.target.value);
+  document.getElementById('skipAi').addEventListener('click',()=>{
+    state.skipAiView=true;board.style.transition='none';
+    document.getElementById('skipAi').hidden=true;
+    setStatus('Fast-forwarding AI turn…');
   });
   document.getElementById('playerHouseSelect').addEventListener('change',e=>chooseNewGameFaction('player',e.target.value));
   document.getElementById('enemyHouseSelect').addEventListener('change',e=>chooseNewGameFaction('enemy',e.target.value));

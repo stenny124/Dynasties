@@ -1,4 +1,4 @@
-const CACHE='dynasties-mechanics-v36';
+const CACHE='dynasties-mechanics-v37';
 const STATIC=[
   './index.html',
   './assets/team_blue_soldier.png',

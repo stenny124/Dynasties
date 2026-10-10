@@ -1,18 +1,18 @@
-Dynasties — Mechanics Build v36
+Dynasties — Build v37
 
-Changes in v36:
-- New Game now lets each side choose a House/Faction as well as a team colour.
-- Available factions:
-  * House Lannister — human units
-  * House Stark — human units
-  * White Walkers — skeleton units
-- The selected faction crest appears beside each house selector.
-- The in-game top bar updates to the selected house names and crests.
-- Stark currently shares the human unit master artwork with Lannister; palette swapping gives it the selected team colour.
-- Fixed the human palette swap so the additional red/magenta helmet/plume shade is recoloured too.
-- Faction and colour selections are preserved in battle save slots.
+CHANGES FROM v36
+- Team setup supports Human or AI for either side. Human/Human and AI/AI supported on one device.
+- Tapping an opposing unit highlights its current attack range.
+- Fixed the last orange-red helmet accent in the human soldier/cavalry palette.
+- AI camera movement is slower and smoother, with Skip AI Movements to fast-forward watching (AI still takes its turn).
+- Removed HP bars; damaged units display remaining HP as a small number at bottom-right.
+- Soldier, Archer and Cavalry now have 10 maximum HP (older save slots migrate preserving HP already lost).
+- Fixed stray undefined save() call when panning the battlefield.
+- Save slots store active team and Human/AI choices; older v36 saves still load.
 
-Patch files:
+PATCH FILES
 - index.html
 - service-worker.js
 - README.txt
+
+Upload these three files to the root of your existing GitHub Pages repository, overwriting the originals. Other assets remain unchanged.
