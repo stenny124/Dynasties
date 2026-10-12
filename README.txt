@@ -1,27 +1,20 @@
-DYNASTIES — BUILD v38
-=====================
+Dynasties — Build v39
 
-Latest version: v38 (12 October 2026)
+EDITOR UPDATES
+- Moved the Terrain / Units / Buildings toolbar below map width/height controls.
+  Palette appears below the toolbar instead of overlapping the size fields.
+- Buildings: a single HQ choice, then a colour choice (10 available colours).
+- Units: Soldier / Archer / Cavalry -> species (Lannister, Stark, White Walkers)
+  -> team colour; final ready-to-place preview before painting.
+- Colour groups units/HQs into teams, using up to eight team slots. Existing team colours can be reused to add troops to the same team.
+- Custom maps store team species + colours in the map itself; these are carried
+  through map export/import and applied when starting a New Game from that map. Those map-specific settings override matching slots in the New Game setup.
+- Old maps without this data continue to load using existing team setup.
+- All mechanics, movements, save slots, and original sprites remain unchanged.
 
-WHAT CHANGED IN v38
-- Match setup: select 2–8 teams with the + Add Team button. Each can independently use Lannister, Stark or White Walker artwork; choose its own colour and Human/AI controller.
-- Two new colour palettes: White and Black (10 colours in total).
-- Extra teams take turns in order, recruit at their own HQ and can be played by humans or AI. Teams with no surviving units are eliminated; last army standing wins.
-- Standardised HQ graphic: replaced the old Winterfell and Casterly Rock gameplay images with the supplied generic HQ artwork. HQs use team palette swapping and retain a 2×2 footprint.
-- Create Map: new Buildings category using the supplied toolbar icon. HQ placement is moved from Units to Buildings. Units and HQs can be assigned to any of the eight team slots.
-- Melee and ranged units briefly lunge toward their target and return when they attack. Skip AI fast-forwards the animation.
-- Older two-team maps and save slots can still be loaded. Extra team HQs and a starting Soldier are automatically placed on a new battle map if that map does not already provide them (needs available grass space).
+PATCH CONTENTS (v38 -> v39)
+- index.html (overwrite)
+- service-worker.js (overwrite)
+- README.txt (overwrite)
 
-CHANGED FILES (v37 → v38)
-- index.html
-- service-worker.js
-- README.txt
-- assets/hq_master.png (new)
-- assets/toolbar_buildings.png (new)
-
-UPGRADE
-Unzip the v38 PATCH ZIP and upload/overwrite only those files at the root of your GitHub Pages repository. Preserve the assets/ folder paths. No other existing files need changing or deleting.
-
-SAVE NOTES
-- Battle saves: three local browser save slots. Map library remains local to each device unless exported/imported.
-- Large maps or maps without enough free grass may not support 8 HQs; resize or adjust the map as necessary.
+Deploy: extract the ZIP and upload the files into the GitHub Pages repo root.

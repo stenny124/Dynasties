@@ -1,4 +1,4 @@
-const CACHE='dynasties-mechanics-v38';
+const CACHE='dynasties-mechanics-v39';
 const STATIC=[
   './index.html',
   './assets/hq_master.png',

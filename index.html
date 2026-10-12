@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#182014">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dynasties — Mechanics Build v38</title>
+<title>Dynasties — Mechanics Build v39</title>
 <style>
 :root{
   --blue:#315f9b; --red:#93433d; --gold:#d7b96e; --cream:#f3e4bd;
@@ -461,13 +461,13 @@ button{font:inherit}
 #editorStage{
   position:absolute;
   left:18px;right:18px;
-  top:calc(91px + env(safe-area-inset-top));
+  top:calc(165px + env(safe-area-inset-top));
   bottom:calc(18px + env(safe-area-inset-bottom));
   display:grid;place-items:center;
 }
 #editorMapFrame{
   position:relative;
-  width:min(92vw,calc(100vh - 96px),760px);
+  width:min(92vw,calc(100dvh - 205px),760px);
   max-width:calc(100vw - 36px);
   aspect-ratio:1/1;
   padding:5px;
@@ -500,7 +500,7 @@ button{font:inherit}
   transform:translate(0,-22%);filter:drop-shadow(0 1px 1px rgba(0,0,0,.4));pointer-events:none;
 }
 #editorToolbar{
-  position:absolute;z-index:10;left:50%;top:-18px;transform:translateX(-50%);
+  position:absolute;z-index:20;left:50%;top:calc(98px + env(safe-area-inset-top));transform:translateX(-50%);
   display:flex;gap:2px;padding:3px;border:2px solid #80603b;border-radius:4px;
   background:#f4e6c8;box-shadow:0 2px 4px rgba(60,42,24,.25);
 }
@@ -510,7 +510,7 @@ button{font:inherit}
 .editorTool img{width:100%;height:100%;object-fit:contain;image-rendering:pixelated}
 .editorTool.active{background:#d6b885;border-color:#87623b;box-shadow:inset 0 0 0 1px rgba(255,255,255,.55)}
 #editorPalette{
-  position:absolute;z-index:11;left:50%;top:32px;transform:translateX(-50%);
+  position:absolute;z-index:21;left:50%;top:calc(154px + env(safe-area-inset-top));transform:translateX(-50%);
   max-width:min(94vw,620px);padding:5px;background:#f5e6c7;border:2px solid #86623d;border-radius:5px;
   box-shadow:0 5px 12px rgba(65,45,24,.3);
 }
@@ -520,6 +520,15 @@ button{font:inherit}
 .editorPaletteHead{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .editorPaletteClose{width:24px;height:22px;padding:0;border:1px solid #8b6841;border-radius:3px;background:#e4cda4;color:#583e25;font:bold 15px Arial;line-height:18px}
 .editorHQChoice img{background:rgba(255,255,255,.18)}
+.editorPickerBack{flex:0 0 auto;border:1px solid #87623b;background:#e9d7b4;color:#513a24;font:bold 11px Georgia,serif;border-radius:3px;padding:3px 7px;margin-bottom:5px}
+.editorPickerSummary{font:11px Georgia,serif;color:#513a24;padding:7px 5px;white-space:normal}
+.editorPickerSummary strong{font-size:12px}
+.editorColourChip{height:28px;width:30px;border:1px solid #674b33;border-radius:4px;margin:5px auto 8px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.36)}
+.editorColourChoice{min-width:54px;min-height:68px}
+.editorStepLabel{font:10px Georgia,serif;color:#745339;margin:3px 4px 6px}
+#editorPalette{width:max-content;min-width:220px;max-height:min(46vh,270px);overflow-y:auto}
+.editorChoice{touch-action:manipulation}
+
 
 .editorPaletteTitle{font:bold 10px Georgia,serif;color:#62492e;margin:0 3px 4px}
 .editorChoices{display:flex;gap:4px;overflow-x:auto;max-width:100%;padding-bottom:2px}
@@ -546,10 +555,10 @@ button{font:inherit}
   #editorSizeBar{top:calc(43px + env(safe-area-inset-top));font-size:9px;padding:3px 5px}
   .editorSizeInput{width:43px;min-height:24px;font-size:10px}
   #editorResizeMap{min-height:24px;font-size:9px}
-  #editorStage{left:7px;right:7px;top:calc(77px + env(safe-area-inset-top));bottom:calc(74px + env(safe-area-inset-bottom));}
-  #editorMapFrame{width:min(96vw,calc((100vh - 145px) * 1.18));aspect-ratio:1/1;}
-  #editorToolbar{top:-20px}
-  #editorPalette{top:31px;max-width:96vw}
+  #editorStage{left:7px;right:7px;top:calc(145px + env(safe-area-inset-top));bottom:calc(74px + env(safe-area-inset-bottom));}
+  #editorMapFrame{width:min(96vw,calc((100dvh - 235px) * 1.18));aspect-ratio:1/1;}
+  #editorToolbar{top:calc(84px + env(safe-area-inset-top))}
+  #editorPalette{top:calc(140px + env(safe-area-inset-top));max-width:96vw}
   .editorChoice{min-width:55px;min-height:58px;font-size:9px}
   .editorChoice img,.editorChoice .removeIcon{width:36px;height:36px}
   #editorHint{bottom:-54px;left:0;max-width:100%;width:100%;text-align:center;background:#5b4328}
@@ -809,8 +818,6 @@ button{font:inherit}
         <span>tiles</span><button id="editorResizeMap" type="button">Resize</button>
       </div>
 
-      <div id="editorStage">
-        <div id="editorMapFrame">
           <div id="editorToolbar">
             <button class="editorTool active" id="editorTerrainTool" type="button" title="Terrain">
               <img src="./assets/toolbar_terrain.png" alt="Terrain">
@@ -824,6 +831,9 @@ button{font:inherit}
           </div>
           <div id="editorPalette"></div>
 
+
+      <div id="editorStage">
+        <div id="editorMapFrame">
           <div id="creatorViewport">
             <div id="editorMapControls">
               <button class="editorMapBtn" id="editorZoomIn" type="button" aria-label="Zoom in">+</button>
@@ -1309,6 +1319,7 @@ button{font:inherit}
       updatedAt:map?.updatedAt||null,
       imported:!!map?.imported,
       width,height,tiles,
+      teamStyles:Object.fromEntries(Object.entries(map?.teamStyles||{}).filter(([id,v])=>TEAM_IDS.includes(id)&&v&&FACTION_CONFIG[v.faction]&&TEAM_COLOUR_PALETTES[v.colour]).map(([id,v])=>[id,{faction:v.faction,colour:v.colour}])),
       units:Array.isArray(map?.units)?map.units.map(u=>({...u})):fallbackUnits,
       castles:{
         ...Object.fromEntries(Object.entries(map?.castles||{}).map(([id,pos])=>[id,{...pos}])),
@@ -1350,6 +1361,7 @@ button{font:inherit}
         height:clean.height,
         tiles:clean.tiles,
         units:clean.units,
+        teamStyles:clean.teamStyles,
         castles:clean.castles
       }
     };
@@ -1412,7 +1424,8 @@ button{font:inherit}
       imported:true,
       createdAt:new Date().toISOString(),
       updatedAt:new Date().toISOString(),
-      width,height,tiles,units:safeUnits,castles
+      width,height,tiles,units:safeUnits,castles,
+      teamStyles:Object.fromEntries(Object.entries(payload.teamStyles||{}).filter(([id,v])=>TEAM_IDS.includes(id)&&v&&FACTION_CONFIG[v.faction]&&TEAM_COLOUR_PALETTES[v.colour]).map(([id,v])=>[id,{faction:v.faction,colour:v.colour}]))
     };
   }
 
@@ -1641,6 +1654,7 @@ button{font:inherit}
         height:activeMap.height,
         tiles:activeMap.tiles,
         units:activeMap.units,
+        teamStyles:activeMap.teamStyles,
         castles:activeMap.castles
       },
       teams:teams,
@@ -1887,7 +1901,7 @@ button{font:inherit}
       btn.innerHTML=`${mapPreviewMarkup()}
         <div>
           <div class="mapCardName">${escapeHtml(map.name)}</div>
-          <div class="mapCardMeta">${meta}<br>${activeSides().map(s=>teams[s].name).join(' / ')} · ${teamCount} teams</div>
+          <div class="mapCardMeta">${meta}<br>${Object.keys(map.teamStyles||{}).length?'Uses map-assigned house and colours':activeSides().map(s=>teams[s].name).join(' / ')+' · '+teamCount+' teams'}</div>
         </div>`;
       btn.addEventListener('click',()=>startNewGame(map));
       list.appendChild(btn);
@@ -1903,6 +1917,10 @@ button{font:inherit}
   let editorMap=null;
   let editorTool='terrain';
   let editorSelection='grass';
+  let editorPickerStage='terrain';
+  let editorPickerKind='soldier';
+  let editorPickerFaction='white_walkers';
+  let editorPickerColour='blue';
   let editorPainting=false;
   let editorPaletteOpen=true;
   let editorZoom=1, editorX=0, editorY=0;
@@ -1926,8 +1944,51 @@ button{font:inherit}
   function editorTerrainAt(x,y){return editorMap?.tiles?.[editorIndex(x,y)]||'grass'}
   function editorUnitAt(x,y){return editorMap?.units?.find(u=>u.x===x&&u.y===y)||null}
 
+  function editorStyle(team){
+    return editorMap?.teamStyles?.[team] || {faction:teamFaction(team),colour:teamColour(team)};
+  }
+
   function editorUnitSprite(u){
-    return teamSprite(u.team,u.kind);
+    const style=editorStyle(u.team);
+    return paletteSpriteCache.get(paletteSpriteKey(style.faction,u.kind,style.colour))
+      ||masterSpriteForFaction(style.faction,u.kind);
+  }
+
+  function editorHqSprite(team){
+    const style=editorStyle(team);
+    return hqSpriteCache.get(style.colour)||HQ_MASTER;
+  }
+
+  function editorColourForTeam(team){
+    return editorStyle(team).colour;
+  }
+
+  function editorFindTeamForColour(colour){
+    // Only colours already assigned to placed units/HQs (or explicit styles)
+    // claim a slot. Older maps without teamStyles use the setup's team colours.
+    const occupied=new Set([...Object.keys(editorMap.castles),...editorMap.units.map(u=>u.team),...Object.keys(editorMap.teamStyles||{})]);
+    return TEAM_IDS.find(side=>occupied.has(side)&&editorColourForTeam(side)===colour)||null;
+  }
+
+  function editorCandidateTeamForColour(colour){
+    const existing=editorFindTeamForColour(colour);
+    if(existing)return existing;
+    const used=new Set([...Object.keys(editorMap.castles),...editorMap.units.map(u=>u.team),...Object.keys(editorMap.teamStyles||{})]);
+    return TEAM_IDS.find(id=>!used.has(id))||null;
+  }
+
+  function editorGetTeamForColour(colour,faction=null){
+    const side=editorCandidateTeamForColour(colour);
+    if(!side){setEditorMessage('All eight teams are already assigned. Choose an existing team colour.');return null;}
+    const style=editorStyle(side);
+    const unitsOfSide=editorMap.units.filter(u=>u.team===side);
+    if(faction && unitsOfSide.length && style.faction!==faction){
+      setEditorMessage(`${TEAM_COLOUR_LABELS[colour]} is already used by ${factionInfo(style.faction).label}. Choose another colour.`);
+      return null;
+    }
+    if(!editorMap.teamStyles)editorMap.teamStyles={};
+    editorMap.teamStyles[side]={faction:faction||style.faction,colour};
+    return side;
   }
 
   const WG_GRASS_VARIANTS=Array.from({length:25},(_,i)=>`./assets/wg_grass_${i}.png`);
@@ -2123,7 +2184,7 @@ button{font:inherit}
     for(const team of Object.keys(editorMap.castles)){
       const c=editorMap.castles[team];
       const img=document.createElement('img');
-      img.className='editorCastle';img.src=hqSprite(team);
+      img.className='editorCastle';img.src=editorHqSprite(team);
       img.style.left=`${c.x*EDITOR_CELL}px`;img.style.top=`${c.y*EDITOR_CELL}px`;
       img.style.width=`${EDITOR_CELL*2}px`;img.style.height=`${EDITOR_CELL*2}px`;
       objectLayer.appendChild(img);
@@ -2174,14 +2235,17 @@ button{font:inherit}
         else setEditorMessage('Teams 1 and 2 require an HQ.');
         return;
       }
-      if(editorSelection.startsWith('hq:')){
-        const team=editorSelection.split(':')[1];
-        const check=canPlaceHQ(team,x,y);
+      if(editorSelection==='placeHQ'){
+        const candidate=editorCandidateTeamForColour(editorPickerColour);
+        if(!candidate){setEditorMessage('All eight teams are already assigned.');return;}
+        const check=canPlaceHQ(candidate,x,y);
         if(!check.ok){setEditorMessage(check.msg);return;}
+        const team=editorGetTeamForColour(editorPickerColour);
+        if(!team)return;
         editorMap.castles[team]={x,y};
         editorMap.units=editorMap.units.filter(u=>!(u.x>=x&&u.x<x+2&&u.y>=y&&u.y<y+2));
         renderCreatorPreview();
-        setEditorMessage(`${teams[team].name} HQ placed.`);
+        setEditorMessage(`${TEAM_COLOUR_LABELS[editorColourForTeam(team)]} HQ placed.`);
         return;
       }
     }
@@ -2193,14 +2257,17 @@ button{font:inherit}
         if(before!==editorMap.units.length)setEditorMessage('Unit removed.');
         renderEditorObjects();return;
       }
-      const [team,kind]=editorSelection.split(':');
+      if(editorSelection!=='placeUnit')return;
+      const kind=editorPickerKind;
       const terrain=editorTerrainAt(x,y);
       if(terrain==='sea'){setEditorMessage('Units cannot be placed on sea.');return;}
       if(terrain==='mountain'&&kind==='cavalry'){setEditorMessage('Cavalry cannot enter mountains.');return;}
+      const team=editorGetTeamForColour(editorPickerColour,editorPickerFaction);
+      if(!team)return;
       editorMap.units=editorMap.units.filter(u=>!(u.x===x&&u.y===y));
       editorMap.units.push({team,kind,x,y});
       renderEditorObjects();
-      setEditorMessage(`${teams[team].name} ${UNIT_DEFS[kind].label} placed.`);
+      setEditorMessage(`${factionInfo(editorStyle(team).faction).label} ${UNIT_DEFS[kind].label} (${TEAM_COLOUR_LABELS[editorColourForTeam(team)]}) placed.`);
     }
   }
 
@@ -2211,38 +2278,99 @@ button{font:inherit}
     document.getElementById('editorHint').textContent='Palette hidden — drag to pan, pinch or use +/− to zoom. Tap a tool above to reopen it.';
   }
 
+  function editorColourButtons(){
+    return Object.keys(TEAM_COLOUR_PALETTES).map(colour=>{
+      const ramp=TEAM_COLOUR_PALETTES[colour];
+      return `<button class="editorChoice editorColourChoice ${editorPickerColour===colour?'active':''}" data-editor-colour="${colour}" type="button"><span class="editorColourChip" style="background:${ramp[4]}"></span><span>${TEAM_COLOUR_LABELS[colour]}</span></button>`;
+    }).join('');
+  }
+
+  function editorPickerReadyLabel(){
+    if(editorTool==='buildings')return `HQ · ${TEAM_COLOUR_LABELS[editorPickerColour]}`;
+    return `${UNIT_DEFS[editorPickerKind].label} · ${factionInfo(editorPickerFaction).label} · ${TEAM_COLOUR_LABELS[editorPickerColour]}`;
+  }
+
   function renderEditorPalette(){
     const palette=document.getElementById('editorPalette');
     editorPaletteOpen=true;palette.hidden=false;
     document.getElementById('creatorViewport').classList.remove('panMode');
+    let title='',content='',hint='';
+    const choice=(picture,label,choiceId,active=false)=>`<button class="editorChoice ${active?'active':''}" type="button" data-picker-choice="${choiceId}"><img src="${picture}" alt=""><span>${label}</span></button>`;
+    const head=(label)=>`<div class="editorPaletteHead"><div class="editorPaletteTitle">${label}</div><button class="editorPaletteClose" id="editorPaletteClose" type="button" aria-label="Close selector">×</button></div>`;
     if(editorTool==='terrain'){
-      palette.innerHTML=`
-        <div class="editorPaletteHead"><div class="editorPaletteTitle">TERRAIN</div><button class="editorPaletteClose" id="editorPaletteClose" type="button">×</button></div>
-        <div class="editorChoices">
-          <button class="editorChoice ${editorSelection==='grass'?'active':''}" data-editor-select="grass" type="button"><img src="./assets/grass_tile.png" alt="Grass"><span>Grass</span></button>
-          <button class="editorChoice ${editorSelection==='sea'?'active':''}" data-editor-select="sea" type="button"><img src="./assets/terrain_sea.png" alt="Sea"><span>Sea</span></button>
-          <button class="editorChoice ${editorSelection==='forest'?'active':''}" data-editor-select="forest" type="button"><img src="./assets/terrain_forest.png" alt="Forest"><span>Forest</span></button>
-          <button class="editorChoice ${editorSelection==='mountain'?'active':''}" data-editor-select="mountain" type="button"><img src="./assets/terrain_mountain.png" alt="Mountain"><span>Mountain</span></button>
-        </div>`;
-      document.getElementById('editorHint').textContent='Terrain: drag to paint. Forest costs 2 MOV (3 cavalry); Mountain costs 2 MOV for foot units and blocks cavalry; Sea blocks all units.';
+      title='TERRAIN';
+      content=`<div class="editorChoices">${choice('./assets/grass_tile.png','Grass','grass',editorSelection==='grass')}${choice('./assets/terrain_sea.png','Sea','sea',editorSelection==='sea')}${choice('./assets/terrain_forest.png','Forest','forest',editorSelection==='forest')}${choice('./assets/terrain_mountain.png','Mountain','mountain',editorSelection==='mountain')}</div>`;
+      hint='Terrain: drag to paint. Forest slows units; mountains block cavalry; sea blocks all units.';
     }else if(editorTool==='units'){
-      const unitChoice=(team,kind)=>`<button class="editorChoice ${editorSelection===team+':'+kind?'active':''}" data-editor-select="${team}:${kind}" type="button"><img src="${editorUnitSprite({team,kind})}" alt=""><span>${UNIT_DEFS[kind].label}</span></button>`;
-      palette.innerHTML=`<div class="editorPaletteHead"><div class="editorPaletteTitle">STARTING UNITS</div><button class="editorPaletteClose" id="editorPaletteClose" type="button">×</button></div><div class="editorChoices">${TEAM_IDS.map((team,i)=>`<span class="editorFactionLabel">TEAM ${i+1} · ${teams[team].name}</span>${unitChoice(team,'soldier')}${unitChoice(team,'archer')}${unitChoice(team,'cavalry')}`).join('')}<button class="editorChoice removeChoice ${editorSelection==='remove'?'active':''}" data-editor-select="remove" type="button"><span class="removeIcon">×</span><span>Remove unit</span></button></div>`;
-      document.getElementById('editorHint').textContent='Units: place starting troops for Teams 1–8; choose a team and unit type.';
+      if(editorPickerStage==='kind'){
+        title='UNITS · CHOOSE TYPE';
+        content=`<div class="editorChoices">${Object.keys(UNIT_DEFS).map(kind=>choice(masterSpriteForFaction('lannister',kind),UNIT_DEFS[kind].label,`kind:${kind}`)).join('')}${choice('', 'Remove unit','remove',editorSelection==='remove')}</div>`;
+        // The removal option is drawn with a text icon below, not a blank image.
+        content=content.replace('<img src="" alt=""><span>Remove unit</span>','<span class="removeIcon">×</span><span>Remove unit</span>');
+        hint='Choose a unit type, then species, then colour.';
+      }else if(editorPickerStage==='faction'){
+        title=`${UNIT_DEFS[editorPickerKind].label.toUpperCase()} · SPECIES`;
+        content=`<button class="editorPickerBack" data-picker-back="kind" type="button">← Unit types</button><div class="editorChoices">${Object.entries(FACTION_CONFIG).map(([f,info])=>choice(info.crest,info.label,`faction:${f}`)).join('')}</div>`;
+        hint='Choose the species/house for this unit.';
+      }else if(editorPickerStage==='colour'){
+        title=`${UNIT_DEFS[editorPickerKind].label.toUpperCase()} · COLOUR`;
+        content=`<button class="editorPickerBack" data-picker-back="faction" type="button">← Species</button><div class="editorStepLabel">${factionInfo(editorPickerFaction).label}</div><div class="editorChoices">${editorColourButtons()}</div>`;
+        hint='Pick its team colour, then place the unit.';
+      }else{
+        title='UNIT READY TO PLACE';
+        const picture=paletteSpriteCache.get(paletteSpriteKey(editorPickerFaction,editorPickerKind,editorPickerColour))||masterSpriteForFaction(editorPickerFaction,editorPickerKind);
+        content=`<button class="editorPickerBack" data-picker-back="colour" type="button">← Change colour</button><div class="editorPickerSummary"><img src="${picture}" style="float:left;width:42px;height:50px;object-fit:contain;image-rendering:pixelated;margin-right:8px" alt=""><strong>${editorPickerReadyLabel()}</strong><div>Tap grass or forest on the map to place it. Units with the same colour belong to one team.</div><div style="clear:both"></div></div><button class="editorPickerBack" data-picker-back="kind" type="button">Choose different unit</button>`;
+        hint=`${editorPickerReadyLabel()} — tap a map tile to place.`;
+      }
     }else{
-      palette.innerHTML=`<div class="editorPaletteHead"><div class="editorPaletteTitle">BUILDINGS</div><button class="editorPaletteClose" id="editorPaletteClose" type="button">×</button></div><div class="editorChoices">${TEAM_IDS.map((team,i)=>`<button class="editorChoice editorHQChoice ${editorSelection==='hq:'+team?'active':''}" data-editor-select="hq:${team}" type="button"><img src="${hqSprite(team)}" alt=""><span>Team ${i+1} HQ</span></button>`).join('')}<button class="editorChoice removeChoice ${editorSelection==='removeHQ'?'active':''}" data-editor-select="removeHQ" type="button"><span class="removeIcon">×</span><span>Remove HQ</span></button></div>`;
-      document.getElementById('editorHint').textContent='Buildings: place or relocate a 2×2 team HQ onto grass.';
+      if(editorPickerStage==='kind'){
+        title='BUILDINGS';
+        content=`<div class="editorChoices">${choice(HQ_MASTER,'HQ','hq')}${choice('','Remove HQ','removeHQ',editorSelection==='removeHQ')}</div>`;
+        content=content.replace('<img src="" alt=""><span>Remove HQ</span>','<span class="removeIcon">×</span><span>Remove HQ</span>');
+        hint='Choose HQ, then colour, to place or move a 2×2 team HQ.';
+      }else if(editorPickerStage==='colour'){
+        title='HQ · CHOOSE COLOUR';
+        content=`<button class="editorPickerBack" data-picker-back="kind" type="button">← Buildings</button><div class="editorChoices">${editorColourButtons()}</div>`;
+        hint='HQ colour determines which team owns the building.';
+      }else{
+        title='HQ READY TO PLACE';
+        const picture=hqSpriteCache.get(editorPickerColour)||HQ_MASTER;
+        content=`<button class="editorPickerBack" data-picker-back="colour" type="button">← Change colour</button><div class="editorPickerSummary"><img src="${picture}" style="float:left;width:45px;height:50px;object-fit:contain;image-rendering:pixelated;margin-right:8px" alt=""><strong>${editorPickerReadyLabel()}</strong><div>Tap a 2×2 grass area to place or move this team's HQ.</div><div style="clear:both"></div></div>`;
+        hint=`${editorPickerReadyLabel()} — tap a grass tile to place.`;
+      }
     }
-    palette.querySelectorAll('[data-editor-select]').forEach(btn=>btn.addEventListener('click',()=>{editorSelection=btn.dataset.editorSelect;renderEditorPalette();}));
-    document.getElementById('editorPaletteClose').addEventListener('click',closeEditorPalette);
+    palette.innerHTML=head(title)+content;
+    document.getElementById('editorHint').textContent=hint;
+    palette.querySelector('#editorPaletteClose').addEventListener('click',closeEditorPalette);
+    palette.querySelectorAll('[data-editor-select],[data-picker-choice]').forEach(btn=>btn.addEventListener('click',()=>{
+      const val=btn.dataset.editorSelect||btn.dataset.pickerChoice;
+      if(editorTool==='terrain'){editorSelection=val;renderEditorPalette();return;}
+      if(val==='remove'||val==='removeHQ'){
+        editorSelection=val;editorPickerStage='kind';
+        renderEditorPalette();
+        return;
+      }
+      if(val==='hq'){editorPickerStage='colour';editorSelection='';}
+      else if(val.startsWith('kind:')){editorPickerKind=val.split(':')[1];editorPickerStage='faction';editorSelection='';}
+      else if(val.startsWith('faction:')){editorPickerFaction=val.split(':')[1];editorPickerStage='colour';editorSelection='';}
+      renderEditorPalette();
+    }));
+    palette.querySelectorAll('[data-picker-back]').forEach(btn=>btn.addEventListener('click',()=>{
+      editorPickerStage=btn.dataset.pickerBack;editorSelection='';renderEditorPalette();
+    }));
+    palette.querySelectorAll('[data-editor-colour]').forEach(btn=>btn.addEventListener('click',()=>{
+      editorPickerColour=btn.dataset.editorColour;
+      editorPickerStage='ready';
+      editorSelection=editorTool==='units'?'placeUnit':'placeHQ';
+      renderEditorPalette();
+    }));
   }
 
   function setEditorTool(tool){
     if(editorTool===tool && editorPaletteOpen){closeEditorPalette();return;}
     editorTool=tool;
-    if(tool==='terrain'&&!['grass','sea','forest','mountain'].includes(editorSelection))editorSelection='grass';
-    if(tool==='units'&&!editorSelection.match(/^(player|enemy|team[3-8]):(soldier|archer|cavalry)$/)&&editorSelection!=='remove')editorSelection='player:soldier';
-    if(tool==='buildings'&&!editorSelection.startsWith('hq:')&&editorSelection!=='removeHQ')editorSelection='hq:player';
+    editorPickerStage='kind';
+    editorSelection=tool==='terrain'?'grass':'';
     document.getElementById('editorTerrainTool').classList.toggle('active',tool==='terrain');
     document.getElementById('editorUnitsTool').classList.toggle('active',tool==='units');
     document.getElementById('editorBuildingsTool').classList.toggle('active',tool==='buildings');
@@ -2350,13 +2478,13 @@ button{font:inherit}
       editorMap=cloneMap(map);
     }else{
       const width=20,height=20,castles=defaultCastlePositions(width,height);
-      editorMap={id:null,name:'',created:true,imported:false,width,height,tiles:Array(width*height).fill('grass'),units:[],castles};
+      editorMap={id:null,name:'',created:true,imported:false,width,height,tiles:Array(width*height).fill('grass'),units:[],castles,teamStyles:{player:{faction:'white_walkers',colour:'blue'},enemy:{faction:'lannister',colour:'red'}}};
     }
     document.getElementById('createMapName').value=editorMap.name==='Untitled Map'?'':editorMap.name;
     document.getElementById('editorMapWidth').value=editorMap.width;
     document.getElementById('editorMapHeight').value=editorMap.height;
     showMenuScreen('createMapScreen');
-    editorTool='terrain';editorSelection='grass';editorPaletteOpen=true;
+    editorTool='terrain';editorSelection='grass';editorPaletteOpen=true;editorPickerStage='kind';
     document.getElementById('editorTerrainTool').classList.add('active');document.getElementById('editorUnitsTool').classList.remove('active');document.getElementById('editorBuildingsTool').classList.remove('active');
     renderEditorPalette();renderCreatorPreview();setupEditorPanZoom();
     setEditorMessage(map?'Editing existing map. Save Map will update it.':'');
@@ -2392,6 +2520,15 @@ button{font:inherit}
   }
 
   function startNewGame(map){
+    if(map?.teamStyles && Object.keys(map.teamStyles).length){
+      for(const [side,style] of Object.entries(map.teamStyles)){
+        if(!TEAM_IDS.includes(side)||!style||!FACTION_CONFIG[style.faction]||!TEAM_COLOUR_PALETTES[style.colour])continue;
+        teams[side].faction=style.faction;
+        teams[side].colour=style.colour;
+        syncTeamIdentity(side);
+        teamCount=Math.max(teamCount,TEAM_IDS.indexOf(side)+1);
+      }
+    }
     try{applyMap(map,true);}catch(e){alert(e.message);return;}
     resetGameState();
     state.gameActive=true;
