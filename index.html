@@ -523,8 +523,25 @@ button{font:inherit}
 .editorPickerBack{flex:0 0 auto;border:1px solid #87623b;background:#e9d7b4;color:#513a24;font:bold 11px Georgia,serif;border-radius:3px;padding:3px 7px;margin-bottom:5px}
 .editorPickerSummary{font:11px Georgia,serif;color:#513a24;padding:7px 5px;white-space:normal}
 .editorPickerSummary strong{font-size:12px}
-.editorColourChip{height:28px;width:30px;border:1px solid #674b33;border-radius:4px;margin:5px auto 8px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.36)}
-.editorColourChoice{min-width:54px;min-height:68px}
+/* Compact colour swatches and side-by-side faction/unit selection. */
+.editorColours{display:flex;flex-wrap:wrap;gap:5px;padding:5px 1px 2px}
+.editorChoice.editorColourChoice{width:27px;height:27px;min-width:27px;min-height:27px;padding:2px;display:grid;place-items:center;border-radius:4px;background:#ecdbba}
+.editorColourChoice .editorColourChip{display:block;margin:0;width:20px;height:20px;border-radius:2px;border:1px solid rgba(0,0,0,.4);box-shadow:inset 0 1px 1px rgba(255,255,255,.25)}
+.editorChoice.editorColourChoice.active{border-color:#49321c;background:#d4b27a;box-shadow:0 0 0 1px #49321c}
+.editorUnitsLayout{display:grid;grid-template-columns:minmax(0,1fr) 122px;gap:8px;align-items:stretch}
+.editorUnitsList{display:flex;flex-wrap:wrap;gap:5px;align-content:start}
+.editorUnitsList .editorChoice{min-width:54px;min-height:66px}
+.editorHousePicker{border-left:1px solid #b99767;padding:2px 0 3px 8px;display:flex;flex-direction:column;gap:5px;align-items:center;justify-content:center}
+.editorHousePicker label{font:bold 10px Georgia,serif;color:#5d442c}
+.editorHousePicker select{width:100%;min-height:32px;font:11px Georgia,serif;color:#4b331f;background:#fcf2dd;border:1px solid #86623d;border-radius:3px}
+.editorHousePicker img{width:31px;height:36px;object-fit:contain}
+.editorSelectionText{margin:4px 1px 0;font:10px Georgia,serif;color:#654a2d}
+@media(max-width:600px){
+  .editorUnitsLayout{grid-template-columns:minmax(0,1fr) 110px;gap:4px}
+  .editorUnitsList .editorChoice{min-width:51px;min-height:59px}
+  .editorHousePicker{padding-left:5px}
+}
+
 .editorStepLabel{font:10px Georgia,serif;color:#745339;margin:3px 4px 6px}
 #editorPalette{width:max-content;min-width:220px;max-height:min(46vh,270px);overflow-y:auto}
 .editorChoice{touch-action:manipulation}
@@ -703,7 +720,9 @@ button{font:inherit}
 .unit.attackLunge{animation:attackLunge .25s ease-in-out both;}
 @keyframes attackLunge{0%,100%{translate:0 0}48%{translate:var(--lunge-x,9px) var(--lunge-y,-4px)}}
 #extraTeamsSetup{display:grid;gap:8px;margin-top:9px}
-#extraTeamsSetup .teamSetupRow{grid-template-columns:40px minmax(0,1fr) 18px}
+#extraTeamsSetup .teamSetupRow{grid-template-columns:46px 38px minmax(0,1fr) 18px;gap:6px}
+#extraTeamsSetup .teamSetupPreview{width:44px;height:48px}
+#extraTeamsSetup .teamHouseCrest{display:block;visibility:visible;opacity:1;width:36px;height:43px;min-width:34px;object-fit:contain;align-self:center;justify-self:center}
 #extraTeamsSetup .teamSetupRow select{margin-top:3px}
 #extraTeamsSetup .teamHouseCrest{width:38px;height:42px;object-fit:contain}
 #addTeam{font-size:12px;min-height:34px;margin-top:8px}
@@ -1819,9 +1838,20 @@ button{font:inherit}
     const container=document.getElementById('extraTeamsSetup');if(!container)return;
     container.innerHTML=TEAM_IDS.slice(2,teamCount).map((id,i)=>{
       const info=factionInfo(teams[id].faction);
+      const soldier=teamSprite(id,'soldier');
       const houseOptions=Object.keys(FACTION_CONFIG).map(key=>`<option value="${key}" ${teams[id].faction===key?'selected':''}>${FACTION_CONFIG[key].label}</option>`).join('');
       const colourOptions=Object.keys(TEAM_COLOUR_PALETTES).map(key=>`<option value="${key}" ${teams[id].colour===key?'selected':''}>${TEAM_COLOUR_LABELS[key]}</option>`).join('');
-      return `<div class="teamSetupRow"><img class="teamHouseCrest" src="${info.crest}" alt="${info.label} crest"><div><div class="teamSetupName">Team ${i+3} ${id===TEAM_IDS[teamCount-1]?`<button type="button" class="menuBack" data-remove-team="${id}" style="float:right;min-height:22px;padding:0 6px">Remove</button>`:''}</div><select class="teamHouseSelect" data-team-house="${id}">${houseOptions}</select><select class="teamColourSelect" data-team-colour="${id}">${colourOptions}</select><select class="teamControlSelect" data-team-control="${id}"><option value="human" ${teams[id].control==='human'?'selected':''}>Human</option><option value="ai" ${teams[id].control==='ai'?'selected':''}>AI</option></select></div><span class="teamColourSwatch" style="background:${teamColourDisplay(teams[id].colour)}"></span></div>`;
+      return `<div class="teamSetupRow" data-extra-team="${id}">
+        <img class="teamSetupPreview" src="${soldier}" alt="Team ${i+3} soldier preview">
+        <img class="teamHouseCrest" src="${info.crest}" alt="${info.label} crest" title="${info.label}">
+        <div>
+          <div class="teamSetupName">Team ${i+3} ${id===TEAM_IDS[teamCount-1]?`<button type="button" class="menuBack" data-remove-team="${id}" style="float:right;min-height:22px;padding:0 6px">Remove</button>`:''}</div>
+          <select class="teamHouseSelect" data-team-house="${id}" aria-label="Team ${i+3} house">${houseOptions}</select>
+          <select class="teamColourSelect" data-team-colour="${id}" aria-label="Team ${i+3} colour">${colourOptions}</select>
+          <select class="teamControlSelect" data-team-control="${id}" aria-label="Team ${i+3} controller"><option value="human" ${teams[id].control==='human'?'selected':''}>Human</option><option value="ai" ${teams[id].control==='ai'?'selected':''}>AI</option></select>
+        </div>
+        <span class="teamColourSwatch" style="background:${teamColourDisplay(teams[id].colour)}"></span>
+      </div>`;
     }).join('');
     container.querySelectorAll('[data-team-house]').forEach(el=>el.onchange=()=>{teams[el.dataset.teamHouse].faction=el.value;syncTeamIdentity(el.dataset.teamHouse);refreshNewGameTeamSetup();renderMapList()});
     container.querySelectorAll('[data-team-colour]').forEach(el=>el.onchange=()=>{teams[el.dataset.teamColour].colour=el.value;refreshNewGameTeamSetup();renderMapList()});
@@ -2281,7 +2311,7 @@ button{font:inherit}
   function editorColourButtons(){
     return Object.keys(TEAM_COLOUR_PALETTES).map(colour=>{
       const ramp=TEAM_COLOUR_PALETTES[colour];
-      return `<button class="editorChoice editorColourChoice ${editorPickerColour===colour?'active':''}" data-editor-colour="${colour}" type="button"><span class="editorColourChip" style="background:${ramp[4]}"></span><span>${TEAM_COLOUR_LABELS[colour]}</span></button>`;
+      return `<button class="editorChoice editorColourChoice ${editorPickerColour===colour?'active':''}" data-editor-colour="${colour}" type="button" title="${TEAM_COLOUR_LABELS[colour]}" aria-label="${TEAM_COLOUR_LABELS[colour]}" aria-pressed="${editorPickerColour===colour}"><span class="editorColourChip" style="background:${ramp[4]}"></span></button>`;
     }).join('');
   }
 
@@ -2295,73 +2325,65 @@ button{font:inherit}
     editorPaletteOpen=true;palette.hidden=false;
     document.getElementById('creatorViewport').classList.remove('panMode');
     let title='',content='',hint='';
-    const choice=(picture,label,choiceId,active=false)=>`<button class="editorChoice ${active?'active':''}" type="button" data-picker-choice="${choiceId}"><img src="${picture}" alt=""><span>${label}</span></button>`;
+    const choice=(picture,label,choiceId,active=false)=>`<button class="editorChoice ${active?'active':''}" type="button" data-picker-choice="${choiceId}" aria-pressed="${active}"><img src="${picture}" alt=""><span>${label}</span></button>`;
+    const remove=(label,id,active=false)=>`<button class="editorChoice removeChoice ${active?'active':''}" type="button" data-picker-choice="${id}" aria-pressed="${active}"><span class="removeIcon">×</span><span>${label}</span></button>`;
     const head=(label)=>`<div class="editorPaletteHead"><div class="editorPaletteTitle">${label}</div><button class="editorPaletteClose" id="editorPaletteClose" type="button" aria-label="Close selector">×</button></div>`;
+    const colours=()=>`<div class="editorStepLabel">TEAM COLOUR</div><div class="editorColours">${editorColourButtons()}</div>`;
+
     if(editorTool==='terrain'){
       title='TERRAIN';
       content=`<div class="editorChoices">${choice('./assets/grass_tile.png','Grass','grass',editorSelection==='grass')}${choice('./assets/terrain_sea.png','Sea','sea',editorSelection==='sea')}${choice('./assets/terrain_forest.png','Forest','forest',editorSelection==='forest')}${choice('./assets/terrain_mountain.png','Mountain','mountain',editorSelection==='mountain')}</div>`;
       hint='Terrain: drag to paint. Forest slows units; mountains block cavalry; sea blocks all units.';
     }else if(editorTool==='units'){
-      if(editorPickerStage==='kind'){
-        title='UNITS · CHOOSE TYPE';
-        content=`<div class="editorChoices">${Object.keys(UNIT_DEFS).map(kind=>choice(masterSpriteForFaction('lannister',kind),UNIT_DEFS[kind].label,`kind:${kind}`)).join('')}${choice('', 'Remove unit','remove',editorSelection==='remove')}</div>`;
-        // The removal option is drawn with a text icon below, not a blank image.
-        content=content.replace('<img src="" alt=""><span>Remove unit</span>','<span class="removeIcon">×</span><span>Remove unit</span>');
-        hint='Choose a unit type, then species, then colour.';
-      }else if(editorPickerStage==='faction'){
-        title=`${UNIT_DEFS[editorPickerKind].label.toUpperCase()} · SPECIES`;
-        content=`<button class="editorPickerBack" data-picker-back="kind" type="button">← Unit types</button><div class="editorChoices">${Object.entries(FACTION_CONFIG).map(([f,info])=>choice(info.crest,info.label,`faction:${f}`)).join('')}</div>`;
-        hint='Choose the species/house for this unit.';
-      }else if(editorPickerStage==='colour'){
-        title=`${UNIT_DEFS[editorPickerKind].label.toUpperCase()} · COLOUR`;
-        content=`<button class="editorPickerBack" data-picker-back="faction" type="button">← Species</button><div class="editorStepLabel">${factionInfo(editorPickerFaction).label}</div><div class="editorChoices">${editorColourButtons()}</div>`;
-        hint='Pick its team colour, then place the unit.';
-      }else{
-        title='UNIT READY TO PLACE';
-        const picture=paletteSpriteCache.get(paletteSpriteKey(editorPickerFaction,editorPickerKind,editorPickerColour))||masterSpriteForFaction(editorPickerFaction,editorPickerKind);
-        content=`<button class="editorPickerBack" data-picker-back="colour" type="button">← Change colour</button><div class="editorPickerSummary"><img src="${picture}" style="float:left;width:42px;height:50px;object-fit:contain;image-rendering:pixelated;margin-right:8px" alt=""><strong>${editorPickerReadyLabel()}</strong><div>Tap grass or forest on the map to place it. Units with the same colour belong to one team.</div><div style="clear:both"></div></div><button class="editorPickerBack" data-picker-back="kind" type="button">Choose different unit</button>`;
-        hint=`${editorPickerReadyLabel()} — tap a map tile to place.`;
-      }
+      title='UNITS';
+      const currentFaction=factionInfo(editorPickerFaction);
+      const unitChoices=Object.keys(UNIT_DEFS).map(kind=>{
+        const picture=paletteSpriteCache.get(paletteSpriteKey(editorPickerFaction,kind,editorPickerColour))||masterSpriteForFaction(editorPickerFaction,kind);
+        return choice(picture,UNIT_DEFS[kind].label,`kind:${kind}`,editorSelection==='placeUnit'&&editorPickerKind===kind);
+      }).join('');
+      const houseOptions=Object.entries(FACTION_CONFIG).map(([f,info])=>`<option value="${f}" ${editorPickerFaction===f?'selected':''}>${info.label}</option>`).join('');
+      content=`<div class="editorUnitsLayout">
+        <div class="editorUnitsList">${unitChoices}${remove('Remove unit','remove',editorSelection==='remove')}</div>
+        <div class="editorHousePicker"><label for="editorHouseChoice">HOUSE</label><select id="editorHouseChoice" aria-label="Unit species or house">${houseOptions}</select><img src="${currentFaction.crest}" alt="${currentFaction.label} crest"></div>
+      </div>${colours()}
+      <div class="editorSelectionText">${editorSelection==='remove'?'Tap a unit on the map to remove it.':editorSelection==='placeUnit'?`Placing ${editorPickerReadyLabel()} — tap a valid tile.`:'Select a unit, then a team colour to place it.'}</div>`;
+      hint=editorSelection==='placeUnit'?`${editorPickerReadyLabel()} — tap a map tile to place.`:'Choose a house on the right, then a unit and colour.';
     }else{
-      if(editorPickerStage==='kind'){
-        title='BUILDINGS';
-        content=`<div class="editorChoices">${choice(HQ_MASTER,'HQ','hq')}${choice('','Remove HQ','removeHQ',editorSelection==='removeHQ')}</div>`;
-        content=content.replace('<img src="" alt=""><span>Remove HQ</span>','<span class="removeIcon">×</span><span>Remove HQ</span>');
-        hint='Choose HQ, then colour, to place or move a 2×2 team HQ.';
-      }else if(editorPickerStage==='colour'){
-        title='HQ · CHOOSE COLOUR';
-        content=`<button class="editorPickerBack" data-picker-back="kind" type="button">← Buildings</button><div class="editorChoices">${editorColourButtons()}</div>`;
-        hint='HQ colour determines which team owns the building.';
-      }else{
-        title='HQ READY TO PLACE';
-        const picture=hqSpriteCache.get(editorPickerColour)||HQ_MASTER;
-        content=`<button class="editorPickerBack" data-picker-back="colour" type="button">← Change colour</button><div class="editorPickerSummary"><img src="${picture}" style="float:left;width:45px;height:50px;object-fit:contain;image-rendering:pixelated;margin-right:8px" alt=""><strong>${editorPickerReadyLabel()}</strong><div>Tap a 2×2 grass area to place or move this team's HQ.</div><div style="clear:both"></div></div>`;
-        hint=`${editorPickerReadyLabel()} — tap a grass tile to place.`;
-      }
+      title='BUILDINGS';
+      const picture=hqSpriteCache.get(editorPickerColour)||HQ_MASTER;
+      content=`<div class="editorChoices">${choice(picture,'HQ','hq',editorSelection==='placeHQ')}${remove('Remove HQ','removeHQ',editorSelection==='removeHQ')}</div>${colours()}
+        <div class="editorSelectionText">${editorSelection==='placeHQ'?`Placing ${editorPickerReadyLabel()} — tap a valid 2×2 grass area.`:editorSelection==='removeHQ'?'Tap an HQ on the map to remove it.':'Select HQ and team colour to place it.'}</div>`;
+      hint=editorSelection==='placeHQ'?`${editorPickerReadyLabel()} — tap a grass tile to place.`:'Select HQ, then a colour to assign its team.';
     }
+
     palette.innerHTML=head(title)+content;
     document.getElementById('editorHint').textContent=hint;
     palette.querySelector('#editorPaletteClose').addEventListener('click',closeEditorPalette);
-    palette.querySelectorAll('[data-editor-select],[data-picker-choice]').forEach(btn=>btn.addEventListener('click',()=>{
-      const val=btn.dataset.editorSelect||btn.dataset.pickerChoice;
-      if(editorTool==='terrain'){editorSelection=val;renderEditorPalette();return;}
-      if(val==='remove'||val==='removeHQ'){
-        editorSelection=val;editorPickerStage='kind';
-        renderEditorPalette();
-        return;
-      }
-      if(val==='hq'){editorPickerStage='colour';editorSelection='';}
-      else if(val.startsWith('kind:')){editorPickerKind=val.split(':')[1];editorPickerStage='faction';editorSelection='';}
-      else if(val.startsWith('faction:')){editorPickerFaction=val.split(':')[1];editorPickerStage='colour';editorSelection='';}
+    const house=palette.querySelector('#editorHouseChoice');
+    if(house)house.addEventListener('change',()=>{
+      editorPickerFaction=house.value;
+      // Keep type and colour, but require a click on a unit to arm placement for the new house.
+      editorSelection='';
       renderEditorPalette();
-    }));
-    palette.querySelectorAll('[data-picker-back]').forEach(btn=>btn.addEventListener('click',()=>{
-      editorPickerStage=btn.dataset.pickerBack;editorSelection='';renderEditorPalette();
+    });
+    palette.querySelectorAll('[data-picker-choice]').forEach(btn=>btn.addEventListener('click',()=>{
+      const val=btn.dataset.pickerChoice;
+      if(editorTool==='terrain'){
+        editorSelection=val;renderEditorPalette();return;
+      }
+      if(val==='remove'||val==='removeHQ'){
+        editorSelection=val;renderEditorPalette();return;
+      }
+      if(val==='hq'){
+        editorSelection='placeHQ';renderEditorPalette();return;
+      }
+      if(val.startsWith('kind:')){
+        editorPickerKind=val.split(':')[1];editorSelection='placeUnit';renderEditorPalette();return;
+      }
     }));
     palette.querySelectorAll('[data-editor-colour]').forEach(btn=>btn.addEventListener('click',()=>{
       editorPickerColour=btn.dataset.editorColour;
-      editorPickerStage='ready';
-      editorSelection=editorTool==='units'?'placeUnit':'placeHQ';
+      // Preserve the current placement tool if selected; swatch choice alone shouldn't place anything.
       renderEditorPalette();
     }));
   }
