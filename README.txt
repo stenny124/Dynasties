@@ -1,18 +1,27 @@
-Dynasties — Build v37
+DYNASTIES — BUILD v38
+=====================
 
-CHANGES FROM v36
-- Team setup supports Human or AI for either side. Human/Human and AI/AI supported on one device.
-- Tapping an opposing unit highlights its current attack range.
-- Fixed the last orange-red helmet accent in the human soldier/cavalry palette.
-- AI camera movement is slower and smoother, with Skip AI Movements to fast-forward watching (AI still takes its turn).
-- Removed HP bars; damaged units display remaining HP as a small number at bottom-right.
-- Soldier, Archer and Cavalry now have 10 maximum HP (older save slots migrate preserving HP already lost).
-- Fixed stray undefined save() call when panning the battlefield.
-- Save slots store active team and Human/AI choices; older v36 saves still load.
+Latest version: v38 (12 October 2026)
 
-PATCH FILES
+WHAT CHANGED IN v38
+- Match setup: select 2–8 teams with the + Add Team button. Each can independently use Lannister, Stark or White Walker artwork; choose its own colour and Human/AI controller.
+- Two new colour palettes: White and Black (10 colours in total).
+- Extra teams take turns in order, recruit at their own HQ and can be played by humans or AI. Teams with no surviving units are eliminated; last army standing wins.
+- Standardised HQ graphic: replaced the old Winterfell and Casterly Rock gameplay images with the supplied generic HQ artwork. HQs use team palette swapping and retain a 2×2 footprint.
+- Create Map: new Buildings category using the supplied toolbar icon. HQ placement is moved from Units to Buildings. Units and HQs can be assigned to any of the eight team slots.
+- Melee and ranged units briefly lunge toward their target and return when they attack. Skip AI fast-forwards the animation.
+- Older two-team maps and save slots can still be loaded. Extra team HQs and a starting Soldier are automatically placed on a new battle map if that map does not already provide them (needs available grass space).
+
+CHANGED FILES (v37 → v38)
 - index.html
 - service-worker.js
 - README.txt
+- assets/hq_master.png (new)
+- assets/toolbar_buildings.png (new)
 
-Upload these three files to the root of your existing GitHub Pages repository, overwriting the originals. Other assets remain unchanged.
+UPGRADE
+Unzip the v38 PATCH ZIP and upload/overwrite only those files at the root of your GitHub Pages repository. Preserve the assets/ folder paths. No other existing files need changing or deleting.
+
+SAVE NOTES
+- Battle saves: three local browser save slots. Map library remains local to each device unless exported/imported.
+- Large maps or maps without enough free grass may not support 8 HQs; resize or adjust the map as necessary.

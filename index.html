@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#182014">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dynasties — Mechanics Build v30</title>
+<title>Dynasties — Mechanics Build v38</title>
 <style>
 :root{
   --blue:#315f9b; --red:#93433d; --gold:#d7b96e; --cream:#f3e4bd;
@@ -690,6 +690,21 @@ button{font:inherit}
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.24);
 }
 
+
+.unit.attackLunge{animation:attackLunge .25s ease-in-out both;}
+@keyframes attackLunge{0%,100%{translate:0 0}48%{translate:var(--lunge-x,9px) var(--lunge-y,-4px)}}
+#extraTeamsSetup{display:grid;gap:8px;margin-top:9px}
+#extraTeamsSetup .teamSetupRow{grid-template-columns:40px minmax(0,1fr) 18px}
+#extraTeamsSetup .teamSetupRow select{margin-top:3px}
+#extraTeamsSetup .teamHouseCrest{width:38px;height:42px;object-fit:contain}
+#addTeam{font-size:12px;min-height:34px;margin-top:8px}
+#addTeam:disabled{opacity:.4}
+#teamRoster{grid-column:1/-1;display:flex;overflow-x:auto;gap:5px;padding:2px 0;scrollbar-width:thin}
+#teamRoster .rosterItem{border:1px solid #705b36;display:flex;align-items:center;gap:4px;flex:0 0 auto;padding:2px 5px;font-size:10px;border-radius:4px;max-width:155px}
+#teamRoster .rosterItem.active{border-color:#e7bc62;background:#47331a}
+#teamRoster .rosterItem img{width:20px;height:23px;object-fit:contain}
+.barracks[hidden]{display:none}
+
 </style>
 </head>
 <body>
@@ -773,9 +788,11 @@ button{font:inherit}
             <span class="teamColourSwatch" id="enemyColourSwatch"></span>
           </div>
         </div>
+        <div id="extraTeamsSetup"></div>
+        <button class="menuButton" id="addTeam" type="button">+ Add Team (max 8)</button>
       </div>
 
-      <div class="menuSectionSub">Choose each side’s house, colour and Human/AI controller, then select a map. Two humans take turns on this device.</div>
+      <div class="menuSectionSub">Choose 2–8 teams and their house, colour and Human/AI controller, then pick a map.</div>
       <div id="mapList"></div>
     </section>
 
@@ -800,6 +817,9 @@ button{font:inherit}
             </button>
             <button class="editorTool" id="editorUnitsTool" type="button" title="Units">
               <img src="./assets/toolbar_units.png" alt="Units">
+            </button>
+            <button class="editorTool" id="editorBuildingsTool" type="button" title="Buildings">
+              <img src="./assets/toolbar_buildings.png" alt="Buildings">
             </button>
           </div>
           <div id="editorPalette"></div>
@@ -847,6 +867,7 @@ button{font:inherit}
       </div>
       <div class="crest"><img id="enemyTopCrest" src="./assets/house_lannister_crest.png" alt="House Lannister crest"></div>
     </div>
+    <div id="teamRoster" hidden></div>
   </div>
 
   <div id="fieldViewport">
@@ -879,8 +900,8 @@ button{font:inherit}
       <div id="grass"></div>
       <div id="overlay"></div>
       <div id="objectLayer">
-        <button class="barracks player" id="barracks-player" type="button" aria-label="Ice Fortress"><img src="./assets/winterfell.png" alt="Ice Fortress"></button>
-        <button class="barracks enemy" id="barracks-enemy" type="button" aria-label="Casterly Rock"><img src="./assets/casterly_rock.png" alt="Casterly Rock"></button>
+        <button class="barracks player" id="barracks-player" type="button" aria-label="HQ"><img src="./assets/hq_master.png" alt="HQ"></button>
+        <button class="barracks enemy" id="barracks-enemy" type="button" aria-label="HQ"><img src="./assets/hq_master.png" alt="HQ"></button>
       </div>
       <div id="unitLayer"></div>
     </div>
@@ -947,6 +968,12 @@ button{font:inherit}
     cavalry:{label:'Cavalry',cost:600,hp:10,atk:4,def:2,maxMove:4,minRange:1,maxRange:1}
   };
 
+  const TEAM_IDS=['player','enemy','team3','team4','team5','team6','team7','team8'];
+  const TEAM_DEFAULT_COLOURS=['blue','red','green','yellow','purple','orange','white','black'];
+  let teamCount=2;
+  const activeSides=()=>TEAM_IDS.slice(0,teamCount);
+  const allOtherUnits=side=>Object.values(units).filter(u=>u.alive&&u.team!==side&&activeSides().includes(u.team));
+  const aliveSides=()=>activeSides().filter(side=>living(side).length>0);
   const state={
     turn:1,activeTeam:'player',skipAiView:false,watchingAi:false,gameOver:false,selectedUnitId:'blue-1',inspectedUnitId:null,selectedBarracks:null,busy:false,nextRecruitId:2,gameActive:false,currentSaveSlot:null,
     mapZoom:.52,mapX:0,mapY:0,dragging:false,dragMoved:false,dragStartX:0,dragStartY:0,
@@ -957,6 +984,11 @@ button{font:inherit}
     player:{name:'White Walkers',faction:'white_walkers',colour:'blue',control:'human',gold:300,income:100,recruited:false},
     enemy:{name:'House Lannister',faction:'lannister',colour:'red',control:'ai',gold:300,income:100,recruited:false}
   };
+
+  for(let i=2;i<TEAM_IDS.length;i++){
+    const id=TEAM_IDS[i];
+    teams[id]={name:'House Stark',faction:'stark',colour:TEAM_DEFAULT_COLOURS[i],control:'ai',gold:300,income:100,recruited:false};
+  }
 
   /*
     Palette-swap system inspired by Wargroove:
@@ -976,7 +1008,9 @@ button{font:inherit}
     purple:['#28172f','#482454','#6a347c','#8f46a7','#b95bd6','#e59aff'],
     orange:['#3b1d10','#6a3115','#97491d','#c96724','#ed842b','#ffbd72'],
     grey:  ['#202228','#343840','#555b66','#747d89','#9ea8b5','#dce2e8'],
-    cyan:  ['#10292f','#174851','#1d6c78','#2996a4','#42c8d5','#9cf6ff']
+    cyan:  ['#10292f','#174851','#1d6c78','#2996a4','#42c8d5','#9cf6ff'],
+    white: ['#41474d','#68747f','#929eab','#b9c5cf','#e1e8ec','#ffffff'],
+    black: ['#0c0d13','#151820','#222731','#343943','#515966','#7b8592']
   };
 
   const FACTION_CONFIG={
@@ -1034,6 +1068,13 @@ button{font:inherit}
     ]
   };
 
+  const HQ_MASTER='./assets/hq_master.png';
+  const HQ_TEAM_SHADES=[
+    {rgb:[139,28,32],step:1},
+    {rgb:[180,28,16],step:3},
+    {rgb:[213,89,57],step:5}
+  ];
+  const hqSpriteCache=new Map();
   const paletteSpriteCache=new Map();
 
   function hexRgb(hex){
@@ -1133,6 +1174,26 @@ button{font:inherit}
     }
   }
 
+  async function buildHqSprite(colour){
+    if(hqSpriteCache.has(colour))return hqSpriteCache.get(colour);
+    try{
+      const img=await loadPaletteImage(HQ_MASTER);
+      const canvas=document.createElement('canvas');canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
+      const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(img,0,0);
+      const data=ctx.getImageData(0,0,canvas.width,canvas.height);
+      const ramp=TEAM_COLOUR_PALETTES[colour]||TEAM_COLOUR_PALETTES.red;
+      const replaces=new Map(HQ_TEAM_SHADES.map(s=>[s.rgb.join(','),hexRgb(ramp[s.step])]));
+      for(let i=0;i<data.data.length;i+=4){
+        if(!data.data[i+3])continue;
+        const repl=replaces.get(`${data.data[i]},${data.data[i+1]},${data.data[i+2]}`);
+        if(repl){data.data[i]=repl[0];data.data[i+1]=repl[1];data.data[i+2]=repl[2];}
+      }
+      ctx.putImageData(data,0,0);
+      const url=canvas.toDataURL('image/png');hqSpriteCache.set(colour,url);return url;
+    }catch(e){return HQ_MASTER;}
+  }
+  function hqSprite(side){return hqSpriteCache.get(teamColour(side))||HQ_MASTER;}
+
   async function initialisePaletteSprites(){
     const jobs=[];
     for(const faction of Object.keys(FACTION_MASTER_SPRITES)){
@@ -1142,7 +1203,7 @@ button{font:inherit}
         }
       }
     }
-    await Promise.all(jobs);
+    await Promise.all([...jobs,...Object.keys(TEAM_COLOUR_PALETTES).map(buildHqSprite)]);
   }
 
   function teamSprite(team,kind){
@@ -1161,8 +1222,7 @@ button{font:inherit}
   }
 
   function refreshPaletteDependentUI(){
-    syncTeamIdentity('player');
-    syncTeamIdentity('enemy');
+    activeSides().forEach(syncTeamIdentity);
 
     const soldier=document.querySelector('#popupRecruitSoldier .recruitSprite');
     const archer=document.querySelector('#popupRecruitArcher .recruitSprite');
@@ -1217,6 +1277,8 @@ button{font:inherit}
     }
   };
 
+  for(const id of TEAM_IDS.slice(2))barracks[id]={x:0,y:0,w:2,h:2,spawn:[]};
+
   let units={};
 
   function clampMapDimension(v){
@@ -1249,6 +1311,7 @@ button{font:inherit}
       width,height,tiles,
       units:Array.isArray(map?.units)?map.units.map(u=>({...u})):fallbackUnits,
       castles:{
+        ...Object.fromEntries(Object.entries(map?.castles||{}).map(([id,pos])=>[id,{...pos}])),
         player:{...(map?.castles?.player||defaults.player)},
         enemy:{...(map?.castles?.enemy||defaults.enemy)}
       }
@@ -1311,7 +1374,7 @@ button{font:inherit}
     if(!Array.isArray(payload.tiles)||payload.tiles.length!==width*height)throw new Error('Terrain data is incomplete.');
     const validTerrain=new Set(['grass','sea','forest','mountain']);
     const tiles=payload.tiles.map(t=>validTerrain.has(t)?t:'grass');
-    const validTeams=new Set(['player','enemy']);
+    const validTeams=new Set(TEAM_IDS);
     const validKinds=new Set(Object.keys(UNIT_DEFS));
     const units=(Array.isArray(payload.units)?payload.units:[])
       .filter(u=>u&&validTeams.has(u.team)&&validKinds.has(u.kind)&&Number.isInteger(Number(u.x))&&Number.isInteger(Number(u.y)))
@@ -1321,13 +1384,17 @@ button{font:inherit}
     const castleFor=team=>{
       const c=payload.castles?.[team];
       const x=Number(c?.x),y=Number(c?.y);
-      if(!Number.isInteger(x)||!Number.isInteger(y)||x<0||y<0||x+1>=width||y+1>=height)return {...defaults[team]};
+      if(!Number.isInteger(x)||!Number.isInteger(y)||x<0||y<0||x+1>=width||y+1>=height)return {...(defaults[team]||defaults.player)};
       return {x,y};
     };
     const castles={player:castleFor('player'),enemy:castleFor('enemy')};
-    const overlaps=!(castles.player.x+1<castles.enemy.x||castles.player.x>castles.enemy.x+1||castles.player.y+1<castles.enemy.y||castles.player.y>castles.enemy.y+1);
-    if(overlaps)throw new Error('The two HQs overlap.');
-    for(const team of ['player','enemy']){
+    for(const id of TEAM_IDS.slice(2))if(payload.castles?.[id])castles[id]=castleFor(id);
+    const entries=Object.entries(castles);
+    for(let i=0;i<entries.length;i++)for(let j=i+1;j<entries.length;j++){
+      const a=entries[i][1],b=entries[j][1];
+      if(!(a.x+1<b.x||a.x>b.x+1||a.y+1<b.y||a.y>b.y+1))throw new Error('HQs overlap.');
+    }
+    for(const team of Object.keys(castles)){
       const c=castles[team];
       for(let y=c.y;y<c.y+2;y++)for(let x=c.x;x<c.x+2;x++)tiles[y*width+x]='grass';
     }
@@ -1430,28 +1497,68 @@ button{font:inherit}
     b.spawn=pts;
   }
 
-  function applyMap(map){
+  function fitExtraTeamsOnMap(){
+    const map=activeMap;
+    const taken=new Set();
+    const reserve=(c)=>{for(let dy=0;dy<2;dy++)for(let dx=0;dx<2;dx++)taken.add(`${c.x+dx},${c.y+dy}`)};
+    for(const c of Object.values(map.castles))if(c)reserve(c);
+    const emptyHQ=(x,y)=>{
+      if(x<0||y<0||x+2>COLS||y+2>ROWS)return false;
+      for(let dy=0;dy<2;dy++)for(let dx=0;dx<2;dx++){
+        const k=`${x+dx},${y+dy}`;
+        if(taken.has(k)||map.tiles[(y+dy)*COLS+x+dx]!=='grass')return false;
+        if(map.units.some(u=>u.x===x+dx&&u.y===y+dy))return false;
+      }
+      return true;
+    };
+    for(const side of activeSides()){
+      if(map.castles[side])continue;
+      let loc=null;
+      const positions=[];
+      for(let y=0;y<ROWS-1;y++)for(let x=0;x<COLS-1;x++){
+        // Spread teams around the edge of the battlefield.
+        const perimeter=Math.min(x,y,COLS-2-x,ROWS-2-y);
+        const angle=Math.atan2(y-(ROWS-2)/2,x-(COLS-2)/2);
+        const idealAngle=2*Math.PI*(TEAM_IDS.indexOf(side)/teamCount)-Math.PI/2;
+        const difference=Math.abs(Math.atan2(Math.sin(angle-idealAngle),Math.cos(angle-idealAngle)));
+        positions.push({x,y,score:perimeter*100+difference*10});
+      }
+      positions.sort((a,b)=>a.score-b.score);
+      loc=positions.find(p=>emptyHQ(p.x,p.y))||null;
+      if(!loc)throw new Error(`Not enough free 2×2 grass spaces for ${teamCount} HQs. Enlarge the map or place HQs in Create Map.`);
+      map.castles[side]={x:loc.x,y:loc.y};reserve(loc);
+    }
+    for(const side of activeSides()){
+      if(map.units.some(u=>u.team===side))continue;
+      const c=map.castles[side];
+      let placed=false;
+      for(let d=1;d<=Math.max(COLS,ROWS)&&!placed;d++)for(let y=Math.max(0,c.y-d);y<Math.min(ROWS,c.y+2+d)&&!placed;y++)for(let x=Math.max(0,c.x-d);x<Math.min(COLS,c.x+2+d)&&!placed;x++){
+        if(map.tiles[y*COLS+x]!=='grass'||taken.has(`${x},${y}`)||map.units.some(u=>u.x===x&&u.y===y))continue;
+        map.units.push({team:side,kind:'soldier',x,y});placed=true;
+      }
+      if(!placed)throw new Error(`No free starting tile for ${side}.`);
+    }
+  }
+
+  function applyMap(map,prepareForMatch=false){
     activeMap=cloneMap(map);
-    COLS=activeMap.width;
-    ROWS=activeMap.height;
-    const pc=activeMap.castles.player;
-    const ec=activeMap.castles.enemy;
-    barracks.player.x=pc.x;barracks.player.y=pc.y;
-    barracks.enemy.x=ec.x;barracks.enemy.y=ec.y;
-    updateBarracksSpawn('player');
-    updateBarracksSpawn('enemy');
+    COLS=activeMap.width;ROWS=activeMap.height;
+    if(prepareForMatch)fitExtraTeamsOnMap();
+    for(const side of activeSides()){
+      const c=activeMap.castles[side];
+      if(!c)continue;
+      barracks[side].x=c.x;barracks[side].y=c.y;
+      updateBarracksSpawn(side);
+    }
     if(typeof rebuildGameGrid==='function')rebuildGameGrid();
     positionStaticObjects();
     if(typeof renderActiveMapTerrain==='function')renderActiveMapTerrain();
   }
 
   function resetTeamState(){
-    teams.player.gold=300;
-    teams.player.income=100;
-    teams.player.recruited=false;
-    teams.enemy.gold=300;
-    teams.enemy.income=100;
-    teams.enemy.recruited=false;
+    for(const side of activeSides()){
+      teams[side].gold=300;teams[side].income=100;teams[side].recruited=false;
+    }
   }
 
   function resetGameState(){
@@ -1469,7 +1576,7 @@ button{font:inherit}
     resetTeamState();
     unitLayer.innerHTML='';
     resetUnits();
-    const firstPlayer=living('player')[0]||null;
+    const firstPlayer=living(activeSides()[0])[0]||null;
     state.selectedUnitId=firstPlayer?firstPlayer.id:null;
   }
 
@@ -1480,7 +1587,7 @@ button{font:inherit}
       const raw=localStorage.getItem(slotKey(slot));
       if(!raw)return null;
       const s=JSON.parse(raw);
-      if(!s || ![21,22].includes(s.version) || !Array.isArray(s.units))return null;
+      if(!s || ![21,22,23].includes(s.version) || !Array.isArray(s.units))return null;
       return s;
     }catch(e){ return null; }
   }
@@ -1510,12 +1617,13 @@ button{font:inherit}
 
   function makeSaveSnapshot(slot){
     return {
-      version:22,
+      version:23,
       slot,
       savedAt:new Date().toISOString(),
       state:{
         turn:state.turn,
         activeTeam:state.activeTeam,
+        teamCount,
         gameOver:state.gameOver,
         selectedUnitId:state.selectedUnitId,
         inspectedUnitId:state.inspectedUnitId,
@@ -1642,8 +1750,8 @@ button{font:inherit}
 
   function mapPreviewMarkup(){
     return `<div class="mapPreview">
-      <img class="miniCastle red" src="./assets/casterly_rock.png" alt="">
-      <img class="miniCastle blue" src="./assets/winterfell.png" alt="">
+      <img class="miniCastle red" src="${hqSprite('enemy')}" alt="">
+      <img class="miniCastle blue" src="${hqSprite('player')}" alt="">
     </div>`;
   }
 
@@ -1672,7 +1780,9 @@ button{font:inherit}
     purple:'Purple',
     orange:'Orange',
     grey:'Grey',
-    cyan:'Cyan'
+    cyan:'Cyan',
+    white:'White',
+    black:'Black'
   };
 
   function populateTeamColourSelect(selectId){
@@ -1691,7 +1801,23 @@ button{font:inherit}
     return ramp[Math.min(4,ramp.length-1)];
   }
 
+  function renderExtraTeamSetup(){
+    const container=document.getElementById('extraTeamsSetup');if(!container)return;
+    container.innerHTML=TEAM_IDS.slice(2,teamCount).map((id,i)=>{
+      const info=factionInfo(teams[id].faction);
+      const houseOptions=Object.keys(FACTION_CONFIG).map(key=>`<option value="${key}" ${teams[id].faction===key?'selected':''}>${FACTION_CONFIG[key].label}</option>`).join('');
+      const colourOptions=Object.keys(TEAM_COLOUR_PALETTES).map(key=>`<option value="${key}" ${teams[id].colour===key?'selected':''}>${TEAM_COLOUR_LABELS[key]}</option>`).join('');
+      return `<div class="teamSetupRow"><img class="teamHouseCrest" src="${info.crest}" alt="${info.label} crest"><div><div class="teamSetupName">Team ${i+3} ${id===TEAM_IDS[teamCount-1]?`<button type="button" class="menuBack" data-remove-team="${id}" style="float:right;min-height:22px;padding:0 6px">Remove</button>`:''}</div><select class="teamHouseSelect" data-team-house="${id}">${houseOptions}</select><select class="teamColourSelect" data-team-colour="${id}">${colourOptions}</select><select class="teamControlSelect" data-team-control="${id}"><option value="human" ${teams[id].control==='human'?'selected':''}>Human</option><option value="ai" ${teams[id].control==='ai'?'selected':''}>AI</option></select></div><span class="teamColourSwatch" style="background:${teamColourDisplay(teams[id].colour)}"></span></div>`;
+    }).join('');
+    container.querySelectorAll('[data-team-house]').forEach(el=>el.onchange=()=>{teams[el.dataset.teamHouse].faction=el.value;syncTeamIdentity(el.dataset.teamHouse);refreshNewGameTeamSetup();renderMapList()});
+    container.querySelectorAll('[data-team-colour]').forEach(el=>el.onchange=()=>{teams[el.dataset.teamColour].colour=el.value;refreshNewGameTeamSetup();renderMapList()});
+    container.querySelectorAll('[data-team-control]').forEach(el=>el.onchange=()=>{teams[el.dataset.teamControl].control=el.value});
+    container.querySelectorAll('[data-remove-team]').forEach(el=>el.onclick=()=>{teamCount=Math.max(2,teamCount-1);refreshNewGameTeamSetup();renderMapList()});
+    document.getElementById('addTeam').disabled=teamCount>=8;
+  }
+
   function refreshNewGameTeamSetup(){
+    renderExtraTeamSetup();
     populateTeamHouseSelect('playerHouseSelect');
     populateTeamHouseSelect('enemyHouseSelect');
     populateTeamColourSelect('playerColourSelect');
@@ -1761,7 +1887,7 @@ button{font:inherit}
       btn.innerHTML=`${mapPreviewMarkup()}
         <div>
           <div class="mapCardName">${escapeHtml(map.name)}</div>
-          <div class="mapCardMeta">${meta}<br>${teams.player.name} vs ${teams.enemy.name} · selected colours</div>
+          <div class="mapCardMeta">${meta}<br>${activeSides().map(s=>teams[s].name).join(' / ')} · ${teamCount} teams</div>
         </div>`;
       btn.addEventListener('click',()=>startNewGame(map));
       list.appendChild(btn);
@@ -1790,7 +1916,7 @@ button{font:inherit}
 
   function editorCastleTeamAt(x,y){
     if(!editorMap)return null;
-    for(const team of ['player','enemy']){
+    for(const team of Object.keys(editorMap.castles)){
       const c=editorMap.castles[team];
       if(x>=c.x&&x<c.x+2&&y>=c.y&&y<c.y+2)return team;
     }
@@ -1994,10 +2120,10 @@ button{font:inherit}
     const unitLayerEl=document.getElementById('creatorUnitLayer');
     objectLayer.innerHTML='';unitLayerEl.innerHTML='';
 
-    for(const [team,src] of [['enemy','./assets/casterly_rock.png'],['player','./assets/winterfell.png']]){
+    for(const team of Object.keys(editorMap.castles)){
       const c=editorMap.castles[team];
       const img=document.createElement('img');
-      img.className='editorCastle';img.src=src;
+      img.className='editorCastle';img.src=hqSprite(team);
       img.style.left=`${c.x*EDITOR_CELL}px`;img.style.top=`${c.y*EDITOR_CELL}px`;
       img.style.width=`${EDITOR_CELL*2}px`;img.style.height=`${EDITOR_CELL*2}px`;
       objectLayer.appendChild(img);
@@ -2015,10 +2141,10 @@ button{font:inherit}
 
   function canPlaceHQ(team,x,y){
     if(x<0||y<0||x+1>=editorCols()||y+1>=editorRows())return {ok:false,msg:'HQ needs a full 2×2 area inside the map.'};
-    const other=team==='player'?'enemy':'player';
-    const oc=editorMap.castles[other];
-    const overlaps=!(x+1<oc.x||x>oc.x+1||y+1<oc.y||y>oc.y+1);
-    if(overlaps)return {ok:false,msg:'HQs cannot overlap.'};
+    for(const [other,oc] of Object.entries(editorMap.castles)){
+      if(team===other||!oc)continue;
+      if(!(x+1<oc.x||x>oc.x+1||y+1<oc.y||y>oc.y+1))return {ok:false,msg:'HQs cannot overlap.'};
+    }
     for(let yy=y;yy<y+2;yy++)for(let xx=x;xx<x+2;xx++)if(editorTerrainAt(xx,yy)!=='grass')return {ok:false,msg:'HQs need a 2×2 grass area.'};
     return {ok:true};
   }
@@ -2041,7 +2167,13 @@ button{font:inherit}
       return;
     }
 
-    if(editorTool==='units'){
+    if(editorTool==='buildings'){
+      if(editorSelection==='removeHQ'){
+        const found=editorCastleTeamAt(x,y);
+        if(found && !['player','enemy'].includes(found)){delete editorMap.castles[found];renderCreatorPreview();setEditorMessage('HQ removed.');}
+        else setEditorMessage('Teams 1 and 2 require an HQ.');
+        return;
+      }
       if(editorSelection.startsWith('hq:')){
         const team=editorSelection.split(':')[1];
         const check=canPlaceHQ(team,x,y);
@@ -2049,9 +2181,11 @@ button{font:inherit}
         editorMap.castles[team]={x,y};
         editorMap.units=editorMap.units.filter(u=>!(u.x>=x&&u.x<x+2&&u.y>=y&&u.y<y+2));
         renderCreatorPreview();
-        setEditorMessage(team==='player'?'White Walker HQ moved.':'Lannister HQ moved.');
+        setEditorMessage(`${teams[team].name} HQ placed.`);
         return;
       }
+    }
+    if(editorTool==='units'){
       if(editorCastleAt(x,y)){setEditorMessage('Units cannot be placed on an HQ.');return;}
       if(editorSelection==='remove'){
         const before=editorMap.units.length;
@@ -2066,7 +2200,7 @@ button{font:inherit}
       editorMap.units=editorMap.units.filter(u=>!(u.x===x&&u.y===y));
       editorMap.units.push({team,kind,x,y});
       renderEditorObjects();
-      setEditorMessage(`${team==='player'?'White Walker':'Lannister'} ${UNIT_DEFS[kind].label} placed.`);
+      setEditorMessage(`${teams[team].name} ${UNIT_DEFS[kind].label} placed.`);
     }
   }
 
@@ -2091,19 +2225,13 @@ button{font:inherit}
           <button class="editorChoice ${editorSelection==='mountain'?'active':''}" data-editor-select="mountain" type="button"><img src="./assets/terrain_mountain.png" alt="Mountain"><span>Mountain</span></button>
         </div>`;
       document.getElementById('editorHint').textContent='Terrain: drag to paint. Forest costs 2 MOV (3 cavalry); Mountain costs 2 MOV for foot units and blocks cavalry; Sea blocks all units.';
-    }else{
+    }else if(editorTool==='units'){
       const unitChoice=(team,kind)=>`<button class="editorChoice ${editorSelection===team+':'+kind?'active':''}" data-editor-select="${team}:${kind}" type="button"><img src="${editorUnitSprite({team,kind})}" alt=""><span>${UNIT_DEFS[kind].label}</span></button>`;
-      const hqChoice=(team,src,label)=>`<button class="editorChoice editorHQChoice ${editorSelection==='hq:'+team?'active':''}" data-editor-select="hq:${team}" type="button"><img src="${src}" alt=""><span>${label}</span></button>`;
-      palette.innerHTML=`
-        <div class="editorPaletteHead"><div class="editorPaletteTitle">STARTING UNITS & HQ</div><button class="editorPaletteClose" id="editorPaletteClose" type="button">×</button></div>
-        <div class="editorChoices">
-          <span class="editorFactionLabel">WHITE WALKERS</span>
-          ${unitChoice('player','soldier')}${unitChoice('player','archer')}${unitChoice('player','cavalry')}${hqChoice('player','./assets/winterfell.png','WW HQ')}
-          <span class="editorFactionLabel">LANNISTER</span>
-          ${unitChoice('enemy','soldier')}${unitChoice('enemy','archer')}${unitChoice('enemy','cavalry')}${hqChoice('enemy','./assets/casterly_rock.png','Lannister HQ')}
-          <button class="editorChoice removeChoice ${editorSelection==='remove'?'active':''}" data-editor-select="remove" type="button"><span class="removeIcon">×</span><span>Remove</span></button>
-        </div>`;
-      document.getElementById('editorHint').textContent='Units/HQ: place starting units or move either 2×2 HQ onto grass.';
+      palette.innerHTML=`<div class="editorPaletteHead"><div class="editorPaletteTitle">STARTING UNITS</div><button class="editorPaletteClose" id="editorPaletteClose" type="button">×</button></div><div class="editorChoices">${TEAM_IDS.map((team,i)=>`<span class="editorFactionLabel">TEAM ${i+1} · ${teams[team].name}</span>${unitChoice(team,'soldier')}${unitChoice(team,'archer')}${unitChoice(team,'cavalry')}`).join('')}<button class="editorChoice removeChoice ${editorSelection==='remove'?'active':''}" data-editor-select="remove" type="button"><span class="removeIcon">×</span><span>Remove unit</span></button></div>`;
+      document.getElementById('editorHint').textContent='Units: place starting troops for Teams 1–8; choose a team and unit type.';
+    }else{
+      palette.innerHTML=`<div class="editorPaletteHead"><div class="editorPaletteTitle">BUILDINGS</div><button class="editorPaletteClose" id="editorPaletteClose" type="button">×</button></div><div class="editorChoices">${TEAM_IDS.map((team,i)=>`<button class="editorChoice editorHQChoice ${editorSelection==='hq:'+team?'active':''}" data-editor-select="hq:${team}" type="button"><img src="${hqSprite(team)}" alt=""><span>Team ${i+1} HQ</span></button>`).join('')}<button class="editorChoice removeChoice ${editorSelection==='removeHQ'?'active':''}" data-editor-select="removeHQ" type="button"><span class="removeIcon">×</span><span>Remove HQ</span></button></div>`;
+      document.getElementById('editorHint').textContent='Buildings: place or relocate a 2×2 team HQ onto grass.';
     }
     palette.querySelectorAll('[data-editor-select]').forEach(btn=>btn.addEventListener('click',()=>{editorSelection=btn.dataset.editorSelect;renderEditorPalette();}));
     document.getElementById('editorPaletteClose').addEventListener('click',closeEditorPalette);
@@ -2112,10 +2240,12 @@ button{font:inherit}
   function setEditorTool(tool){
     if(editorTool===tool && editorPaletteOpen){closeEditorPalette();return;}
     editorTool=tool;
-    if(tool==='terrain' && !['grass','sea','forest','mountain'].includes(editorSelection))editorSelection='grass';
-    if(tool==='units' && !String(editorSelection).includes(':') && editorSelection!=='remove')editorSelection='player:soldier';
+    if(tool==='terrain'&&!['grass','sea','forest','mountain'].includes(editorSelection))editorSelection='grass';
+    if(tool==='units'&&!editorSelection.match(/^(player|enemy|team[3-8]):(soldier|archer|cavalry)$/)&&editorSelection!=='remove')editorSelection='player:soldier';
+    if(tool==='buildings'&&!editorSelection.startsWith('hq:')&&editorSelection!=='removeHQ')editorSelection='hq:player';
     document.getElementById('editorTerrainTool').classList.toggle('active',tool==='terrain');
     document.getElementById('editorUnitsTool').classList.toggle('active',tool==='units');
+    document.getElementById('editorBuildingsTool').classList.toggle('active',tool==='buildings');
     renderEditorPalette();setEditorMessage('');
   }
 
@@ -2130,15 +2260,16 @@ button{font:inherit}
     editorMap.width=newW;editorMap.height=newH;editorMap.tiles=newTiles;
     editorMap.units=editorMap.units.filter(u=>u.x>=0&&u.x<newW&&u.y>=0&&u.y<newH);
     const defaults=defaultCastlePositions(newW,newH);
-    for(const team of ['player','enemy']){
+    for(const team of Object.keys(editorMap.castles)){
       const c=editorMap.castles[team];
       if(!c||c.x<0||c.y<0||c.x+1>=newW||c.y+1>=newH)editorMap.castles[team]={...defaults[team]};
       else editorMap.castles[team]={x:Math.min(c.x,newW-2),y:Math.min(c.y,newH-2)};
     }
     // If resize caused HQ overlap, restore sensible opposite ends.
+    for(const side of TEAM_IDS.slice(2))if(editorMap.castles[side]){const c=editorMap.castles[side];if(c.x+1>=newW||c.y+1>=newH)delete editorMap.castles[side];}
     const p=editorMap.castles.player,e=editorMap.castles.enemy;
     if(!(p.x+1<e.x||p.x>e.x+1||p.y+1<e.y||p.y>e.y+1))editorMap.castles={player:{...defaults.player},enemy:{...defaults.enemy}};
-    for(const team of ['player','enemy']){
+    for(const team of Object.keys(editorMap.castles)){
       const c=editorMap.castles[team];
       for(let y=c.y;y<c.y+2;y++)for(let x=c.x;x<c.x+2;x++)editorMap.tiles[y*newW+x]='grass';
     }
@@ -2226,7 +2357,7 @@ button{font:inherit}
     document.getElementById('editorMapHeight').value=editorMap.height;
     showMenuScreen('createMapScreen');
     editorTool='terrain';editorSelection='grass';editorPaletteOpen=true;
-    document.getElementById('editorTerrainTool').classList.add('active');document.getElementById('editorUnitsTool').classList.remove('active');
+    document.getElementById('editorTerrainTool').classList.add('active');document.getElementById('editorUnitsTool').classList.remove('active');document.getElementById('editorBuildingsTool').classList.remove('active');
     renderEditorPalette();renderCreatorPreview();setupEditorPanZoom();
     setEditorMessage(map?'Editing existing map. Save Map will update it.':'');
     setTimeout(focusEditorMap,30);
@@ -2240,13 +2371,7 @@ button{font:inherit}
       input.focus();
       return;
     }
-    const hasPlayer=editorMap.units.some(u=>u.team==='player');
-    const hasEnemy=editorMap.units.some(u=>u.team==='enemy');
-    if(!hasPlayer||!hasEnemy){
-      setEditorMessage('Place at least one White Walker and one Lannister unit.');
-      setEditorTool('units');
-      return;
-    }
+    if(editorMap.units.length<2){setEditorMessage('Place at least two starting units.');setEditorTool('units');return;}
     const maps=getCreatedMaps();
     const existingIndex=editorMap.id?maps.findIndex(m=>m.id===editorMap.id):-1;
     const now=new Date().toISOString();
@@ -2267,7 +2392,7 @@ button{font:inherit}
   }
 
   function startNewGame(map){
-    applyMap(map);
+    try{applyMap(map,true);}catch(e){alert(e.message);return;}
     resetGameState();
     state.gameActive=true;
     hideMainMenu();
@@ -2295,7 +2420,7 @@ button{font:inherit}
 
   function resetUnits(){
     units={};
-    const placements=(Array.isArray(activeMap.units)?activeMap.units:DEFAULT_MAP.units).filter(u=>u.x>=0&&u.x<COLS&&u.y>=0&&u.y<ROWS);
+    const placements=(Array.isArray(activeMap.units)?activeMap.units:DEFAULT_MAP.units).filter(u=>activeSides().includes(u.team)&&u.x>=0&&u.x<COLS&&u.y>=0&&u.y<ROWS);
     let idx=1;
     placements.forEach(p=>{
       const id=`map-${p.team}-${p.kind}-${idx++}`;
@@ -2380,7 +2505,7 @@ button{font:inherit}
   const manhattan=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
   const living=team=>Object.values(units).filter(u=>u.team===team&&u.alive);
   const unitAt=(x,y)=>Object.values(units).find(u=>u.alive&&u.x===x&&u.y===y)||null;
-  const barracksAt=(x,y)=>Object.values(barracks).find(b=>x>=b.x&&x<b.x+(b.w||1)&&y>=b.y&&y<b.y+(b.h||1))||null;
+  const barracksAt=(x,y)=>activeSides().map(id=>barracks[id]).find(b=>x>=b.x&&x<b.x+(b.w||1)&&y>=b.y&&y<b.y+(b.h||1))||null;
   const selectedUnit=()=>state.selectedUnitId?units[state.selectedUnitId]:null;
   const inspectedUnit=()=>state.inspectedUnitId?units[state.inspectedUnitId]:null;
   const inRange=(attacker,target)=>{
@@ -2389,14 +2514,15 @@ button{font:inherit}
   };
   const rangeLabel=u=>u.minRange===u.maxRange?`${u.maxRange}`:`${u.minRange}-${u.maxRange}`;
 
-  function enemyTeamFor(team){ return team==='player'?'enemy':'player'; }
+  function enemyTeamFor(team){return activeSides().find(s=>s!==team)||team;}
+  function hostiles(side){return allOtherUnits(side);}
   function humanTurn(){return state.gameActive && !state.busy && !state.gameOver && teams[state.activeTeam]?.control==='human';}
   function canHumanControl(team){return humanTurn() && state.activeTeam===team;}
 
 
   function archerEngaged(u){
     if(!u || u.kind!=='archer' || !u.alive)return false;
-    return living(enemyTeamFor(u.team)).some(e=>(e.kind==='soldier' || e.kind==='cavalry') && manhattan(u,e)===1);
+    return hostiles(u.team).some(e=>(e.kind==='soldier' || e.kind==='cavalry') && manhattan(u,e)===1);
   }
 
   function availableMove(u){
@@ -2430,10 +2556,22 @@ button{font:inherit}
   }
 
   function positionStaticObjects(){
-    const p=document.getElementById('barracks-player');
-    const e=document.getElementById('barracks-enemy');
-    p.style.left=(barracks.player.x*CELL)+'px'; p.style.top=(barracks.player.y*CELL)+'px';
-    e.style.left=(barracks.enemy.x*CELL)+'px'; e.style.top=(barracks.enemy.y*CELL)+'px';
+    const layer=document.getElementById('objectLayer');
+    for(const side of TEAM_IDS){
+      let el=document.getElementById('barracks-'+side);
+      if(!el){
+        el=document.createElement('button');el.type='button';
+        el.id='barracks-'+side;el.className='barracks';
+        el.innerHTML='<img alt="HQ">';layer.appendChild(el);
+        el.addEventListener('click',e=>{e.stopPropagation();selectBarracks(side);});
+      }
+      el.hidden=!activeSides().includes(side);
+      if(!activeSides().includes(side))continue;
+      const b=barracks[side];el.style.left=(b.x*CELL)+'px';el.style.top=(b.y*CELL)+'px';
+      const newHqSprite=hqSprite(side);if(el.querySelector('img').src!==newHqSprite)el.querySelector('img').src=newHqSprite;
+      el.setAttribute('aria-label',`${teams[side].name} HQ`);
+      el.classList.toggle('selected',state.selectedBarracks===side);
+    }
   }
   function setUnitPos(u){
     const el=ensureUnitEl(u);
@@ -2512,7 +2650,7 @@ button{font:inherit}
       addOverlayCell(x,y,'moveCell',()=>moveSelectedTo(x,y));
     }
     if(!u.attacked){
-      living(enemyTeamFor(u.team)).forEach(e=>{if(inRange(u,e))addOverlayCell(e.x,e.y,'attackCell',()=>attack(u,e));});
+      hostiles(u.team).forEach(e=>{if(inRange(u,e))addOverlayCell(e.x,e.y,'attackCell',()=>attack(u,e));});
     }
   }
 
@@ -2556,16 +2694,33 @@ button{font:inherit}
     if(u){ if(u.team===state.activeTeam)selectUnit(u.id);else inspectUnit(u.id);return; }
     const castle=barracksAt(x,y);
     if(castle){
-      const team=castle===barracks.player?'player':'enemy';
+      const team=Object.keys(barracks).find(id=>barracks[id]===castle);
       selectBarracks(team);
     }
   }
 
   const damage=(a,d)=>Math.max(1,a.atk-Math.floor(d.def/2));
 
-  function attack(a,d){
+  async function playAttackLunge(attacker,target){
+    if(!attacker?.alive||!target)return;
+    const el=document.getElementById('unit-'+attacker.id);
+    if(!el)return;
+    const dx=target.x-attacker.x,dy=target.y-attacker.y;
+    const mag=Math.hypot(dx,dy)||1;
+    const amount=attacker.kind==='archer'?7:13;
+    el.style.setProperty('--lunge-x',`${Math.round(dx/mag*amount)}px`);
+    el.style.setProperty('--lunge-y',`${Math.round(dy/mag*amount)}px`);
+    el.classList.remove('attackLunge');void el.offsetWidth;el.classList.add('attackLunge');
+    await new Promise(r=>setTimeout(r,270));
+    el.classList.remove('attackLunge');
+  }
+
+  async function attack(a,d){
     if(!canHumanControl(a.team)||!a.alive||!d.alive||a.team===d.team||!inRange(a,d))return;
     if(a.attacked){ setStatus(`${a.name} has already attacked this turn.`); return; }
+    state.busy=true;
+    await playAttackLunge(a,d);
+    state.busy=false;
     const dmg=damage(a,d);
     d.hp=Math.max(0,d.hp-dmg);
     a.attacked=true; a.move=0;
@@ -2581,8 +2736,7 @@ button{font:inherit}
   function hideRecruitPopup(){
     recruitPopup.hidden=true;
     state.selectedBarracks=null;
-    document.getElementById('barracks-player').classList.remove('selected');
-    document.getElementById('barracks-enemy').classList.remove('selected');
+    document.querySelectorAll('.barracks').forEach(el=>el.classList.remove('selected'));
   }
 
   function positionRecruitPopup(){
@@ -2699,14 +2853,14 @@ button{font:inherit}
   }
 
   function preferredPlayerTarget(unit,fromPos){
-    return living(enemyTeamFor(aiSide)).slice().sort((a,b)=>{
+    return hostiles(aiSide).slice().sort((a,b)=>{
       return priorityPlayerTarget(unit,fromPos,b)-priorityPlayerTarget(unit,fromPos,a);
     })[0]||null;
   }
 
   function playerThreatCountAt(x,y){
     const pos={x,y};
-    return living(enemyTeamFor(aiSide)).reduce((n,p)=>{
+    return hostiles(aiSide).reduce((n,p)=>{
       const dist=manhattan(pos,p);
       const maxReach=p.maxMove + p.maxRange;
       return n + ((dist<=maxReach && dist>=p.minRange)?1:0);
@@ -2718,14 +2872,14 @@ button{font:inherit}
   }
 
   function nearestPlayerDistance(x,y){
-    const ps=living(enemyTeamFor(aiSide));
+    const ps=hostiles(aiSide);
     if(!ps.length)return 99;
     return Math.min(...ps.map(p=>manhattan({x,y},p)));
   }
 
   function enemyCastlePressure(){
     const castleCenter={x:barracks[aiSide].x+0.5,y:barracks[aiSide].y+0.5};
-    return living(enemyTeamFor(aiSide)).some(p=>manhattan(castleCenter,p)<=7);
+    return hostiles(aiSide).some(p=>manhattan(castleCenter,p)<=7);
   }
 
   function castleDefenseBonus(x,y){
@@ -2736,7 +2890,7 @@ button{font:inherit}
   }
 
   function distanceToClosestPlayerAt(x,y){
-    const players=living(enemyTeamFor(aiSide));
+    const players=hostiles(aiSide);
     if(!players.length)return 99;
     return Math.min(...players.map(p=>manhattan({x,y},p)));
   }
@@ -2899,7 +3053,7 @@ button{font:inherit}
       const path=reconstruct(data.prev,unit,tile)||[];
       const preferred=preferredPlayerTarget(unit,tile);
       const moveBias=-(cost*1.5);
-      const attackables=living(enemyTeamFor(aiSide)).filter(t=>{
+      const attackables=hostiles(aiSide).filter(t=>{
         const d=manhattan(tile,t);
         return d>=unit.minRange && d<=unit.maxRange;
       });
@@ -2939,9 +3093,9 @@ button{font:inherit}
     const enemySoldiers=living(aiSide).filter(u=>u.kind==='soldier').length;
     const enemyCavalry=living(aiSide).filter(u=>u.kind==='cavalry').length;
 
-    const playerArchers=living(enemyTeamFor(aiSide)).filter(u=>u.kind==='archer').length;
-    const playerSoldiers=living(enemyTeamFor(aiSide)).filter(u=>u.kind==='soldier').length;
-    const playerCavalry=living(enemyTeamFor(aiSide)).filter(u=>u.kind==='cavalry').length;
+    const playerArchers=hostiles(aiSide).filter(u=>u.kind==='archer').length;
+    const playerSoldiers=hostiles(aiSide).filter(u=>u.kind==='soldier').length;
+    const playerCavalry=hostiles(aiSide).filter(u=>u.kind==='cavalry').length;
 
     const enemyMelee=enemySoldiers+enemyCavalry;
     const playerMelee=playerSoldiers+playerCavalry;
@@ -3021,7 +3175,7 @@ button{font:inherit}
       }else if(plan.saving) setStatus(`${teams[side].name} is saving for ${UNIT_DEFS[plan.kind].label}.`);
     }
     const ours=living(side).slice().sort((a,b)=>{
-      const their=living(enemyTeamFor(side));
+      const their=hostiles(side);
       const ad=Math.min(99,...their.map(p=>manhattan(a,p)));
       const bd=Math.min(99,...their.map(p=>manhattan(b,p)));
       const aAttack=their.some(p=>inRange(a,p)),bAttack=their.some(p=>inRange(b,p));
@@ -3029,7 +3183,7 @@ button{font:inherit}
       return bd-ad;
     });
     for(const unit of ours){
-      if(!unit.alive||!living(enemyTeamFor(side)).length||!state.gameActive)break;
+      if(!unit.alive||!hostiles(side).length||!state.gameActive)break;
       if(unit.move<=0&&unit.attacked)continue;
       await followUnitCamera(unit,90);
       const plan=evaluateEnemyAction(unit);
@@ -3050,11 +3204,12 @@ button{font:inherit}
       }
       let target=plan.target;
       if(!target||!target.alive||!inRange(unit,target)){
-        target=living(enemyTeamFor(side)).filter(p=>inRange(unit,p))
+        target=hostiles(side).filter(p=>inRange(unit,p))
           .sort((a,b)=>attackScore(unit,b,unit.x,unit.y)-attackScore(unit,a,unit.x,unit.y))[0]||null;
       }
       if(target&&!unit.attacked){
         await followUnitCamera(unit,40);
+        if(!state.skipAiView)await playAttackLunge(unit,target);
         const dmg=damage(unit,target);
         target.hp=Math.max(0,target.hp-dmg);
         unit.attacked=true;unit.move=0;
@@ -3083,21 +3238,24 @@ button{font:inherit}
   function advanceSide(){
     if(state.gameOver||!state.gameActive)return;
     hideRecruitPopup();
-    if(state.activeTeam==='enemy'){
-      state.turn++;
-      for(const side of ['player','enemy']){
-        teams[side].gold+=teams[side].income;
-        teams[side].recruited=false;
+    const order=activeSides().filter(side=>living(side).length>0);
+    if(order.length<=1){checkGameOver();return;}
+    const currentIndex=TEAM_IDS.indexOf(state.activeTeam);
+    let next=order.find(id=>TEAM_IDS.indexOf(id)>currentIndex);
+    if(!next){
+      next=order[0];state.turn++;
+      for(const side of activeSides()){
+        teams[side].gold+=teams[side].income;teams[side].recruited=false;
         living(side).forEach(u=>{u.move=u.maxMove;u.attacked=false;});
       }
     }
-    state.activeTeam=state.activeTeam==='player'?'enemy':'player';
+    state.activeTeam=next;
     state.selectedBarracks=null;state.inspectedUnitId=null;
-    const first=living(state.activeTeam)[0]||null;
-    state.selectedUnitId=(teams[state.activeTeam].control==='human'&&first)?first.id:null;
-    setStatus(`${teams[state.activeTeam].name} · ${teams[state.activeTeam].control==='ai'?'AI':'Human'} turn · Round ${state.turn}.`);
+    const first=living(next)[0]||null;
+    state.selectedUnitId=(teams[next].control==='human'&&first)?first.id:null;
+    setStatus(`${teams[next].name} · ${teams[next].control==='ai'?'AI':'Human'} turn · Round ${state.turn}.`);
     updateAll();
-    if(teams[state.activeTeam].control==='ai')scheduleAiTurn();
+    if(teams[next].control==='ai')scheduleAiTurn();
     else if(first)followUnitCamera(first,60);
   }
 
@@ -3109,14 +3267,11 @@ button{font:inherit}
 
   function checkGameOver(){
     if(state.gameOver)return true;
-    let winner=null;
-    if(living('enemy').length===0)winner='player';
-    else if(living('player').length===0)winner='enemy';
-    if(!winner)return false;
+    const survivors=aliveSides();
+    if(survivors.length>1)return false;
     state.gameOver=true;
-    const msg=`${teams[winner].name} wins!`;
-    setStatus(msg);updateAll();
-    setTimeout(()=>alert(msg),20);
+    const msg=survivors.length===1?`${teams[survivors[0]].name} wins!`:'All armies defeated!';
+    setStatus(msg);updateAll();setTimeout(()=>alert(msg),20);
     return true;
   }
 
@@ -3159,10 +3314,11 @@ button{font:inherit}
       const s=readSaveSlot(slot);
       if(!s)return false;
 
+      teamCount=Math.max(2,Math.min(8,Number(s.state?.teamCount)||2));
       applyMap(s.map ? cloneMap(s.map) : cloneMap(DEFAULT_MAP));
 
       state.turn=s.state?.turn||1;
-      state.activeTeam=s.state?.activeTeam==='enemy'?'enemy':'player';
+      state.activeTeam=activeSides().includes(s.state?.activeTeam)?s.state.activeTeam:'player';
       state.gameOver=!!s.state?.gameOver;state.watchingAi=false;state.skipAiView=false;
       state.selectedUnitId=s.state?.selectedUnitId||null;
       state.inspectedUnitId=s.state?.inspectedUnitId||null;
@@ -3172,7 +3328,7 @@ button{font:inherit}
       state.mapX=s.state?.mapX ?? 0;
       state.mapY=s.state?.mapY ?? 0;
 
-      for(const k of ['player','enemy']){
+      for(const k of activeSides()){
         if(s.teams?.[k]){
           teams[k].gold=s.teams[k].gold;
           teams[k].income=100;
@@ -3199,6 +3355,13 @@ button{font:inherit}
     }
   }
 
+  function refreshTeamRoster(){
+    const roster=document.getElementById('teamRoster');
+    roster.hidden=teamCount<=2;
+    if(roster.hidden)return;
+    roster.innerHTML=activeSides().map((side,i)=>`<div class="rosterItem ${state.activeTeam===side?'active':''}"><img src="${factionInfo(teams[side].faction).crest}" alt=""><span>${i+1}. ${teams[side].name} (${living(side).length}) · ${teams[side].gold}g</span></div>`).join('');
+  }
+
   function updateAll(){
     refreshPaletteDependentUI();
     Object.values(units).forEach(u=>{
@@ -3213,17 +3376,17 @@ button{font:inherit}
       hp.textContent=u.hp;
       el.querySelector('img').src=spriteFor(u);
     });
-    document.getElementById('barracks-player').classList.toggle('selected',state.selectedBarracks==='player');
-    document.getElementById('barracks-enemy').classList.toggle('selected',state.selectedBarracks==='enemy');
+    document.querySelectorAll('.barracks').forEach(el=>el.classList.toggle('selected',el.id==='barracks-'+state.selectedBarracks));
     document.getElementById('pGold').textContent=teams.player.gold;
     document.getElementById('eGold').textContent=teams.enemy.gold;
     document.getElementById('pCount').textContent=living('player').length;
     document.getElementById('eCount').textContent=living('enemy').length;
     document.getElementById('turnNo').textContent=state.turn;
+    refreshTeamRoster();
+    positionStaticObjects();
     document.getElementById('endTurn').disabled=!humanTurn();
     document.getElementById('turnLabel').textContent=teams[state.activeTeam].name+(teams[state.activeTeam].control==='ai'?' · AI':' · Human');
-    document.getElementById('barracks-player').classList.toggle('selected',state.selectedBarracks==='player');
-    document.getElementById('barracks-enemy').classList.toggle('selected',state.selectedBarracks==='enemy');
+    document.querySelectorAll('.barracks').forEach(el=>el.classList.toggle('selected',el.id==='barracks-'+state.selectedBarracks));
     document.getElementById('skipAi').hidden=!state.watchingAi||state.skipAiView;
     document.getElementById('saveGame').disabled=state.busy;
     document.getElementById('newGame').disabled=state.busy;
@@ -3405,6 +3568,7 @@ button{font:inherit}
   document.getElementById('enemyHouseSelect').addEventListener('change',e=>chooseNewGameFaction('enemy',e.target.value));
   document.getElementById('playerColourSelect').addEventListener('change',e=>chooseNewGameTeamColour('player',e.target.value));
   document.getElementById('enemyColourSelect').addEventListener('change',e=>chooseNewGameTeamColour('enemy',e.target.value));
+  document.getElementById('addTeam').addEventListener('click',()=>{if(teamCount>=8)return;teamCount++;refreshNewGameTeamSetup();renderMapList();});
   document.getElementById('menuNewGame').addEventListener('click',openNewGameScreen);
   document.getElementById('menuCreateMap').addEventListener('click',openMapManagerScreen);
   document.getElementById('mapCreateNew').addEventListener('click',()=>openCreateMapScreen(null));
@@ -3416,6 +3580,7 @@ button{font:inherit}
   document.getElementById('importMapInput').addEventListener('change',e=>{
     importMapFile(e.target.files?.[0]||null);
   });
+  document.getElementById('editorBuildingsTool').addEventListener('click',()=>setEditorTool('buildings'));
   document.getElementById('editorBackToMaps').addEventListener('click',openMapManagerScreen);
   document.querySelectorAll('[data-menu-back]').forEach(btn=>btn.addEventListener('click',()=>{
     showMenuScreen('mainMenuScreen');
