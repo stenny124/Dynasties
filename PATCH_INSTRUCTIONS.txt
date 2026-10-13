@@ -1,1 +1,1 @@
-Overwrite index.html, service-worker.js, README.txt at repo root. Add the 3 new PNGs inside assets/. This patch is incremental from v42.
+v44 patch only: upload index.html, service-worker.js, README.txt and assets/faction_crests_atlas.png into the existing repository root.

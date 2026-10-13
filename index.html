@@ -1166,6 +1166,7 @@ button{font:inherit}
 <script>
 (async () => {
   // Dynasties v43: match-only performance, per-map thumbnails, snow/desert/bridge terrain.
+  // Build v44: ten house crests packed in one atlas, ten selectable factions.
   let COLS=20, ROWS=20;
   const CELL=64, EDITOR_CELL=32, MAX_MAP_SIZE=200, MIN_MAP_SIZE=4;
   const LEGACY_SAVE_KEY='dynasties-mechanics-v21';
@@ -1246,10 +1247,53 @@ button{font:inherit}
   };
 
   const FACTION_CONFIG={
+    arryn:{label:'House Arryn',unitPrefix:'Arryn',crest:'./assets/house_stark_crest.png'},
+    baratheon:{label:'House Baratheon',unitPrefix:'Baratheon',crest:'./assets/house_stark_crest.png'},
+    greyjoy:{label:'House Greyjoy',unitPrefix:'Greyjoy',crest:'./assets/house_stark_crest.png'},
     lannister:{label:'House Lannister',unitPrefix:'Lannister',crest:'./assets/house_lannister_crest.png'},
+    martell:{label:'House Martell',unitPrefix:'Martell',crest:'./assets/house_stark_crest.png'},
     stark:{label:'House Stark',unitPrefix:'Stark',crest:'./assets/house_stark_crest.png'},
+    targaryen:{label:'House Targaryen',unitPrefix:'Targaryen',crest:'./assets/house_stark_crest.png'},
+    tully:{label:'House Tully',unitPrefix:'Tully',crest:'./assets/house_stark_crest.png'},
+    tyrell:{label:'House Tyrell',unitPrefix:'Tyrell',crest:'./assets/house_stark_crest.png'},
     white_walkers:{label:'White Walkers',unitPrefix:'White Walker',crest:'./assets/white_walker_crest.png'}
   };
+
+  // Packed, lossless 5 × 2 grid of the user's ten supplied 64 × 64 crests.
+  // This replaces ten extra PNG uploads with one asset for GitHub Pages.
+  const FACTION_CREST_ORDER=['arryn','baratheon','greyjoy','lannister','martell','stark','targaryen','tully','tyrell','white_walkers'];
+  const FACTION_CREST_ATLAS='./assets/faction_crests_atlas.png';
+
+  async function initialiseFactionCrests(){
+    try{
+      const atlas=await loadPaletteImage(FACTION_CREST_ATLAS);
+      const canvas=document.createElement('canvas');
+      canvas.width=64;canvas.height=64;
+      const ctx=canvas.getContext('2d');
+      if(!ctx)throw new Error('2D canvas is unavailable');
+      ctx.imageSmoothingEnabled=false;
+      FACTION_CREST_ORDER.forEach((faction,i)=>{
+        ctx.clearRect(0,0,64,64);
+        ctx.drawImage(atlas,(i%5)*64,Math.floor(i/5)*64,64,64,0,0,64,64);
+        FACTION_CONFIG[faction].crest=canvas.toDataURL('image/png');
+      });
+      // Keep all static crest placeholders in sync with the new official art.
+      const pairs={
+        'playerHouseCrest':'white_walkers',
+        'enemyHouseCrest':'lannister',
+        'currentTopCrest':'white_walkers'
+      };
+      Object.entries(pairs).forEach(([id,faction])=>{
+        const image=document.getElementById(id);
+        if(image)image.src=FACTION_CONFIG[faction].crest;
+      });
+      const landing=document.querySelectorAll('#mainMenuScreen .menuCrest');
+      if(landing[0])landing[0].src=FACTION_CONFIG.white_walkers.crest;
+      if(landing[1])landing[1].src=FACTION_CONFIG.lannister.crest;
+    }catch(e){
+      console.warn('Faction crest atlas could not load:',e);
+    }
+  }
 
   const FACTION_MASTER_SPRITES={
     white_walkers:{
@@ -1299,6 +1343,13 @@ button{font:inherit}
       {rgb:[98,190,255],step:5}
     ]
   };
+
+  // These houses currently share the human unit set. Their individual heraldry
+  // is distinct; faction-specific unit art can be introduced later.
+  for(const house of ['arryn','baratheon','greyjoy','martell','targaryen','tully','tyrell']){
+    FACTION_MASTER_SPRITES[house]=FACTION_MASTER_SPRITES.lannister;
+    FACTION_TEAM_PIXELS[house]=FACTION_TEAM_PIXELS.lannister;
+  }
 
   const HQ_MASTER='./assets/hq_master.png';
   const HQ_TEAM_SHADES=[
@@ -2026,11 +2077,7 @@ button{font:inherit}
     }
   }
 
-  const TEAM_FACTION_LABELS={
-    lannister:'House Lannister',
-    stark:'House Stark',
-    white_walkers:'White Walkers'
-  };
+  const TEAM_FACTION_LABELS=Object.fromEntries(Object.entries(FACTION_CONFIG).map(([id,info])=>[id,info.label]));
 
   function populateTeamHouseSelect(selectId){
     const select=document.getElementById(selectId);
@@ -4084,6 +4131,7 @@ button{font:inherit}
   positionStaticObjects();
   migrateLegacySave();
   state.gameActive=false;
+  await initialiseFactionCrests();
   await initialisePaletteSprites();
   refreshPaletteDependentUI();
   updateAll();
