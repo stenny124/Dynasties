@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#182014">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dynasties — Mechanics Build v39</title>
+<title>Dynasties — Build v42</title>
 <style>
 :root{
   --blue:#315f9b; --red:#93433d; --gold:#d7b96e; --cream:#f3e4bd;
@@ -778,6 +778,130 @@ button{font:inherit}
 #teamRoster .rosterItem img{width:20px;height:23px;object-fit:contain}
 .barracks[hidden]{display:none}
 
+
+/* ===== v42 — Throne-era menus ===== */
+#menuLayer:not(.landingMode){
+  background:
+    linear-gradient(180deg,rgba(5,9,17,.83),rgba(4,6,13,.94)),
+    url('./assets/dynasties_throne_of_twilight.png') center center / cover no-repeat,
+    #070b15;
+}
+#menuLayer:not(.landingMode) .menuPanel{
+  background:linear-gradient(157deg,rgba(28,38,52,.98),rgba(12,17,27,.98) 55%,rgba(21,17,18,.99));
+  border:2px solid #b79455;
+  box-shadow:0 18px 60px #000b,inset 0 0 0 2px #efd18a18;
+  scrollbar-color:#9d7845 #151c24;
+}
+#menuLayer:not(.landingMode) .menuScreen:not([hidden]){
+  animation:dynMenuIn .16s ease-out;
+}
+@keyframes dynMenuIn{from{opacity:.4;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+#menuLayer .menuButton{
+  position:relative;
+  min-height:49px;
+  letter-spacing:.085em;
+  text-transform:uppercase;
+  color:#f7dfab;
+  font:700 14px/1.2 Georgia,'Times New Roman',serif;
+  background:linear-gradient(180deg,#485360 0%,#293442 46%,#111b2b 100%);
+  border:1px solid #c5a164;
+  border-radius:3px;
+  box-shadow:inset 0 0 0 2px #161e2b,inset 0 0 0 3px #cbaa5559,0 4px 10px #0008;
+  text-shadow:0 1px 3px #000;
+  transition:background .15s ease,filter .15s ease;
+}
+#menuLayer .menuButton:before,
+#menuLayer .menuButton:after{
+  content:'✦';position:absolute;top:50%;transform:translateY(-50%);
+  color:#d6b875;opacity:.72;font:12px Georgia,serif;pointer-events:none;
+}
+#menuLayer .menuButton:before{left:12px}
+#menuLayer .menuButton:after{right:12px}
+#menuLayer .menuButton.primary{
+  background:linear-gradient(180deg,#766244,#4a3829 54%,#30271f);
+  border-color:#e3bb6f;
+}
+#menuLayer .menuButton:not(:disabled):active{filter:brightness(1.24)}
+#menuLayer .menuButton:disabled{opacity:.42;cursor:default}
+#menuLayer .menuButton.small{min-height:40px;font-size:11px}
+#menuLayer .menuBack,
+#menuLayer .editorBack{
+  color:#f3d6a2;background:linear-gradient(#394453,#202a37);
+  border:1px solid #aa884f;border-radius:3px;
+  box-shadow:inset 0 0 0 1px #d5ab5a25;
+}
+#menuLayer .menuSectionTitle{color:#edcf91;font-variant:small-caps;letter-spacing:.025em}
+#menuLayer .menuSectionSub{color:#c4b393}
+#menuLayer .teamSetup,
+#menuLayer .mapCard,
+#menuLayer .saveSlotCard{
+  border-color:#806b49;
+  background:linear-gradient(135deg,#243041,#141c29);
+  box-shadow:inset 0 0 0 1px #e7c18512;
+}
+#menuLayer .teamSetupRow{background:#17202dcc;border-color:#5d6780}
+#menuLayer select,#menuLayer .teamControlSelect{background:#111926;color:#f0d9aa;border-color:#8e7447}
+#menuLayer .teamSetupHeading{color:#e7c589}
+#menuLayer .teamSetupName{color:#f5dfb0}
+#menuLayer .mapCard:hover{border-color:#ebc27a}
+#menuLayer .menuBackRow{padding-bottom:9px;border-bottom:1px solid #cbaa5550}
+#menuLayer.landingMode .landingMenu{
+  padding-bottom:calc(29px + env(safe-area-inset-bottom));
+  background:linear-gradient(180deg,transparent 20%,#02060b12 45%,#03070cb5 73%,#030509fa);
+}
+#menuLayer.landingMode .menuButtons{gap:11px;max-width:340px;width:100%;margin:0 auto}
+#menuLayer.landingMode .menuButton{min-height:50px;background:linear-gradient(#39485cdd,#1d2b3eee,#121c2a);
+  border-color:#e3bd79;box-shadow:inset 0 0 0 2px #0a1520,inset 0 0 0 3px #c6a7735c,0 6px 16px #000b}
+#menuLayer.landingMode .menuButton.primary{background:linear-gradient(#6b5840f2,#332a28f5,#20202bf2)}
+#menuLayer.landingMode .menuFooter{margin:12px auto 0;max-width:340px;line-height:1.45}
+/* Current-player-only game header */
+#topbar{grid-template-columns:minmax(0,1fr) auto;gap:10px}
+#topbar .currentTeam{gap:10px;min-width:0;text-align:left}
+#topbar .currentTeamDetails{min-width:0}
+#topbar .currentTeam .teamName{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#topbar .currentTeam .econ{display:flex;align-items:center;gap:10px;flex-wrap:wrap;white-space:normal}
+#topbar .currentTeam .econ>*{white-space:nowrap}
+#topbar #turnBox{justify-self:end;min-width:112px}
+@media(max-width:600px) and (orientation:portrait){
+  #topbar{grid-template-columns:minmax(0,1fr) auto;gap:5px}
+  #topbar .currentTeam{gap:6px}
+  #topbar .currentTeam .crest{width:36px;height:42px;flex:0 0 36px}
+  #topbar .currentTeam .teamName{font-size:14px}
+  #topbar .currentTeam .econ{font-size:10px;gap:3px 8px}
+  #topbar #turnBox{min-width:84px}
+  #menuLayer .menuButton{font-size:12px}
+}
+/* Faction table */
+.performanceScroll{overflow-x:auto;max-width:100%;border:1px solid #9b7d4b;border-radius:4px}
+.performanceTable{width:100%;min-width:335px;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.performanceTable th{background:#344152;color:#f4d69c;font-size:11px;letter-spacing:.025em;text-align:center;padding:10px 6px;
+  border-bottom:2px solid #cba65c}
+.performanceTable th:first-child{text-align:left;padding-left:11px}
+.performanceTable td{padding:10px 6px;text-align:center;font-size:13px;color:#f6e4c3;border-bottom:1px solid #c9ac6933}
+.performanceTable tr:nth-child(2n) td{background:#ffffff06}
+.performanceTable tr:last-child td{border-bottom:0}
+.performanceTable tr.active td{background:#9f804822}
+.performanceTable tr.eliminated{opacity:.58}
+.performanceTable td:first-child{text-align:left}
+.performanceHeading{display:inline-flex;align-items:center;justify-content:center;gap:4px}
+.performanceHeading img{width:21px;height:21px;object-fit:contain;image-rendering:pixelated}
+.performanceFaction{display:flex;align-items:center;gap:5px;min-width:120px}
+.performanceFaction img{width:26px;height:30px;object-fit:contain;flex:0 0 26px}
+.performanceFaction .factionInfo{min-width:0;line-height:1.2}
+.performanceFaction .factionName{font-size:11px;font-weight:bold;color:#f5ddad}
+.performanceFaction .factionNumber{font-size:9px;color:#bdad90}
+.performanceSwatch{display:inline-block;flex:0 0 7px;width:7px;height:23px;border-radius:2px;border:1px solid #ffffff55}
+.performanceNote{margin-top:10px;color:#bca987;font-size:10px;line-height:1.4}
+@media(max-width:600px){
+  .performanceTable th{font-size:10px;padding:8px 3px}
+  .performanceTable td{padding:7px 3px;font-size:12px}
+  .performanceHeading{gap:2px}
+  .performanceHeading img{width:17px;height:17px}
+  .performanceFaction{min-width:110px;gap:4px}
+  .performanceFaction img{width:23px;height:26px;flex-basis:23px}
+  .performanceFaction .factionName{font-size:10px}
+}
+
 </style>
 </head>
 <body>
@@ -797,6 +921,7 @@ button{font:inherit}
         <button class="menuButton primary" id="menuLoadGame" type="button">Load Game</button>
         <button class="menuButton" id="menuNewGame" type="button">New Game</button>
         <button class="menuButton" id="menuCreateMap" type="button">Create Map</button>
+        <button class="menuButton" id="menuPerformance" type="button">Faction Performance</button>
       </div>
       <div class="menuFooter" id="saveStatus">No saved game found.</div>
     </section>
@@ -827,6 +952,27 @@ button{font:inherit}
       <input id="importMapInput" type="file">
       <div class="mapManagerList" id="mapManagerList"></div>
       <div id="mapManagerMessage"></div>
+    </section>
+
+    <section class="menuScreen" id="performanceScreen" hidden>
+      <div class="menuBackRow">
+        <button class="menuBack" id="performanceBack" type="button">← Back</button>
+        <div class="menuSectionTitle">Faction Performance</div>
+        <span></span>
+      </div>
+      <div class="menuSectionSub" id="performanceSubtitle">Current match · all factions</div>
+      <div class="performanceScroll">
+        <table class="performanceTable" aria-label="Faction performance">
+          <thead><tr>
+            <th scope="col">Faction</th>
+            <th scope="col"><span class="performanceHeading"><img src="./assets/gold_icon.png" alt="">Gold</span></th>
+            <th scope="col"><span class="performanceHeading"><img src="./assets/toolbar_buildings.png" alt="">Buildings</span></th>
+            <th scope="col"><span class="performanceHeading"><img src="./assets/toolbar_units.png" alt="">Warriors</span></th>
+          </tr></thead>
+          <tbody id="performanceRows"></tbody>
+        </table>
+      </div>
+      <div class="performanceNote">Buildings currently count each faction’s HQ. Warriors count surviving units.</div>
     </section>
 
     <section class="menuScreen" id="newGameScreen" hidden>
@@ -920,28 +1066,22 @@ button{font:inherit}
 
 <div id="game">
   <div id="topbar">
-    <div class="team player">
-      <div class="crest"><img id="playerTopCrest" src="./assets/white_walker_crest.png" alt="White Walkers crest"></div>
-      <div>
-        <div class="teamName" id="playerTopName">White Walkers</div>
-        <div class="econ"><span class="goldAmount"><img class="goldIcon" src="./assets/gold_icon.png" alt="gold"><b id="pGold">300</b></span> · <span class="income">+100/turn</span> · <span id="pCount">1</span> units</div>
+    <div class="team currentTeam" id="currentTopTeam">
+      <div class="crest"><img id="currentTopCrest" src="./assets/white_walker_crest.png" alt="Current house crest"></div>
+      <div class="currentTeamDetails">
+        <div class="teamName" id="currentTopName">White Walkers</div>
+        <div class="econ">
+          <span class="goldAmount"><img class="goldIcon" src="./assets/gold_icon.png" alt="gold"><b id="currentGold">300</b></span>
+          <span class="income" id="currentIncome">+100/turn</span>
+          <span><b id="currentUnitCount">1</b> warriors</span>
+        </div>
       </div>
     </div>
-
     <div id="turnBox">
       <div id="turnLabel">TURN</div>
       <div id="turnNo">1</div>
       <button id="endTurn" type="button">End Turn</button>
     </div>
-
-    <div class="team enemy">
-      <div>
-        <div class="teamName" id="enemyTopName">House Lannister</div>
-        <div class="econ"><span id="eCount">1</span> units · <span class="income">+100/turn</span> · <span class="goldAmount"><img class="goldIcon" src="./assets/gold_icon.png" alt="gold"><b id="eGold">300</b></span></div>
-      </div>
-      <div class="crest"><img id="enemyTopCrest" src="./assets/house_lannister_crest.png" alt="House Lannister crest"></div>
-    </div>
-    <div id="teamRoster" hidden></div>
   </div>
 
   <div id="fieldViewport">
@@ -1000,6 +1140,7 @@ button{font:inherit}
     </div>
     <div id="actions">
       <button class="action" id="attackInspected" type="button" hidden>Attack</button>
+      <button class="action" id="openPerformance" type="button">Factions</button>
       <button class="action" id="saveGame" type="button">Save Game</button>
       <button class="action" id="newGame" type="button">Menu</button>
     </div>
@@ -1008,7 +1149,7 @@ button{font:inherit}
 
 <script>
 (async () => {
-  // Dynasties patch v41: landing artwork integrated into the main menu.
+  // Dynasties v42: throne-themed UI, current-team HUD, live faction performance table.
   let COLS=20, ROWS=20;
   const CELL=64, EDITOR_CELL=32, MAX_MAP_SIZE=200, MIN_MAP_SIZE=4;
   const LEGACY_SAVE_KEY='dynasties-mechanics-v21';
@@ -1306,16 +1447,12 @@ button{font:inherit}
     if(archer)archer.src=teamSprite(state.activeTeam,'archer');
     if(cavalry)cavalry.src=teamSprite(state.activeTeam,'cavalry');
 
-    const pInfo=factionInfo(teams.player.faction);
-    const eInfo=factionInfo(teams.enemy.faction);
-    const pName=document.getElementById('playerTopName');
-    const eName=document.getElementById('enemyTopName');
-    const pCrest=document.getElementById('playerTopCrest');
-    const eCrest=document.getElementById('enemyTopCrest');
-    if(pName)pName.textContent=pInfo.label;
-    if(eName)eName.textContent=eInfo.label;
-    if(pCrest){pCrest.src=pInfo.crest;pCrest.alt=`${pInfo.label} crest`;}
-    if(eCrest){eCrest.src=eInfo.crest;eCrest.alt=`${eInfo.label} crest`;}
+    const active=teams[state.activeTeam]||teams.player;
+    const info=factionInfo(active.faction);
+    const title=document.getElementById('currentTopName');
+    const crest=document.getElementById('currentTopCrest');
+    if(title)title.textContent=info.label;
+    if(crest){crest.src=info.crest;crest.alt=`${info.label} crest`;}
 
     if(typeof renderEditorPalette==='function' && typeof editorMap!=='undefined' && editorMap){
       renderEditorPalette();
@@ -1813,6 +1950,8 @@ button{font:inherit}
     const used=usedSaveSlots();
     const loadBtn=document.getElementById('menuLoadGame');
     loadBtn.disabled=used.length===0;
+    const perfBtn=document.getElementById('menuPerformance');
+    if(perfBtn)perfBtn.disabled=!state.gameActive || state.busy;
     document.getElementById('saveStatus').textContent=used.length
       ? `${used.length}/3 save slot${used.length===1?'':'s'} used on this device.`
       : 'No saved battles yet — start a new game.';
@@ -3562,11 +3701,51 @@ button{font:inherit}
     }
   }
 
-  function refreshTeamRoster(){
-    const roster=document.getElementById('teamRoster');
-    roster.hidden=teamCount<=2;
-    if(roster.hidden)return;
-    roster.innerHTML=activeSides().map((side,i)=>`<div class="rosterItem ${state.activeTeam===side?'active':''}"><img src="${factionInfo(teams[side].faction).crest}" alt=""><span>${i+1}. ${teams[side].name} (${living(side).length}) · ${teams[side].gold}g</span></div>`).join('');
+  // All statistics are computed from the current battle, not stored separately.
+  function renderPerformanceTable(){
+    const body=document.getElementById('performanceRows');
+    if(!body)return;
+    const sides=activeSides();
+    document.getElementById('performanceSubtitle').textContent=
+      `Round ${state.turn} · ${sides.length} factions · ${activeMap.name||'Current battle'}`;
+    body.innerHTML=sides.map((side,i)=>{
+      const team=teams[side];
+      const info=factionInfo(team.faction);
+      const warriors=living(side).length;
+      // Currently the only building type is the HQ. Count placed HQs
+      // for active teams; building types can be added here later.
+      const hq=barracks[side];
+      const buildings=hq && Number.isFinite(hq.x) && Number.isFinite(hq.y)?1:0;
+      const swatch=teamColourDisplay(team.colour);
+      return `<tr class="${side===state.activeTeam?'active':''} ${warriors===0?'eliminated':''}">
+        <td><div class="performanceFaction">
+          <img src="${info.crest}" alt="${escapeHtml(info.label)} crest">
+          <span class="performanceSwatch" style="background:${swatch}" aria-label="${escapeHtml(team.colour)}"></span>
+          <span class="factionInfo"><span class="factionName">${escapeHtml(info.label)}</span>
+          <span class="factionNumber" style="display:block">Team ${i+1}${warriors===0?' · Eliminated':''}</span></span>
+        </div></td>
+        <td>${team.gold}</td><td>${buildings}</td><td>${warriors}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  let performanceReturn='main';
+  function openPerformance(returnTo='main'){
+    if(!state.gameActive)return;
+    if(state.busy)return;
+    performanceReturn=returnTo;
+    hideRecruitPopup();
+    renderPerformanceTable();
+    document.getElementById('menuLayer').hidden=false;
+    showMenuScreen('performanceScreen');
+  }
+  function closePerformance(){
+    if(performanceReturn==='game'){
+      document.getElementById('menuLayer').hidden=true;
+    }else{
+      showMenuScreen('mainMenuScreen');
+      refreshMainMenu();
+    }
   }
 
   function updateAll(){
@@ -3584,20 +3763,21 @@ button{font:inherit}
       el.querySelector('img').src=spriteFor(u);
     });
     document.querySelectorAll('.barracks').forEach(el=>el.classList.toggle('selected',el.id==='barracks-'+state.selectedBarracks));
-    document.getElementById('pGold').textContent=teams.player.gold;
-    document.getElementById('eGold').textContent=teams.enemy.gold;
-    document.getElementById('pCount').textContent=living('player').length;
-    document.getElementById('eCount').textContent=living('enemy').length;
+    const active=teams[state.activeTeam]||teams.player;
+    document.getElementById('currentGold').textContent=active.gold;
+    document.getElementById('currentIncome').textContent=`+${active.income}/turn`;
+    document.getElementById('currentUnitCount').textContent=living(state.activeTeam).length;
     document.getElementById('turnNo').textContent=state.turn;
-    refreshTeamRoster();
     positionStaticObjects();
     document.getElementById('endTurn').disabled=!humanTurn();
     document.getElementById('turnLabel').textContent=teams[state.activeTeam].name+(teams[state.activeTeam].control==='ai'?' · AI':' · Human');
     document.querySelectorAll('.barracks').forEach(el=>el.classList.toggle('selected',el.id==='barracks-'+state.selectedBarracks));
     document.getElementById('skipAi').hidden=!state.watchingAi||state.skipAiView;
+    document.getElementById('openPerformance').disabled=state.busy;
     document.getElementById('saveGame').disabled=state.busy;
     document.getElementById('newGame').disabled=state.busy;
     updateBottomInfo();
+    if(!document.getElementById('performanceScreen').hidden)renderPerformanceTable();
     updateRecruitPopup();
     updateHighlights();
     applyMapTransform();
@@ -3754,6 +3934,9 @@ button{font:inherit}
     showMainMenu();
   });
 
+  document.getElementById('openPerformance').addEventListener('click',()=>openPerformance('game'));
+  document.getElementById('menuPerformance').addEventListener('click',()=>openPerformance('main'));
+  document.getElementById('performanceBack').addEventListener('click',closePerformance);
   document.getElementById('menuLoadGame').addEventListener('click',()=>openSaveSlots('load','main'));
   document.getElementById('saveGame').addEventListener('click',()=>openSaveSlots('save','game'));
   document.getElementById('saveSlotsBack').addEventListener('click',()=>{

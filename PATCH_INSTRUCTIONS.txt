@@ -1,1 +1,1 @@
-Overwrite index.html, service-worker.js and README.txt in your repo.
+Update from v41 to v42: overwrite index.html, service-worker.js and README.txt in the repo root. No assets have changed.
