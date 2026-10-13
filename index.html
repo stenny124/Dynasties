@@ -328,6 +328,14 @@ button{font:inherit}
     linear-gradient(rgba(8,9,7,.90),rgba(8,9,7,.97));
   color:var(--cream);
 }
+#menuLayer.landingMode{
+  place-items:stretch;
+  padding:0;
+  background:
+    linear-gradient(rgba(4,7,14,.20),rgba(4,7,14,.48)),
+    url('./assets/dynasties_throne_of_twilight.png') center center / cover no-repeat,
+    #07090d;
+}
 #menuLayer[hidden]{display:none}
 .menuPanel{
   width:min(92vw,430px);
@@ -339,7 +347,44 @@ button{font:inherit}
   border-radius:10px;
   box-shadow:0 18px 50px rgba(0,0,0,.65),inset 0 0 0 2px rgba(255,224,153,.05);
 }
+#menuLayer.landingMode .menuPanel{
+  width:min(100vw,560px);
+  max-width:100%;
+  height:100%;
+  max-height:100vh;
+  margin:0 auto;
+  padding:0;
+  background:none;
+  border:none;
+  border-radius:0;
+  box-shadow:none;
+  overflow:hidden;
+}
 .menuScreen[hidden]{display:none}
+.landingMenu{
+  min-height:100%;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  padding:18px 18px calc(24px + env(safe-area-inset-bottom));
+  background:linear-gradient(to bottom,rgba(4,6,12,0) 28%,rgba(4,6,12,.12) 42%,rgba(4,6,12,.58) 66%,rgba(4,6,12,.90) 84%,rgba(4,6,12,.98) 100%);
+}
+.landingMenu .menuHouseRow{display:none}
+.landingMenu .menuButtons{gap:12px}
+.landingMenu .menuButton{
+  background:linear-gradient(rgba(70,48,30,.92),rgba(33,22,15,.95));
+  border-color:#d6b370;
+  box-shadow:0 6px 18px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,244,210,.08);
+}
+.landingMenu .menuButton.primary{background:linear-gradient(rgba(103,60,32,.96),rgba(49,27,16,.98))}
+.landingMenu .menuFooter{
+  margin-top:10px;
+  padding:8px 10px;
+  border-radius:6px;
+  background:rgba(11,9,7,.55);
+  color:#d9c59c;
+  text-align:center;
+}
 .menuHouseRow{
   display:flex;
   justify-content:center;
@@ -739,7 +784,7 @@ button{font:inherit}
 
 <div id="menuLayer">
   <div class="menuPanel">
-    <section class="menuScreen" id="mainMenuScreen">
+    <section class="menuScreen landingMenu" id="mainMenuScreen">
       <div class="menuHouseRow">
         <img class="menuCrest" src="./assets/white_walker_crest.png" alt="">
         <div>
@@ -963,6 +1008,7 @@ button{font:inherit}
 
 <script>
 (async () => {
+  // Dynasties patch v41: landing artwork integrated into the main menu.
   let COLS=20, ROWS=20;
   const CELL=64, EDITOR_CELL=32, MAX_MAP_SIZE=200, MIN_MAP_SIZE=4;
   const LEGACY_SAVE_KEY='dynasties-mechanics-v21';
@@ -1759,6 +1805,8 @@ button{font:inherit}
 
   function showMenuScreen(id){
     document.querySelectorAll('.menuScreen').forEach(s=>s.hidden=s.id!==id);
+    const menuLayer=document.getElementById('menuLayer');
+    menuLayer.classList.toggle('landingMode', id==='mainMenuScreen');
   }
 
   function refreshMainMenu(){
