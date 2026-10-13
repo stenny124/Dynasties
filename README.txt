@@ -1,18 +1,20 @@
-Dynasties — Build v42
+Dynasties — Build v43
 
-NEW IN v42
-- Restyled main-menu buttons with dark steel and gold medieval decoration to fit the throne artwork.
-- Restyled the New Game screen, player setup cards, map chooser, and related menus.
-- The game header now displays ONLY the active faction: crest, name, gold, income and surviving warriors.
-- Added Faction Performance, accessible both in-game (Factions) and from the main menu during an active match.
-- The performance table shows every faction's gold, number of HQ buildings and number of surviving warriors, with the existing gold, Buildings and Units toolbar icons.
-- Up to 8 teams are supported, including duplicate houses in different team colours.
-- Counts are computed from the live game state, so they update as turns and battles progress.
+NEW IN v43
+- Faction Performance is removed from the landing menu and now lives in Battle Menu, accessible from the in-game Menu button.
+- New Game and Create Map display actual zoomed-out thumbnails drawn from each map's saved terrain, HQs and initial units.
+- Added Snow terrain, based on Wargroove plains art; all units spend 2 movement points to enter.
+- Added Desert terrain, based on Wargroove plains art; all units spend 2 movement points to enter.
+- Added Bridge terrain using the provided sprite; all units may cross at cost 1 movement point. Bridge replaces a logical terrain tile when painted.
+- Import/export and local map storage support the three new terrain names. Existing maps remain valid.
+- Existing 3 save slots, 8-team matches, and forest/mountain/sea rules remain unchanged.
 
-PATCH CONTENTS (v41 -> v42)
+PATCH CONTENTS (v42 -> v43)
 - index.html (overwrite)
 - service-worker.js (overwrite)
 - README.txt (overwrite)
+- assets/terrain_snow.png (new)
+- assets/terrain_desert.png (new)
+- assets/terrain_bridge.png (new)
 
-Deploy: extract the ZIP and replace these three files in the ROOT of your existing GitHub Pages repository.
-Keep your existing assets/ directory including the v41 throne background unchanged.
+Deploy: Extract this patch ZIP and upload its contents directly into the ROOT of your existing GitHub Pages repository, preserving the assets/ subfolder. Do not upload the enclosing folder.

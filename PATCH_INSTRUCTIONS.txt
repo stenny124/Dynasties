@@ -1,1 +1,1 @@
-Update from v41 to v42: overwrite index.html, service-worker.js and README.txt in the repo root. No assets have changed.
+Overwrite index.html, service-worker.js, README.txt at repo root. Add the 3 new PNGs inside assets/. This patch is incremental from v42.

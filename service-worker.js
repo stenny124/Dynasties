@@ -1,4 +1,4 @@
-const CACHE='dynasties-mechanics-v42';
+const CACHE='dynasties-mechanics-v43';
 const STATIC=[
   './index.html',
   './assets/dynasties_throne_of_twilight.png',
@@ -13,6 +13,9 @@ const STATIC=[
   './assets/uploaded_extra_red_cavalry.png',
   './assets/grass_tile.png',
   './assets/terrain_sea.png',
+  './assets/terrain_snow.png',
+  './assets/terrain_desert.png',
+  './assets/terrain_bridge.png',
   './assets/terrain_forest.png',
   './assets/terrain_mountain.png',
   './assets/wg_grass_0.png',
