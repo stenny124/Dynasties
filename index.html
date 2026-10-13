@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#182014">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dynasties — Build v43</title>
+<title>Dynasties — Build v45</title>
 <style>
 :root{
   --blue:#315f9b; --red:#93433d; --gold:#d7b96e; --cream:#f3e4bd;
@@ -117,7 +117,7 @@ button{font:inherit}
 
 .barracks{
   position:absolute;
-  width:128px;
+  width:64px;
   height:128px;
   transform:translate(0,0);
   pointer-events:auto;
@@ -130,7 +130,7 @@ button{font:inherit}
 .barracks img{
   width:100%;
   height:100%;
-  object-fit:contain;
+  object-fit:fill;
   image-rendering:pixelated;
   filter:drop-shadow(0 4px 6px rgba(0,0,0,.38));
   display:block;
@@ -1185,8 +1185,8 @@ button{font:inherit}
       {team:'enemy',kind:'soldier',x:9,y:4}
     ],
     castles:{
-      player:{x:8,y:16},
-      enemy:{x:8,y:1}
+      player:{x:9,y:16},
+      enemy:{x:9,y:1}
     }
   };
   let activeMap={
@@ -1537,7 +1537,7 @@ button{font:inherit}
 
   const barracks={
     player:{
-      x:8,y:16,w:2,h:2,
+      x:9,y:16,w:1,h:2,
       spawn:[
         {x:7,y:15},{x:8,y:15},{x:9,y:15},{x:10,y:15},
         {x:7,y:16},{x:10,y:16},
@@ -1546,7 +1546,7 @@ button{font:inherit}
       ]
     },
     enemy:{
-      x:8,y:1,w:2,h:2,
+      x:9,y:1,w:1,h:2,
       spawn:[
         {x:7,y:0},{x:8,y:0},{x:9,y:0},{x:10,y:0},
         {x:7,y:1},{x:10,y:1},
@@ -1556,7 +1556,7 @@ button{font:inherit}
     }
   };
 
-  for(const id of TEAM_IDS.slice(2))barracks[id]={x:0,y:0,w:2,h:2,spawn:[]};
+  for(const id of TEAM_IDS.slice(2))barracks[id]={x:0,y:0,w:1,h:2,spawn:[]};
 
   let units={};
 
@@ -1565,12 +1565,54 @@ button{font:inherit}
   }
 
   function defaultCastlePositions(width,height){
-    if(width<8||height<8){
-      return {player:{x:Math.max(0,width-2),y:Math.max(0,height-2)},enemy:{x:0,y:0}};
-    }
-    const x=Math.max(0,Math.min(width-2,Math.floor(width/2)-1));
-    return {player:{x,y:Math.max(0,height-4)},enemy:{x,y:1}};
+    const x=Math.max(0,Math.min(width-1,Math.floor(width/2)));
+    return {
+      player:{x,y:Math.max(0,height-3)},
+      enemy:{x,y:Math.min(1,height-2)}
+    };
   }
+
+  // Terrain is a base biome (grass/snow/desert), optionally with an object overlay.
+  // Legacy 'forest'/'mountain' values remain valid and imply a grass base.
+  const BIOME_BASES=new Set(['grass','snow','desert']);
+  const OVERLAY_TYPES=new Set(['forest','mountain']);
+  const VALID_TERRAIN_TYPES=new Set(['grass','snow','desert','forest','mountain',
+    'snow_forest','desert_forest','snow_mountain','desert_mountain','sea','bridge']);
+  function terrainBase(tile){
+    if(tile==='snow'||tile?.startsWith('snow_'))return 'snow';
+    if(tile==='desert'||tile?.startsWith('desert_'))return 'desert';
+    return 'grass';
+  }
+  function terrainFeature(tile){
+    if(tile==='forest'||tile?.endsWith('_forest'))return 'forest';
+    if(tile==='mountain'||tile?.endsWith('_mountain'))return 'mountain';
+    return tile==='sea'||tile==='bridge'?tile:null;
+  }
+  function combinedTerrain(base,feature){
+    if(!OVERLAY_TYPES.has(feature))return base;
+    return base==='grass'?feature:`${base}_${feature}`;
+  }
+  function paintTerrainOnTile(current,brush){
+    if(brush==='clearFeature')return terrainBase(current);
+    if(OVERLAY_TYPES.has(brush))return combinedTerrain(terrainBase(current),brush);
+    // Snow or desert changes only the base if trees/rocks are already present.
+    if(brush==='snow'||brush==='desert'){
+      const feature=terrainFeature(current);
+      return combinedTerrain(brush,OVERLAY_TYPES.has(feature)?feature:null);
+    }
+    return brush; // Grass clears an overlay, as do Sea and Bridge.
+  }
+  function passabilityCost(kind,tile){
+    const feature=terrainFeature(tile);
+    if(feature==='sea')return Infinity;
+    if(feature==='bridge')return 1;
+    if(feature==='mountain'&&kind==='cavalry')return Infinity;
+    const basePenalty=terrainBase(tile)==='grass'?0:1;
+    if(feature==='forest')return Math.max((kind==='cavalry'?3:2),1+basePenalty);
+    if(feature==='mountain')return Math.max(2,1+basePenalty);
+    return 1+basePenalty;
+  }
+  function hqGroundAllowed(tile){return BIOME_BASES.has(tile)}
 
   function cloneMap(map){
     const width=clampMapDimension(map?.width||20);
@@ -1653,19 +1695,19 @@ button{font:inherit}
       throw new Error(`Map dimensions must be between ${MIN_MAP_SIZE} and ${MAX_MAP_SIZE} tiles.`);
     }
     if(!Array.isArray(payload.tiles)||payload.tiles.length!==width*height)throw new Error('Terrain data is incomplete.');
-    const validTerrain=new Set(['grass','sea','forest','mountain','snow','desert','bridge']);
+    const validTerrain=VALID_TERRAIN_TYPES;
     const tiles=payload.tiles.map(t=>validTerrain.has(t)?t:'grass');
     const validTeams=new Set(TEAM_IDS);
     const validKinds=new Set(Object.keys(UNIT_DEFS));
     const units=(Array.isArray(payload.units)?payload.units:[])
       .filter(u=>u&&validTeams.has(u.team)&&validKinds.has(u.kind)&&Number.isInteger(Number(u.x))&&Number.isInteger(Number(u.y)))
       .map(u=>({team:u.team,kind:u.kind,x:Number(u.x),y:Number(u.y)}))
-      .filter(u=>u.x>=0&&u.x<width&&u.y>=0&&u.y<height&&!['sea','mountain'].includes(tiles[u.y*width+u.x]));
+      .filter(u=>u.x>=0&&u.x<width&&u.y>=0&&u.y<height&&Number.isFinite(passabilityCost(u.kind,tiles[u.y*width+u.x])));
     const defaults=defaultCastlePositions(width,height);
     const castleFor=team=>{
       const c=payload.castles?.[team];
       const x=Number(c?.x),y=Number(c?.y);
-      if(!Number.isInteger(x)||!Number.isInteger(y)||x<0||y<0||x+1>=width||y+1>=height)return {...(defaults[team]||defaults.player)};
+      if(!Number.isInteger(x)||!Number.isInteger(y)||x<0||y<0||x>=width||y+1>=height)return {...(defaults[team]||defaults.player)};
       return {x,y};
     };
     const castles={player:castleFor('player'),enemy:castleFor('enemy')};
@@ -1673,16 +1715,15 @@ button{font:inherit}
     const entries=Object.entries(castles);
     for(let i=0;i<entries.length;i++)for(let j=i+1;j<entries.length;j++){
       const a=entries[i][1],b=entries[j][1];
-      if(!(a.x+1<b.x||a.x>b.x+1||a.y+1<b.y||a.y>b.y+1))throw new Error('HQs overlap.');
+      if(!(a.x<b.x||a.x>b.x||a.y+1<b.y||a.y>b.y+1))throw new Error('HQs overlap.');
     }
     for(const team of Object.keys(castles)){
       const c=castles[team];
-      for(let y=c.y;y<c.y+2;y++)for(let x=c.x;x<c.x+2;x++)tiles[y*width+x]='grass';
+      for(let y=c.y;y<c.y+2;y++)tiles[y*width+c.x]=terrainBase(tiles[y*width+c.x]);
     }
     const safeUnits=units.filter(u=>{
-      for(const team of ['player','enemy']){
-        const c=castles[team];
-        if(u.x>=c.x&&u.x<c.x+2&&u.y>=c.y&&u.y<c.y+2)return false;
+      for(const c of Object.values(castles)){
+        if(c&&u.x===c.x&&u.y>=c.y&&u.y<c.y+2)return false;
       }
       return true;
     });
@@ -1783,14 +1824,14 @@ button{font:inherit}
   function fitExtraTeamsOnMap(){
     const map=activeMap;
     const taken=new Set();
-    const reserve=(c)=>{for(let dy=0;dy<2;dy++)for(let dx=0;dx<2;dx++)taken.add(`${c.x+dx},${c.y+dy}`)};
+    const reserve=(c)=>{for(let dy=0;dy<2;dy++)taken.add(`${c.x},${c.y+dy}`)};
     for(const c of Object.values(map.castles))if(c)reserve(c);
     const emptyHQ=(x,y)=>{
-      if(x<0||y<0||x+2>COLS||y+2>ROWS)return false;
-      for(let dy=0;dy<2;dy++)for(let dx=0;dx<2;dx++){
-        const k=`${x+dx},${y+dy}`;
-        if(taken.has(k)||map.tiles[(y+dy)*COLS+x+dx]!=='grass')return false;
-        if(map.units.some(u=>u.x===x+dx&&u.y===y+dy))return false;
+      if(x<0||y<0||x>=COLS||y+2>ROWS)return false;
+      for(let dy=0;dy<2;dy++){
+        const k=`${x},${y+dy}`;
+        if(taken.has(k)||!hqGroundAllowed(map.tiles[(y+dy)*COLS+x]))return false;
+        if(map.units.some(u=>u.x===x&&u.y===y+dy))return false;
       }
       return true;
     };
@@ -1798,9 +1839,9 @@ button{font:inherit}
       if(map.castles[side])continue;
       let loc=null;
       const positions=[];
-      for(let y=0;y<ROWS-1;y++)for(let x=0;x<COLS-1;x++){
+      for(let y=0;y<ROWS-1;y++)for(let x=0;x<COLS;x++){
         // Spread teams around the edge of the battlefield.
-        const perimeter=Math.min(x,y,COLS-2-x,ROWS-2-y);
+        const perimeter=Math.min(x,y,COLS-1-x,ROWS-2-y);
         const angle=Math.atan2(y-(ROWS-2)/2,x-(COLS-2)/2);
         const idealAngle=2*Math.PI*(TEAM_IDS.indexOf(side)/teamCount)-Math.PI/2;
         const difference=Math.abs(Math.atan2(Math.sin(angle-idealAngle),Math.cos(angle-idealAngle)));
@@ -1808,7 +1849,7 @@ button{font:inherit}
       }
       positions.sort((a,b)=>a.score-b.score);
       loc=positions.find(p=>emptyHQ(p.x,p.y))||null;
-      if(!loc)throw new Error(`Not enough free 2×2 grass spaces for ${teamCount} HQs. Enlarge the map or place HQs in Create Map.`);
+      if(!loc)throw new Error(`Not enough free 1×2 plains spaces for ${teamCount} HQs. Enlarge the map or place HQs in Create Map.`);
       map.castles[side]={x:loc.x,y:loc.y};reserve(loc);
     }
     for(const side of activeSides()){
@@ -1816,7 +1857,7 @@ button{font:inherit}
       const c=map.castles[side];
       let placed=false;
       for(let d=1;d<=Math.max(COLS,ROWS)&&!placed;d++)for(let y=Math.max(0,c.y-d);y<Math.min(ROWS,c.y+2+d)&&!placed;y++)for(let x=Math.max(0,c.x-d);x<Math.min(COLS,c.x+2+d)&&!placed;x++){
-        if(map.tiles[y*COLS+x]!=='grass'||taken.has(`${x},${y}`)||map.units.some(u=>u.x===x&&u.y===y))continue;
+        if(!Number.isFinite(passabilityCost('soldier',map.tiles[y*COLS+x]))||taken.has(`${x},${y}`)||map.units.some(u=>u.x===x&&u.y===y))continue;
         map.units.push({team:side,kind:'soldier',x,y});placed=true;
       }
       if(!placed)throw new Error(`No free starting tile for ${side}.`);
@@ -2049,7 +2090,11 @@ button{font:inherit}
     if(!tctx)return;
     for(let y=0;y<h;y++)for(let x=0;x<w;x++){
       const terrain=map.tiles?.[y*w+x]||'grass';
-      tctx.fillStyle=colours[terrain]||colours.grass;
+      const feature=terrainFeature(terrain);
+      const base=terrainBase(terrain);
+      tctx.fillStyle=feature==='forest'?(base==='snow'?'#90afb0':base==='desert'?'#927d4c':colours.forest):
+        feature==='mountain'?(base==='snow'?'#a4adb9':base==='desert'?'#9b897a':colours.mountain):
+        colours[terrain]||colours.grass;
       tctx.fillRect(x,y,1,1);
     }
     const ctx=canvas.getContext('2d');if(!ctx)return;
@@ -2070,7 +2115,7 @@ button{font:inherit}
       ctx.fillStyle=colour;ctx.fillRect(Math.round(rx),Math.round(ry),Math.ceil(mw),Math.ceil(mh));
     };
     for(const [side,hq] of Object.entries(map.castles||{})){
-      if(hq&&Number.isFinite(hq.x)&&Number.isFinite(hq.y))mark(hq.x,hq.y,2,2,markerColour(side));
+      if(hq&&Number.isFinite(hq.x)&&Number.isFinite(hq.y))mark(hq.x,hq.y,1,2,markerColour(side));
     }
     for(const unit of map.units||[]){
       if(Number.isFinite(unit.x)&&Number.isFinite(unit.y))mark(unit.x,unit.y,1,1,markerColour(unit.team),false);
@@ -2252,7 +2297,7 @@ button{font:inherit}
     if(!editorMap)return null;
     for(const team of Object.keys(editorMap.castles)){
       const c=editorMap.castles[team];
-      if(x>=c.x&&x<c.x+2&&y>=c.y&&y<c.y+2)return team;
+      if(x===c.x&&y>=c.y&&y<c.y+2)return team;
     }
     return null;
   }
@@ -2326,7 +2371,7 @@ button{font:inherit}
       if(xx<0||yy<0||xx>=width||yy>=height){
         return terrain==='sea';
       }
-      return tiles[yy*width+xx]===terrain;
+      return terrain==='mountain' ? terrainFeature(tiles[yy*width+xx])==='mountain' : tiles[yy*width+xx]===terrain;
     };
     return (same(x,y-1)?1:0) | (same(x+1,y)?2:0) | (same(x,y+1)?4:0) | (same(x-1,y)?8:0);
   }
@@ -2353,64 +2398,48 @@ button{font:inherit}
   }
 
   function applyTerrainVisual(el,terrain,x,y,size,map,width,height){
-    const grass=grassVariant(x,y);
-
-    el.style.backgroundColor='#8ab141';
+    const base=terrainBase(terrain), feature=terrainFeature(terrain);
+    const baseSource=base==='snow'?'./assets/terrain_snow.png':
+      base==='desert'?'./assets/terrain_desert.png':grassVariant(x,y);
+    const layerSize=`${size}px ${size}px`;
+    el.style.backgroundColor=base==='snow'?'#e3eaf1':base==='desert'?'#dabb7b':'#8ab141';
     el.style.backgroundRepeat='no-repeat';
     el.style.imageRendering='pixelated';
     el.style.backgroundPosition='0 0';
     el.style.borderRight='1px solid rgba(65,96,41,.23)';
     el.style.borderBottom='1px solid rgba(65,96,41,.23)';
 
-    // Sea has deliberately been reverted to the exact supplied tile.
-    // No beach, cliff or neighbour-aware coastline treatment is applied.
-    if(terrain==='sea'){
+    if(feature==='sea'){
       el.style.backgroundColor='#2d6fae';
-      el.style.backgroundImage=`url('./assets/terrain_sea.png')`;
-      el.style.backgroundSize=`${size}px ${size}px`;
+      el.style.backgroundImage="url('./assets/terrain_sea.png')";
+      el.style.backgroundSize=layerSize;
       el.style.borderRight='1px solid rgba(48,105,142,.18)';
       el.style.borderBottom='1px solid rgba(48,105,142,.18)';
       return;
     }
-
-    if(terrain==='snow'||terrain==='desert'||terrain==='bridge'){
-      const source={snow:'terrain_snow.png',desert:'terrain_desert.png',bridge:'terrain_bridge.png'}[terrain];
-      el.style.backgroundColor=terrain==='snow'?'#e3eaf1':terrain==='desert'?'#dabb7b':'#2d6fae';
-      el.style.backgroundImage=`url('./assets/${source}')`;
-      el.style.backgroundSize=`${size}px ${size}px`;
-      if(terrain==='bridge'){
-        el.style.borderRight='1px solid rgba(36,75,114,.18)';
-        el.style.borderBottom='1px solid rgba(36,75,114,.18)';
-      }
+    if(feature==='bridge'){
+      el.style.backgroundColor='#2d6fae';
+      el.style.backgroundImage="url('./assets/terrain_bridge.png')";
+      el.style.backgroundSize=layerSize;
+      el.style.borderRight='1px solid rgba(36,75,114,.18)';
+      el.style.borderBottom='1px solid rgba(36,75,114,.18)';
       return;
     }
-
-    if(terrain==='mountain'){
+    if(feature==='mountain'){
       const mask=terrainMask(map,'mountain',x,y,width,height);
-
-      // A mountain surrounded by mountains on all four cardinal sides uses
-      // the supplied snowy-peak tile exactly, rather than layering it over grass.
-      if(mask===15){
-        el.style.backgroundImage=`url('${WG_MOUNTAIN_SNOW_PEAK}')`;
-        el.style.backgroundSize=`${size}px ${size}px`;
-        return;
-      }
-
-      const mountain=mountainVisual(mask,x,y);
-      el.style.backgroundImage=`url('${mountain}'), url('${grass}')`;
-      el.style.backgroundSize=`${size}px ${size}px, ${size}px ${size}px`;
+      const mountain=mask===15?WG_MOUNTAIN_SNOW_PEAK:mountainVisual(mask,x,y);
+      // Mountain graphics are transparent, so the chosen biome remains visible below.
+      el.style.backgroundImage=`url('${mountain}'), url('${baseSource}')`;
+      el.style.backgroundSize=`${layerSize}, ${layerSize}`;
       return;
     }
-
-    if(terrain==='forest'){
-      el.style.backgroundImage=`url('./assets/terrain_forest_overlay.png'), url('${grass}')`;
-      el.style.backgroundSize=`${size}px ${size}px, ${size}px ${size}px`;
+    if(feature==='forest'){
+      el.style.backgroundImage=`url('./assets/terrain_forest_overlay.png'), url('${baseSource}')`;
+      el.style.backgroundSize=`${layerSize}, ${layerSize}`;
       return;
     }
-
-    // Grass is plain grass again. No automatic cliff overlay next to sea.
-    el.style.backgroundImage=`url('${grass}')`;
-    el.style.backgroundSize=`${size}px ${size}px`;
+    el.style.backgroundImage=`url('${baseSource}')`;
+    el.style.backgroundSize=layerSize;
   }
 
   function refreshEditorTerrainCell(x,y){
@@ -2514,7 +2543,7 @@ button{font:inherit}
       const img=document.createElement('img');
       img.className='editorCastle';img.src=editorHqSprite(team);
       img.style.left=`${c.x*EDITOR_CELL}px`;img.style.top=`${c.y*EDITOR_CELL}px`;
-      img.style.width=`${EDITOR_CELL*2}px`;img.style.height=`${EDITOR_CELL*2}px`;
+      img.style.width=`${EDITOR_CELL}px`;img.style.height=`${EDITOR_CELL*2}px`;
       objectLayer.appendChild(img);
     }
     editorMap.units.forEach(u=>{
@@ -2529,12 +2558,14 @@ button{font:inherit}
   function setEditorMessage(msg){document.getElementById('editorMessage').textContent=msg||''}
 
   function canPlaceHQ(team,x,y){
-    if(x<0||y<0||x+1>=editorCols()||y+1>=editorRows())return {ok:false,msg:'HQ needs a full 2×2 area inside the map.'};
+    if(x<0||y<0||x>=editorCols()||y+1>=editorRows())return {ok:false,msg:'HQ needs a full 1×2 area inside the map.'};
     for(const [other,oc] of Object.entries(editorMap.castles)){
       if(team===other||!oc)continue;
-      if(!(x+1<oc.x||x>oc.x+1||y+1<oc.y||y>oc.y+1))return {ok:false,msg:'HQs cannot overlap.'};
+      if(x===oc.x&&!(y+1<oc.y||y>oc.y+1))return {ok:false,msg:'HQs cannot overlap.'};
     }
-    for(let yy=y;yy<y+2;yy++)for(let xx=x;xx<x+2;xx++)if(editorTerrainAt(xx,yy)!=='grass')return {ok:false,msg:'HQs need a 2×2 grass area.'};
+    for(let yy=y;yy<y+2;yy++)if(!hqGroundAllowed(editorTerrainAt(x,yy))){
+      return {ok:false,msg:'HQs need grass, snow or desert beneath them.'};
+    }
     return {ok:true};
   }
 
@@ -2542,16 +2573,17 @@ button{font:inherit}
     if(!editorMap||!editorInside(x,y))return;
 
     if(editorTool==='terrain'){
-      if(editorCastleAt(x,y)){setEditorMessage('Move the HQ first before changing terrain beneath it.');return;}
-      editorMap.tiles[editorIndex(x,y)]=editorSelection;
-      if(editorSelection==='sea'){
+      if(editorCastleAt(x,y)&&!BIOME_BASES.has(editorSelection)){setEditorMessage('An HQ needs grass, snow or desert underneath it.');return;}
+      const nextTerrain=paintTerrainOnTile(editorTerrainAt(x,y),editorSelection);
+      editorMap.tiles[editorIndex(x,y)]=nextTerrain;
+      if(terrainFeature(nextTerrain)==='sea'){
         editorMap.units=editorMap.units.filter(u=>!(u.x===x&&u.y===y));
-      }else if(editorSelection==='mountain'){
+      }else if(terrainFeature(nextTerrain)==='mountain'){
         editorMap.units=editorMap.units.filter(u=>!(u.x===x&&u.y===y&&u.kind==='cavalry'));
       }
       refreshEditorTerrainNeighborhood(x,y);
       renderEditorObjects();
-      const terrainName={grass:'Grass',sea:'Sea',forest:'Forest',mountain:'Mountain',snow:'Snow',desert:'Desert',bridge:'Bridge'}[editorSelection]||'Terrain';
+      const terrainName={grass:'Grass',sea:'Sea',forest:'Forest',mountain:'Mountain',snow:'Snow',desert:'Desert',bridge:'Bridge',clearFeature:'Remove trees/rocks'}[editorSelection]||'Terrain';
       setEditorMessage(`${terrainName} painted.`);
       return;
     }
@@ -2571,7 +2603,7 @@ button{font:inherit}
         const team=editorGetTeamForColour(editorPickerColour);
         if(!team)return;
         editorMap.castles[team]={x,y};
-        editorMap.units=editorMap.units.filter(u=>!(u.x>=x&&u.x<x+2&&u.y>=y&&u.y<y+2));
+        editorMap.units=editorMap.units.filter(u=>!(u.x===x&&u.y>=y&&u.y<y+2));
         renderCreatorPreview();
         setEditorMessage(`${TEAM_COLOUR_LABELS[editorColourForTeam(team)]} HQ placed.`);
         return;
@@ -2588,8 +2620,7 @@ button{font:inherit}
       if(editorSelection!=='placeUnit')return;
       const kind=editorPickerKind;
       const terrain=editorTerrainAt(x,y);
-      if(terrain==='sea'){setEditorMessage('Units cannot be placed on sea.');return;}
-      if(terrain==='mountain'&&kind==='cavalry'){setEditorMessage('Cavalry cannot enter mountains.');return;}
+      if(!Number.isFinite(passabilityCost(kind,terrain))){setEditorMessage('That unit cannot enter this terrain.');return;}
       const team=editorGetTeamForColour(editorPickerColour,editorPickerFaction);
       if(!team)return;
       editorMap.units=editorMap.units.filter(u=>!(u.x===x&&u.y===y));
@@ -2630,8 +2661,8 @@ button{font:inherit}
 
     if(editorTool==='terrain'){
       title='TERRAIN';
-      content=`<div class="editorChoices">${choice('./assets/grass_tile.png','Grass','grass',editorSelection==='grass')}${choice('./assets/terrain_sea.png','Sea','sea',editorSelection==='sea')}${choice('./assets/terrain_forest.png','Forest','forest',editorSelection==='forest')}${choice('./assets/terrain_mountain.png','Mountain','mountain',editorSelection==='mountain')}${choice('./assets/terrain_snow.png','Snow','snow',editorSelection==='snow')}${choice('./assets/terrain_desert.png','Desert','desert',editorSelection==='desert')}${choice('./assets/terrain_bridge.png','Bridge','bridge',editorSelection==='bridge')}</div>`;
-      hint='Drag to paint. Snow and Desert cost 2 MOV; Bridge costs 1 MOV; Sea is blocked.';
+      content=`<div class="editorChoices">${choice('./assets/grass_tile.png','Grass','grass',editorSelection==='grass')}${choice('./assets/terrain_sea.png','Sea','sea',editorSelection==='sea')}${choice('./assets/terrain_forest.png','Forest','forest',editorSelection==='forest')}${choice('./assets/terrain_mountain.png','Mountain','mountain',editorSelection==='mountain')}${choice('./assets/terrain_snow.png','Snow','snow',editorSelection==='snow')}${choice('./assets/terrain_desert.png','Desert','desert',editorSelection==='desert')}${choice('./assets/terrain_bridge.png','Bridge','bridge',editorSelection==='bridge')}${remove('Clear trees/rocks','clearFeature',editorSelection==='clearFeature')}</div>`;
+      hint='Paint grass/snow/desert first, then add forests/mountains. Use Clear trees/rocks to keep the ground underneath.';
     }else if(editorTool==='units'){
       title='UNITS';
       const currentFaction=factionInfo(editorPickerFaction);
@@ -2650,8 +2681,8 @@ button{font:inherit}
       title='BUILDINGS';
       const picture=hqSpriteCache.get(editorPickerColour)||HQ_MASTER;
       content=`<div class="editorChoices">${choice(picture,'HQ','hq',editorSelection==='placeHQ')}${remove('Remove HQ','removeHQ',editorSelection==='removeHQ')}</div>${colours()}
-        <div class="editorSelectionText">${editorSelection==='placeHQ'?`Placing ${editorPickerReadyLabel()} — tap a valid 2×2 grass area.`:editorSelection==='removeHQ'?'Tap an HQ on the map to remove it.':'Select HQ and team colour to place it.'}</div>`;
-      hint=editorSelection==='placeHQ'?`${editorPickerReadyLabel()} — tap a grass tile to place.`:'Select HQ, then a colour to assign its team.';
+        <div class="editorSelectionText">${editorSelection==='placeHQ'?`Placing ${editorPickerReadyLabel()} — tap a valid 1×2 grass, snow or desert area.`:editorSelection==='removeHQ'?'Tap an HQ on the map to remove it.':'Select HQ and team colour; it can stand on grass, snow or desert.'}</div>`;
+      hint=editorSelection==='placeHQ'?`${editorPickerReadyLabel()} — tap a grass tile to place.`:'Select HQ, then its team colour. HQs occupy 1×2 tiles.';
     }
 
     palette.innerHTML=head(title)+content;
@@ -2710,16 +2741,16 @@ button{font:inherit}
     const defaults=defaultCastlePositions(newW,newH);
     for(const team of Object.keys(editorMap.castles)){
       const c=editorMap.castles[team];
-      if(!c||c.x<0||c.y<0||c.x+1>=newW||c.y+1>=newH)editorMap.castles[team]={...defaults[team]};
-      else editorMap.castles[team]={x:Math.min(c.x,newW-2),y:Math.min(c.y,newH-2)};
+      if(!c||c.x<0||c.y<0||c.x>=newW||c.y+1>=newH)editorMap.castles[team]={...(defaults[team]||defaults.player)};
+      else editorMap.castles[team]={x:Math.min(c.x,newW-1),y:Math.min(c.y,newH-2)};
     }
     // If resize caused HQ overlap, restore sensible opposite ends.
-    for(const side of TEAM_IDS.slice(2))if(editorMap.castles[side]){const c=editorMap.castles[side];if(c.x+1>=newW||c.y+1>=newH)delete editorMap.castles[side];}
+    for(const side of TEAM_IDS.slice(2))if(editorMap.castles[side]){const c=editorMap.castles[side];if(c.x>=newW||c.y+1>=newH)delete editorMap.castles[side];}
     const p=editorMap.castles.player,e=editorMap.castles.enemy;
-    if(!(p.x+1<e.x||p.x>e.x+1||p.y+1<e.y||p.y>e.y+1))editorMap.castles={player:{...defaults.player},enemy:{...defaults.enemy}};
+    if(p.x===e.x&&!(p.y+1<e.y||p.y>e.y+1))editorMap.castles={player:{...defaults.player},enemy:{...defaults.enemy}};
     for(const team of Object.keys(editorMap.castles)){
       const c=editorMap.castles[team];
-      for(let y=c.y;y<c.y+2;y++)for(let x=c.x;x<c.x+2;x++)editorMap.tiles[y*newW+x]='grass';
+      for(let y=c.y;y<c.y+2;y++)editorMap.tiles[y*newW+c.x]=terrainBase(editorMap.tiles[y*newW+c.x]);
     }
     editorMap.units=editorMap.units.filter(u=>!editorCastleAt(u.x,u.y));
     renderCreatorPreview();setTimeout(focusEditorMap,10);
@@ -2931,14 +2962,7 @@ button{font:inherit}
   }
 
   function terrainMoveCostForKind(kind,x,y){
-    const terrain=terrainAt(x,y);
-    if(terrain==='sea')return Infinity;
-    if(terrain==='mountain')return kind==='cavalry'?Infinity:2;
-    if(terrain==='forest')return kind==='cavalry'?3:2;
-    if(terrain==='snow'||terrain==='desert')return 2;
-    // Bridge can be crossed by every unit, including over water.
-    if(terrain==='bridge')return 1;
-    return 1;
+    return passabilityCost(kind,terrainAt(x,y));
   }
 
   function terrainMoveCost(unit,x,y){

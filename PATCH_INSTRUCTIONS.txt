@@ -1,1 +1,1 @@
-v44 patch only: upload index.html, service-worker.js, README.txt and assets/faction_crests_atlas.png into the existing repository root.
+Overwrite the files in your existing GitHub Pages repo with the contents of this archive; preserve the assets directory. Base version: v44.

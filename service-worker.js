@@ -1,4 +1,4 @@
-const CACHE='dynasties-mechanics-v44';
+const CACHE='dynasties-mechanics-v45';
 const STATIC=[
   './index.html',
   './assets/faction_crests_atlas.png',
