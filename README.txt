@@ -1,19 +1,16 @@
-Dynasties — Build v45
+DYNASTIES — BUILD v46
 
-Changes from v44:
-- Every HQ now occupies exactly 1 tile wide by 2 tiles tall (previously 2x2).
-- HQs can be placed on grass, snow or desert; their two underlying ground tiles remain unchanged.
-- Forest and Mountain are now visual overlays on grass, snow or desert.
-- Paint snow/desert first and then forest/mountain; or repaint snow/desert underneath existing features.
-- The Terrain tab has a Clear trees/rocks brush to remove an overlay while retaining the biome.
-- The game, editor, mini-map, imports and exports recognise the combined terrain types.
-- Snow/Desert ground costs 2 MOV. Forest and Mountain retain their own costs (the higher cost applies, so foot units can still enter snowy forests).
-- Existing legacy grass-based Forest/Mountain maps continue working.
-- Existing maps/saves are not deleted; the new HQ footprint takes effect when opened.
+Changes from v45
+- New Game is now map-first: choose a map, then configure only its assigned teams.
+- Houses are fixed by Create Map, including house crests and matching unit species/artwork.
+- Team setup offers only colour and Human/AI controller options, for up to 8 map-assigned teams.
+- Fixed HQ colour mismatch: starting a battle no longer overwrites selected colours with the map's original palette.
+- Both units and HQs now use the configured team colours; game saves retain faction/colour/controller.
+- Existing saved maps and imports are preserved. Maps without stored house assignments use the original defaults.
 
-Files included in this patch (copy into repository root, preserving assets/ folder):
+GitHub upload (changed files only)
 - index.html
 - service-worker.js
 - README.txt
-- assets/terrain_forest_overlay.png  (transparent tree overlay)
-- assets/wg_mountain_snow_peak.png (transparent mountain overlay)
+
+Overwrite these files at the repository root. Existing assets need not be re-uploaded.

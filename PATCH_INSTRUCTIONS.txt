@@ -1,1 +1,1 @@
-Overwrite the files in your existing GitHub Pages repo with the contents of this archive; preserve the assets directory. Base version: v44.
+v46: overwrite index.html, service-worker.js, README.txt in the GitHub Pages repo root. No asset changes.

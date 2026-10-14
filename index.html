@@ -906,6 +906,19 @@ button{font:inherit}
   .performanceFaction .factionName{font-size:10px}
 }
 
+
+/* v46: Maps own house identity; match setup only changes colour and controller. */
+#newGameTeamRows{display:grid;gap:9px}
+#newGameTeamRows .teamSetupRow{
+  display:grid;grid-template-columns:46px 38px minmax(0,1fr) 18px;
+  gap:7px;align-items:center;
+}
+#newGameTeamRows .teamHouseCrest{width:37px;height:43px;object-fit:contain;min-width:0;display:block}
+#newGameTeamRows .teamSetupPreview{width:45px;height:48px;object-fit:contain;image-rendering:pixelated}
+#newGameTeamRows .teamSetupName{line-height:1.25;margin-bottom:5px}
+#newGameTeamRows select{margin-top:4px}
+#selectedMapLabel{font-size:13px;color:#f3ddac}
+
 </style>
 </head>
 <body>
@@ -995,41 +1008,26 @@ button{font:inherit}
     <section class="menuScreen" id="newGameScreen" hidden>
       <div class="menuBackRow">
         <button class="menuBack" data-menu-back type="button">← Back</button>
-        <div class="menuSectionTitle">New Game</div>
+        <div class="menuSectionTitle">Choose Map</div>
         <span></span>
       </div>
-
-      <div class="teamSetup">
-        <div class="teamSetupHeading">HOUSE · COLOUR · CONTROLLER</div>
-        <div class="teamSetupGrid">
-          <div class="teamSetupRow">
-            <img class="teamSetupPreview" id="playerColourPreview" src="./assets/team_blue_soldier.png" alt="Player unit preview">
-            <img class="teamHouseCrest" id="playerHouseCrest" src="./assets/white_walker_crest.png" alt="White Walkers crest">
-            <div>
-              <select class="teamHouseSelect" id="playerHouseSelect" aria-label="Player house"></select>
-              <select class="teamColourSelect" id="playerColourSelect" aria-label="Player colour"></select>
-              <select class="teamControlSelect" id="playerControlSelect" aria-label="Player controller"><option value="human">Human</option><option value="ai">AI</option></select>
-            </div>
-            <span class="teamColourSwatch" id="playerColourSwatch"></span>
-          </div>
-
-          <div class="teamSetupRow">
-            <img class="teamSetupPreview" id="enemyColourPreview" src="./assets/team_red_soldier.png" alt="Opponent unit preview">
-            <img class="teamHouseCrest" id="enemyHouseCrest" src="./assets/house_lannister_crest.png" alt="House Lannister crest">
-            <div>
-              <select class="teamHouseSelect" id="enemyHouseSelect" aria-label="Opponent house"></select>
-              <select class="teamColourSelect" id="enemyColourSelect" aria-label="Opponent colour"></select>
-              <select class="teamControlSelect" id="enemyControlSelect" aria-label="Opponent controller"><option value="ai">AI</option><option value="human">Human</option></select>
-            </div>
-            <span class="teamColourSwatch" id="enemyColourSwatch"></span>
-          </div>
-        </div>
-        <div id="extraTeamsSetup"></div>
-        <button class="menuButton" id="addTeam" type="button">+ Add Team (max 8)</button>
-      </div>
-
-      <div class="menuSectionSub">Choose 2–8 teams and their house, colour and Human/AI controller, then pick a map.</div>
+      <div class="menuSectionSub">Select a map. Its houses and starting armies are set in Create Map; you can choose their colours and controllers next.</div>
       <div id="mapList"></div>
+    </section>
+
+    <section class="menuScreen" id="newGameTeamScreen" hidden>
+      <div class="menuBackRow">
+        <button class="menuBack" id="teamSetupBack" type="button">← Maps</button>
+        <div class="menuSectionTitle">Team Setup</div>
+        <span></span>
+      </div>
+      <div class="menuSectionSub" id="selectedMapLabel"></div>
+      <div class="teamSetup">
+        <div class="teamSetupHeading">HOUSES ASSIGNED IN CREATE MAP</div>
+        <div class="menuSectionSub">Choose each team's colour and whether a Human or AI controls it. Houses are locked to the selected map.</div>
+        <div class="teamSetupGrid" id="newGameTeamRows"></div>
+      </div>
+      <button class="menuButton primary" id="beginConfiguredGame" type="button">Begin Battle</button>
     </section>
 
     <section class="menuScreen" id="createMapScreen" hidden>
@@ -1165,6 +1163,7 @@ button{font:inherit}
 
 <script>
 (async () => {
+  // Dynasties v46: houses assigned in Create Map; New Game configures colours and controllers.
   // Dynasties v43: match-only performance, per-map thumbnails, snow/desert/bridge terrain.
   // Build v44: ten house crests packed in one atlas, ten selectable factions.
   let COLS=20, ROWS=20;
@@ -2122,127 +2121,80 @@ button{font:inherit}
     }
   }
 
-  const TEAM_FACTION_LABELS=Object.fromEntries(Object.entries(FACTION_CONFIG).map(([id,info])=>[id,info.label]));
-
-  function populateTeamHouseSelect(selectId){
-    const select=document.getElementById(selectId);
-    if(!select||select.options.length)return;
-    Object.keys(FACTION_CONFIG).forEach(faction=>{
-      const option=document.createElement('option');
-      option.value=faction;
-      option.textContent=TEAM_FACTION_LABELS[faction]||factionInfo(faction).label;
-      select.appendChild(option);
-    });
-  }
-
   const TEAM_COLOUR_LABELS={
-    red:'Red',
-    blue:'Blue',
-    green:'Green',
-    yellow:'Yellow',
-    purple:'Purple',
-    orange:'Orange',
-    grey:'Grey',
-    cyan:'Cyan',
-    white:'White',
-    black:'Black'
+    red:'Red',blue:'Blue',green:'Green',yellow:'Yellow',purple:'Purple',
+    orange:'Orange',grey:'Grey',cyan:'Cyan',white:'White',black:'Black'
   };
-
-  function populateTeamColourSelect(selectId){
-    const select=document.getElementById(selectId);
-    if(!select||select.options.length)return;
-    Object.keys(TEAM_COLOUR_PALETTES).forEach(colour=>{
-      const option=document.createElement('option');
-      option.value=colour;
-      option.textContent=TEAM_COLOUR_LABELS[colour]||colour;
-      select.appendChild(option);
-    });
-  }
-
   function teamColourDisplay(colour){
     const ramp=TEAM_COLOUR_PALETTES[colour]||TEAM_COLOUR_PALETTES.blue;
     return ramp[Math.min(4,ramp.length-1)];
   }
 
-  function renderExtraTeamSetup(){
-    const container=document.getElementById('extraTeamsSetup');if(!container)return;
-    container.innerHTML=TEAM_IDS.slice(2,teamCount).map((id,i)=>{
-      const info=factionInfo(teams[id].faction);
-      const soldier=teamSprite(id,'soldier');
-      const houseOptions=Object.keys(FACTION_CONFIG).map(key=>`<option value="${key}" ${teams[id].faction===key?'selected':''}>${FACTION_CONFIG[key].label}</option>`).join('');
-      const colourOptions=Object.keys(TEAM_COLOUR_PALETTES).map(key=>`<option value="${key}" ${teams[id].colour===key?'selected':''}>${TEAM_COLOUR_LABELS[key]}</option>`).join('');
-      return `<div class="teamSetupRow" data-extra-team="${id}">
-        <img class="teamSetupPreview" src="${soldier}" alt="Team ${i+3} soldier preview">
-        <img class="teamHouseCrest" src="${info.crest}" alt="${info.label} crest" title="${info.label}">
+  let pendingNewGameMap=null;
+  const fallbackTeamFaction=(side)=>side==='player'?'white_walkers':side==='enemy'?'lannister':'stark';
+  const fallbackTeamColour=(side)=>TEAM_DEFAULT_COLOURS[TEAM_IDS.indexOf(side)]||'grey';
+
+  function teamsOnMap(map){
+    const included=new Set(['player','enemy']);
+    for(const side of Object.keys(map?.teamStyles||{}))if(TEAM_IDS.includes(side))included.add(side);
+    for(const side of Object.keys(map?.castles||{}))if(TEAM_IDS.includes(side))included.add(side);
+    for(const u of map?.units||[])if(TEAM_IDS.includes(u.team))included.add(u.team);
+    // Teams are stored as sequential IDs for turn order. Keep slots 1..N active.
+    const n=Math.max(2,...[...included].map(s=>TEAM_IDS.indexOf(s)+1));
+    return TEAM_IDS.slice(0,Math.min(8,n));
+  }
+
+  function configureMapForNewGame(map){
+    pendingNewGameMap=cloneMap(map);
+    const sides=teamsOnMap(pendingNewGameMap);
+    teamCount=sides.length;
+    for(const side of sides){
+      // The editor's house choice is authoritative. The colour is only the starting suggestion.
+      const style=pendingNewGameMap.teamStyles?.[side];
+      teams[side].faction=style?.faction&&FACTION_CONFIG[style.faction]
+        ? style.faction : fallbackTeamFaction(side);
+      teams[side].colour=style?.colour&&TEAM_COLOUR_PALETTES[style.colour]
+        ? style.colour : fallbackTeamColour(side);
+      syncTeamIdentity(side);
+    }
+    const label=document.getElementById('selectedMapLabel');
+    label.textContent=`${pendingNewGameMap.name} · ${pendingNewGameMap.width} × ${pendingNewGameMap.height} · ${sides.length} teams`;
+    renderConfiguredTeamRows();
+    showMenuScreen('newGameTeamScreen');
+  }
+
+  function renderConfiguredTeamRows(){
+    const container=document.getElementById('newGameTeamRows');
+    container.innerHTML=activeSides().map((side,i)=>{
+      const team=teams[side],info=factionInfo(team.faction);
+      const options=Object.keys(TEAM_COLOUR_PALETTES).map(colour=>
+        `<option value="${colour}" ${colour===team.colour?'selected':''}>${TEAM_COLOUR_LABELS[colour]}</option>`
+      ).join('');
+      return `<div class="teamSetupRow" data-setup-team="${side}">
+        <img class="teamSetupPreview" src="${teamSprite(side,'soldier')}" alt="${escapeHtml(info.label)} soldier">
+        <img class="teamHouseCrest" src="${info.crest}" alt="${escapeHtml(info.label)} crest">
         <div>
-          <div class="teamSetupName">Team ${i+3} ${id===TEAM_IDS[teamCount-1]?`<button type="button" class="menuBack" data-remove-team="${id}" style="float:right;min-height:22px;padding:0 6px">Remove</button>`:''}</div>
-          <select class="teamHouseSelect" data-team-house="${id}" aria-label="Team ${i+3} house">${houseOptions}</select>
-          <select class="teamColourSelect" data-team-colour="${id}" aria-label="Team ${i+3} colour">${colourOptions}</select>
-          <select class="teamControlSelect" data-team-control="${id}" aria-label="Team ${i+3} controller"><option value="human" ${teams[id].control==='human'?'selected':''}>Human</option><option value="ai" ${teams[id].control==='ai'?'selected':''}>AI</option></select>
+          <div class="teamSetupName">Team ${i+1} · ${escapeHtml(info.label)}</div>
+          <select class="teamColourSelect" data-colour-for="${side}" aria-label="Team ${i+1} colour">${options}</select>
+          <select class="teamControlSelect" data-controller-for="${side}" aria-label="Team ${i+1} controller">
+            <option value="human" ${team.control==='human'?'selected':''}>Human</option>
+            <option value="ai" ${team.control==='ai'?'selected':''}>AI</option>
+          </select>
         </div>
-        <span class="teamColourSwatch" style="background:${teamColourDisplay(teams[id].colour)}"></span>
+        <span class="teamColourSwatch" style="background:${teamColourDisplay(team.colour)}"></span>
       </div>`;
     }).join('');
-    container.querySelectorAll('[data-team-house]').forEach(el=>el.onchange=()=>{teams[el.dataset.teamHouse].faction=el.value;syncTeamIdentity(el.dataset.teamHouse);refreshNewGameTeamSetup();renderMapList()});
-    container.querySelectorAll('[data-team-colour]').forEach(el=>el.onchange=()=>{teams[el.dataset.teamColour].colour=el.value;refreshNewGameTeamSetup();renderMapList()});
-    container.querySelectorAll('[data-team-control]').forEach(el=>el.onchange=()=>{teams[el.dataset.teamControl].control=el.value});
-    container.querySelectorAll('[data-remove-team]').forEach(el=>el.onclick=()=>{teamCount=Math.max(2,teamCount-1);refreshNewGameTeamSetup();renderMapList()});
-    document.getElementById('addTeam').disabled=teamCount>=8;
-  }
-
-  function refreshNewGameTeamSetup(){
-    renderExtraTeamSetup();
-    populateTeamHouseSelect('playerHouseSelect');
-    populateTeamHouseSelect('enemyHouseSelect');
-    populateTeamColourSelect('playerColourSelect');
-    populateTeamColourSelect('enemyColourSelect');
-
-    const playerHouse=document.getElementById('playerHouseSelect');
-    const enemyHouse=document.getElementById('enemyHouseSelect');
-    const playerColour=document.getElementById('playerColourSelect');
-    const enemyColour=document.getElementById('enemyColourSelect');
-    if(!playerHouse||!enemyHouse||!playerColour||!enemyColour)return;
-
-    playerHouse.value=teams.player.faction;
-    enemyHouse.value=teams.enemy.faction;
-    playerColour.value=teams.player.colour;
-    enemyColour.value=teams.enemy.colour;
-    document.getElementById('playerControlSelect').value=teams.player.control||'human';
-    document.getElementById('enemyControlSelect').value=teams.enemy.control||'ai';
-
-    const playerPreview=document.getElementById('playerColourPreview');
-    const enemyPreview=document.getElementById('enemyColourPreview');
-    if(playerPreview)playerPreview.src=teamSprite('player','soldier');
-    if(enemyPreview)enemyPreview.src=teamSprite('enemy','soldier');
-
-    const pInfo=factionInfo(teams.player.faction);
-    const eInfo=factionInfo(teams.enemy.faction);
-    const playerCrest=document.getElementById('playerHouseCrest');
-    const enemyCrest=document.getElementById('enemyHouseCrest');
-    if(playerCrest){playerCrest.src=pInfo.crest;playerCrest.alt=`${pInfo.label} crest`;}
-    if(enemyCrest){enemyCrest.src=eInfo.crest;enemyCrest.alt=`${eInfo.label} crest`;}
-
-    const playerSwatch=document.getElementById('playerColourSwatch');
-    const enemySwatch=document.getElementById('enemyColourSwatch');
-    if(playerSwatch)playerSwatch.style.background=teamColourDisplay(teams.player.colour);
-    if(enemySwatch)enemySwatch.style.background=teamColourDisplay(teams.enemy.colour);
-  }
-
-  function chooseNewGameTeamColour(team,colour){
-    if(!teams[team]||!TEAM_COLOUR_PALETTES[colour])return;
-    teams[team].colour=colour;
-    refreshPaletteDependentUI();
-    refreshNewGameTeamSetup();
-    renderMapList();
-  }
-
-  function chooseNewGameFaction(team,faction){
-    if(!teams[team]||!FACTION_CONFIG[faction])return;
-    teams[team].faction=faction;
-    syncTeamIdentity(team);
-    refreshPaletteDependentUI();
-    refreshNewGameTeamSetup();
-    renderMapList();
+    container.querySelectorAll('[data-colour-for]').forEach(select=>select.addEventListener('change',()=>{
+      const side=select.dataset.colourFor;
+      if(!TEAM_COLOUR_PALETTES[select.value])return;
+      teams[side].colour=select.value;
+      const row=select.closest('[data-setup-team]');
+      row.querySelector('.teamSetupPreview').src=teamSprite(side,'soldier');
+      row.querySelector('.teamColourSwatch').style.background=teamColourDisplay(select.value);
+    }));
+    container.querySelectorAll('[data-controller-for]').forEach(select=>select.addEventListener('change',()=>{
+      teams[select.dataset.controllerFor].control=select.value;
+    }));
   }
 
   function renderMapList(){
@@ -2250,21 +2202,20 @@ button{font:inherit}
     list.innerHTML='';
     const created=getCreatedMaps();
     const maps=[cloneMap(DEFAULT_MAP),...created.map(cloneMap)];
-
     maps.forEach(map=>{
       const btn=document.createElement('button');
-      btn.type='button';
-      btn.className='mapCard';
+      btn.type='button';btn.className='mapCard';
       const meta=map.created
-        ? `Created map · ${map.width}×${map.height} · ${map.tiles.filter(t=>t==='sea').length} sea tiles · ${map.units.length} units`
+        ? `Created map · ${map.width}×${map.height} · ${map.units.length} units`
         : `Built-in map · ${map.width}×${map.height} · Grass · ${map.units.length} units`;
+      const names=teamsOnMap(map).map(side=>
+        factionInfo(map.teamStyles?.[side]?.faction||fallbackTeamFaction(side)).label
+      ).join(' / ');
       btn.innerHTML=`${mapPreviewMarkup()}
-        <div>
-          <div class="mapCardName">${escapeHtml(map.name)}</div>
-          <div class="mapCardMeta">${meta}<br>${Object.keys(map.teamStyles||{}).length?'Uses map-assigned house and colours':activeSides().map(s=>teams[s].name).join(' / ')+' · '+teamCount+' teams'}</div>
-        </div>`;
+        <div><div class="mapCardName">${escapeHtml(map.name)}</div>
+        <div class="mapCardMeta">${meta}<br>${escapeHtml(names)}</div></div>`;
       drawMapThumbnail(btn.querySelector('.mapPreviewCanvas'),map);
-      btn.addEventListener('click',()=>startNewGame(map));
+      btn.addEventListener('click',()=>configureMapForNewGame(map));
       list.appendChild(btn);
     });
   }
@@ -2819,7 +2770,7 @@ button{font:inherit}
   }
 
   function openNewGameScreen(){
-    refreshNewGameTeamSetup();
+    pendingNewGameMap=null;
     renderMapList();
     showMenuScreen('newGameScreen');
   }
@@ -2871,19 +2822,14 @@ button{font:inherit}
   }
 
   function startNewGame(map){
-    if(map?.teamStyles && Object.keys(map.teamStyles).length){
-      for(const [side,style] of Object.entries(map.teamStyles)){
-        if(!TEAM_IDS.includes(side)||!style||!FACTION_CONFIG[style.faction]||!TEAM_COLOUR_PALETTES[style.colour])continue;
-        teams[side].faction=style.faction;
-        teams[side].colour=style.colour;
-        syncTeamIdentity(side);
-        teamCount=Math.max(teamCount,TEAM_IDS.indexOf(side)+1);
-      }
-    }
+    // Houses are assigned from Create Map by configureMapForNewGame.
+    // Preserve the colours and controllers selected immediately before starting.
     try{applyMap(map,true);}catch(e){alert(e.message);return;}
     resetGameState();
     state.gameActive=true;
     hideMainMenu();
+    refreshPaletteDependentUI();
+    positionStaticObjects();
     updateAll();
     setTimeout(focusMap,60);
     if(teams[state.activeTeam].control==='ai')scheduleAiTurn();
@@ -4088,18 +4034,15 @@ button{font:inherit}
       refreshMainMenu();
     }
   });
-  document.getElementById('playerControlSelect').addEventListener('change',e=>teams.player.control=e.target.value);
-  document.getElementById('enemyControlSelect').addEventListener('change',e=>teams.enemy.control=e.target.value);
   document.getElementById('skipAi').addEventListener('click',()=>{
     state.skipAiView=true;board.style.transition='none';
     document.getElementById('skipAi').hidden=true;
     setStatus('Fast-forwarding AI turn…');
   });
-  document.getElementById('playerHouseSelect').addEventListener('change',e=>chooseNewGameFaction('player',e.target.value));
-  document.getElementById('enemyHouseSelect').addEventListener('change',e=>chooseNewGameFaction('enemy',e.target.value));
-  document.getElementById('playerColourSelect').addEventListener('change',e=>chooseNewGameTeamColour('player',e.target.value));
-  document.getElementById('enemyColourSelect').addEventListener('change',e=>chooseNewGameTeamColour('enemy',e.target.value));
-  document.getElementById('addTeam').addEventListener('click',()=>{if(teamCount>=8)return;teamCount++;refreshNewGameTeamSetup();renderMapList();});
+  document.getElementById('teamSetupBack').addEventListener('click',openNewGameScreen);
+  document.getElementById('beginConfiguredGame').addEventListener('click',()=>{
+    if(pendingNewGameMap)startNewGame(pendingNewGameMap);
+  });
   document.getElementById('menuNewGame').addEventListener('click',openNewGameScreen);
   document.getElementById('menuCreateMap').addEventListener('click',openMapManagerScreen);
   document.getElementById('mapCreateNew').addEventListener('click',()=>openCreateMapScreen(null));
