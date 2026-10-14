@@ -919,6 +919,13 @@ button{font:inherit}
 #newGameTeamRows select{margin-top:4px}
 #selectedMapLabel{font-size:13px;color:#f3ddac}
 
+/* v48 — compact independent primary/secondary team palettes. */
+.dualColourSelects{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin-top:3px}
+.dualColourSelects label{display:block;min-width:0;font:bold 9px Georgia,serif;letter-spacing:.6px;color:#c7af7d}
+.dualColourSelects .teamColourSelect{min-width:0;width:100%;font-size:11px}
+.dualColourSwatches{display:flex;flex-direction:column;gap:4px;justify-content:center}
+.dualColourSwatches i{display:block;width:18px;height:17px;border:1px solid #dfd2ae;border-radius:3px;box-shadow:inset 0 0 0 1px #0007}
+@media(max-width:450px){#newGameTeamRows .teamSetupRow{gap:4px;grid-template-columns:40px 30px minmax(0,1fr) 18px}.dualColourSelects{gap:3px}.dualColourSelects select{font-size:10px}}
 </style>
 </head>
 <body>
@@ -1071,7 +1078,7 @@ button{font:inherit}
               <div id="creatorUnitLayer"></div>
             </div>
           </div>
-          <div id="editorHint">Terrain: choose Grass or Sea, then paint directly onto the map.</div>
+          <div id="editorHint">Terrain: choose a tile and paint; tap an existing bridge again to rotate it.</div>
           <div id="editorMessage"></div>
         </div>
       </div>
@@ -1164,8 +1171,10 @@ button{font:inherit}
 <script>
 (async () => {
   // Dynasties v46: houses assigned in Create Map; New Game configures colours and controllers.
+  // Dynasties v47: bridge tap-to-rotate while preserving the existing map/save formats.
   // Dynasties v43: match-only performance, per-map thumbnails, snow/desert/bridge terrain.
   // Build v44: ten house crests packed in one atlas, ten selectable factions.
+  // Dynasties Build v48 — dual-colour human sprites and heraldry palettes.
   let COLS=20, ROWS=20;
   const CELL=64, EDITOR_CELL=32, MAX_MAP_SIZE=200, MIN_MAP_SIZE=4;
   const LEGACY_SAVE_KEY='dynasties-mechanics-v21';
@@ -1213,13 +1222,13 @@ button{font:inherit}
     pinchMapX:0,pinchMapY:0
   };
   const teams={
-    player:{name:'White Walkers',faction:'white_walkers',colour:'blue',control:'human',gold:300,income:100,recruited:false},
-    enemy:{name:'House Lannister',faction:'lannister',colour:'red',control:'ai',gold:300,income:100,recruited:false}
+    player:{name:'White Walkers',faction:'white_walkers',colour:'blue',secondary:'silver',control:'human',gold:300,income:100,recruited:false},
+    enemy:{name:'House Lannister',faction:'lannister',colour:'red',secondary:'gold',control:'ai',gold:300,income:100,recruited:false}
   };
 
   for(let i=2;i<TEAM_IDS.length;i++){
     const id=TEAM_IDS[i];
-    teams[id]={name:'House Stark',faction:'stark',colour:TEAM_DEFAULT_COLOURS[i],control:'ai',gold:300,income:100,recruited:false};
+    teams[id]={name:'House Stark',faction:'stark',colour:TEAM_DEFAULT_COLOURS[i],secondary:'gold',control:'ai',gold:300,income:100,recruited:false};
   }
 
   /*
@@ -1242,7 +1251,14 @@ button{font:inherit}
     grey:  ['#202228','#343840','#555b66','#747d89','#9ea8b5','#dce2e8'],
     cyan:  ['#10292f','#174851','#1d6c78','#2996a4','#42c8d5','#9cf6ff'],
     white: ['#41474d','#68747f','#929eab','#b9c5cf','#e1e8ec','#ffffff'],
-    black: ['#0c0d13','#151820','#222731','#343943','#515966','#7b8592']
+    black: ['#0c0d13','#151820','#222731','#343943','#515966','#7b8592'],
+    gold: ['#3f260b','#72500e','#a67513','#d29b17','#eebd26','#ffdf60'],
+    crimson: ['#32070d','#5a0b19','#8b1325','#b8182e','#d92a3b','#f76161'],
+    burgundy: ['#250b18','#451027','#661637','#8a2145','#ad3359','#da6884'],
+    navy: ['#071627','#0c2541','#12365a','#194979','#28649b','#5c94c9'],
+    forest: ['#0c2112','#183a1d','#245529','#317a36','#4b9f48','#82c76a'],
+    silver: ['#2b3037','#515d69','#788692','#9eabb4','#c1cbd0','#eef1ec'],
+    bronze: ['#312013','#58351a','#805122','#a46b2a','#cd933f','#edbe74']
   };
 
   const FACTION_CONFIG={
@@ -1301,15 +1317,15 @@ button{font:inherit}
       cavalry:'./assets/team_blue_cavalry.png'
     },
     lannister:{
-      soldier:'./assets/team_red_soldier.png',
-      archer:'./assets/team_red_archer.png',
-      cavalry:'./assets/team_red_cavalry.png'
+      soldier:'./assets/human_units_dual_colour.png',
+      archer:'./assets/human_units_dual_colour.png',
+      cavalry:'./assets/human_units_dual_colour.png'
     },
     // Stark uses the human unit artwork too; palette swapping supplies its chosen colours.
     stark:{
-      soldier:'./assets/team_red_soldier.png',
-      archer:'./assets/team_red_archer.png',
-      cavalry:'./assets/team_red_cavalry.png'
+      soldier:'./assets/human_units_dual_colour.png',
+      archer:'./assets/human_units_dual_colour.png',
+      cavalry:'./assets/human_units_dual_colour.png'
     }
   };
 
@@ -1349,6 +1365,28 @@ button{font:inherit}
     FACTION_MASTER_SPRITES[house]=FACTION_MASTER_SPRITES.lannister;
     FACTION_TEAM_PIXELS[house]=FACTION_TEAM_PIXELS.lannister;
   }
+
+  // The new human sprites contain TWO deliberately separate colour ramps.
+  // In the Archer master, red is PRIMARY and gold SECONDARY.
+  // In Soldier and Cavalry masters, gold is PRIMARY and red SECONDARY.
+  // Recolour only these exact/near-exact palette pixels, never apply a hue filter.
+  const HUMAN_RED_RAMP=[
+    {rgb:[71,32,46],step:0}, {rgb:[92,17,30],step:1},
+    {rgb:[170,0,63],step:3}, {rgb:[224,0,49],step:4},
+    {rgb:[245,108,73],step:5}
+  ];
+  const HUMAN_GOLD_RAMP=[
+    {rgb:[101,71,0],step:1}, {rgb:[145,91,0],step:2},
+    {rgb:[185,150,0],step:3}, {rgb:[194,156,0],step:3},
+    {rgb:[255,215,38],step:5}, {rgb:[255,216,41],step:5}
+  ];
+  const HUMAN_KIND_ATLAS={soldier:0,archer:1,cavalry:2};
+  const MASTER_IMAGES=new Map();
+  const HUMAN_MASTER='./assets/human_units_dual_colour.png';
+  const isHumanFaction=f=>f!=='white_walkers';
+  const normalSecondary=colour=>TEAM_COLOUR_PALETTES[colour]?colour:'gold';
+
+  function secondaryColour(team){return normalSecondary(teams[team]?.secondary||'gold');}
 
   const HQ_MASTER='./assets/hq_master.png';
   const HQ_TEAM_SHADES=[
@@ -1392,8 +1430,8 @@ button{font:inherit}
     return factionInfo(teamFaction(team)).unitPrefix;
   }
 
-  function paletteSpriteKey(faction,kind,colour){
-    return `${faction}|${kind}|${colour}`;
+  function paletteSpriteKey(faction,kind,colour,secondary='gold'){
+    return `${faction}|${kind}|${colour}|${isHumanFaction(faction)?secondary:'-'}`;
   }
 
   function baseSpriteForTeam(team,kind){
@@ -1409,51 +1447,61 @@ button{font:inherit}
     });
   }
 
-  async function buildPaletteSprite(faction,kind,colour){
-    const key=paletteSpriteKey(faction,kind,colour);
+  function palettePixelMap(faction,kind,primary,secondary){
+    const swaps=new Map();
+    if(isHumanFaction(faction)){
+      const mainRamp=TEAM_COLOUR_PALETTES[primary]||TEAM_COLOUR_PALETTES.red;
+      const trimRamp=TEAM_COLOUR_PALETTES[secondary]||TEAM_COLOUR_PALETTES.gold;
+      const mainColours=kind==='archer'?HUMAN_RED_RAMP:HUMAN_GOLD_RAMP;
+      const trimColours=kind==='archer'?HUMAN_GOLD_RAMP:HUMAN_RED_RAMP;
+      mainColours.forEach(item=>swaps.set(item.rgb.join(','),hexRgb(mainRamp[item.step])));
+      trimColours.forEach(item=>swaps.set(item.rgb.join(','),hexRgb(trimRamp[item.step])));
+    }else{
+      const ramp=TEAM_COLOUR_PALETTES[primary]||TEAM_COLOUR_PALETTES.blue;
+      (FACTION_TEAM_PIXELS[faction]||[]).forEach(item=>swaps.set(item.rgb.join(','),hexRgb(ramp[item.step])));
+    }
+    return swaps;
+  }
+
+  function paletteSprite(faction,kind,colour,secondary='gold'){
+    const key=paletteSpriteKey(faction,kind,colour,secondary);
     if(paletteSpriteCache.has(key))return paletteSpriteCache.get(key);
-
     const src=masterSpriteForFaction(faction,kind);
-    const ramp=TEAM_COLOUR_PALETTES[colour];
-    const sourcePixels=FACTION_TEAM_PIXELS[faction];
-    if(!ramp||!sourcePixels){
-      paletteSpriteCache.set(key,src);
-      return src;
-    }
-
-    try{
-      const img=await loadPaletteImage(src);
-      const canvas=document.createElement('canvas');
-      canvas.width=img.naturalWidth||img.width;
-      canvas.height=img.naturalHeight||img.height;
-      const ctx=canvas.getContext('2d',{willReadFrequently:true});
-      ctx.imageSmoothingEnabled=false;
-      ctx.drawImage(img,0,0);
-      const image=ctx.getImageData(0,0,canvas.width,canvas.height);
-      const pixels=image.data;
-
-      const swaps=new Map();
-      sourcePixels.forEach(item=>{
-        swaps.set(item.rgb.join(','),hexRgb(ramp[item.step]));
-      });
-
-      for(let i=0;i<pixels.length;i+=4){
-        if(pixels[i+3]===0)continue;
-        const replacement=swaps.get(`${pixels[i]},${pixels[i+1]},${pixels[i+2]}`);
-        if(!replacement)continue;
-        pixels[i]=replacement[0];
-        pixels[i+1]=replacement[1];
-        pixels[i+2]=replacement[2];
+    const master=MASTER_IMAGES.get(src);
+    if(!master)return isHumanFaction(faction)?`./assets/team_red_${kind}.png`:src;
+    const isHuman=isHumanFaction(faction);
+    const w=isHuman?64:(master.naturalWidth||master.width);
+    const h=isHuman?64:(master.naturalHeight||master.height);
+    const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+    const ctx=canvas.getContext('2d',{willReadFrequently:true});
+    if(!ctx)return src;
+    ctx.imageSmoothingEnabled=false;
+    if(isHuman){
+      ctx.drawImage(master,64*(HUMAN_KIND_ATLAS[kind]||0),0,64,64,0,0,64,64);
+    }else ctx.drawImage(master,0,0);
+    const data=ctx.getImageData(0,0,w,h);
+    const swaps=palettePixelMap(faction,kind,colour,secondary);
+    const entries=[...swaps].map(([key,replacement])=>({from:key.split(',').map(Number),replacement}));
+    for(let i=0;i<data.data.length;i+=4){
+      if(data.data[i+3]===0)continue;
+      const r=data.data[i],g=data.data[i+1],b=data.data[i+2];
+      let output=swaps.get(`${r},${g},${b}`);
+      // A few edge pixels differ by 1–2 in the supplied PNGs.
+      if(!output && isHuman){
+        for(const entry of entries){
+          if(Math.abs(r-entry.from[0])<=2&&Math.abs(g-entry.from[1])<=2&&Math.abs(b-entry.from[2])<=2){
+            output=entry.replacement;break;
+          }
+        }
       }
-
-      ctx.putImageData(image,0,0);
-      const result=canvas.toDataURL('image/png');
-      paletteSpriteCache.set(key,result);
-      return result;
-    }catch(e){
-      paletteSpriteCache.set(key,src);
-      return src;
+      if(output){data.data[i]=output[0];data.data[i+1]=output[1];data.data[i+2]=output[2];}
     }
+    ctx.putImageData(data,0,0);
+    const result=canvas.toDataURL('image/png');
+    // Limit cache to avoid hundreds of large variants across repeated map editing.
+    if(paletteSpriteCache.size>420)paletteSpriteCache.clear();
+    paletteSpriteCache.set(key,result);
+    return result;
   }
 
   async function buildHqSprite(colour){
@@ -1477,22 +1525,16 @@ button{font:inherit}
   function hqSprite(side){return hqSpriteCache.get(teamColour(side))||HQ_MASTER;}
 
   async function initialisePaletteSprites(){
-    const jobs=[];
-    for(const faction of Object.keys(FACTION_MASTER_SPRITES)){
-      for(const kind of Object.keys(UNIT_DEFS)){
-        for(const colour of Object.keys(TEAM_COLOUR_PALETTES)){
-          jobs.push(buildPaletteSprite(faction,kind,colour));
-        }
-      }
-    }
-    await Promise.all([...jobs,...Object.keys(TEAM_COLOUR_PALETTES).map(buildHqSprite)]);
+    const paths=new Set([HUMAN_MASTER,...Object.values(FACTION_MASTER_SPRITES.white_walkers)]);
+    await Promise.all([...paths].map(async src=>{
+      try{MASTER_IMAGES.set(src,await loadPaletteImage(src));}
+      catch(err){console.warn('Sprite master could not load:',src,err);}
+    }));
+    await Promise.all(Object.keys(TEAM_COLOUR_PALETTES).map(buildHqSprite));
   }
 
   function teamSprite(team,kind){
-    const faction=teamFaction(team);
-    const colour=teamColour(team);
-    return paletteSpriteCache.get(paletteSpriteKey(faction,kind,colour))
-      || baseSpriteForTeam(team,kind);
+    return paletteSprite(teamFaction(team),kind,teamColour(team),secondaryColour(team));
   }
 
   function setTeamColour(team,colour){
@@ -1531,7 +1573,7 @@ button{font:inherit}
   window.DynastiesPalettes={
     colours:Object.keys(TEAM_COLOUR_PALETTES),
     setTeamColour,
-    sprite:(faction,kind,colour)=>paletteSpriteCache.get(paletteSpriteKey(faction,kind,colour))
+    sprite:(faction,kind,colour,secondary)=>paletteSprite(faction,kind,colour,secondary)
   };
 
   const barracks={
@@ -1576,7 +1618,7 @@ button{font:inherit}
   const BIOME_BASES=new Set(['grass','snow','desert']);
   const OVERLAY_TYPES=new Set(['forest','mountain']);
   const VALID_TERRAIN_TYPES=new Set(['grass','snow','desert','forest','mountain',
-    'snow_forest','desert_forest','snow_mountain','desert_mountain','sea','bridge']);
+    'snow_forest','desert_forest','snow_mountain','desert_mountain','sea','bridge','bridge_vertical']);
   function terrainBase(tile){
     if(tile==='snow'||tile?.startsWith('snow_'))return 'snow';
     if(tile==='desert'||tile?.startsWith('desert_'))return 'desert';
@@ -1585,13 +1627,15 @@ button{font:inherit}
   function terrainFeature(tile){
     if(tile==='forest'||tile?.endsWith('_forest'))return 'forest';
     if(tile==='mountain'||tile?.endsWith('_mountain'))return 'mountain';
-    return tile==='sea'||tile==='bridge'?tile:null;
+    return tile==='sea'?'sea':(tile==='bridge'||tile==='bridge_vertical')?'bridge':null;
   }
   function combinedTerrain(base,feature){
     if(!OVERLAY_TYPES.has(feature))return base;
     return base==='grass'?feature:`${base}_${feature}`;
   }
   function paintTerrainOnTile(current,brush){
+    // The Bridge tool cycles between two orientations with repeated taps.
+    if(brush==='bridge')return current==='bridge'?'bridge_vertical':current==='bridge_vertical'?'bridge':'bridge';
     if(brush==='clearFeature')return terrainBase(current);
     if(OVERLAY_TYPES.has(brush))return combinedTerrain(terrainBase(current),brush);
     // Snow or desert changes only the base if trees/rocks are already present.
@@ -1629,7 +1673,7 @@ button{font:inherit}
       updatedAt:map?.updatedAt||null,
       imported:!!map?.imported,
       width,height,tiles,
-      teamStyles:Object.fromEntries(Object.entries(map?.teamStyles||{}).filter(([id,v])=>TEAM_IDS.includes(id)&&v&&FACTION_CONFIG[v.faction]&&TEAM_COLOUR_PALETTES[v.colour]).map(([id,v])=>[id,{faction:v.faction,colour:v.colour}])),
+      teamStyles:Object.fromEntries(Object.entries(map?.teamStyles||{}).filter(([id,v])=>TEAM_IDS.includes(id)&&v&&FACTION_CONFIG[v.faction]&&TEAM_COLOUR_PALETTES[v.colour]).map(([id,v])=>[id,{faction:v.faction,colour:v.colour,secondary:normalSecondary(v.secondary)}])),
       units:Array.isArray(map?.units)?map.units.map(u=>({...u})):fallbackUnits,
       castles:{
         ...Object.fromEntries(Object.entries(map?.castles||{}).map(([id,pos])=>[id,{...pos}])),
@@ -1734,7 +1778,7 @@ button{font:inherit}
       createdAt:new Date().toISOString(),
       updatedAt:new Date().toISOString(),
       width,height,tiles,units:safeUnits,castles,
-      teamStyles:Object.fromEntries(Object.entries(payload.teamStyles||{}).filter(([id,v])=>TEAM_IDS.includes(id)&&v&&FACTION_CONFIG[v.faction]&&TEAM_COLOUR_PALETTES[v.colour]).map(([id,v])=>[id,{faction:v.faction,colour:v.colour}]))
+      teamStyles:Object.fromEntries(Object.entries(payload.teamStyles||{}).filter(([id,v])=>TEAM_IDS.includes(id)&&v&&FACTION_CONFIG[v.faction]&&TEAM_COLOUR_PALETTES[v.colour]).map(([id,v])=>[id,{faction:v.faction,colour:v.colour,secondary:normalSecondary(v.secondary)}]))
     };
   }
 
@@ -2093,7 +2137,7 @@ button{font:inherit}
       const base=terrainBase(terrain);
       tctx.fillStyle=feature==='forest'?(base==='snow'?'#90afb0':base==='desert'?'#927d4c':colours.forest):
         feature==='mountain'?(base==='snow'?'#a4adb9':base==='desert'?'#9b897a':colours.mountain):
-        colours[terrain]||colours.grass;
+        (feature==='bridge'?colours.bridge:colours[terrain])||colours.grass;
       tctx.fillRect(x,y,1,1);
     }
     const ctx=canvas.getContext('2d');if(!ctx)return;
@@ -2123,7 +2167,9 @@ button{font:inherit}
 
   const TEAM_COLOUR_LABELS={
     red:'Red',blue:'Blue',green:'Green',yellow:'Yellow',purple:'Purple',
-    orange:'Orange',grey:'Grey',cyan:'Cyan',white:'White',black:'Black'
+    orange:'Orange',grey:'Grey',cyan:'Cyan',white:'White',black:'Black',
+    gold:'Gold',crimson:'Crimson',burgundy:'Burgundy',navy:'Navy',
+    forest:'Forest Green',silver:'Silver',bronze:'Bronze'
   };
   function teamColourDisplay(colour){
     const ramp=TEAM_COLOUR_PALETTES[colour]||TEAM_COLOUR_PALETTES.blue;
@@ -2155,6 +2201,7 @@ button{font:inherit}
         ? style.faction : fallbackTeamFaction(side);
       teams[side].colour=style?.colour&&TEAM_COLOUR_PALETTES[style.colour]
         ? style.colour : fallbackTeamColour(side);
+      teams[side].secondary=normalSecondary(style?.secondary);
       syncTeamIdentity(side);
     }
     const label=document.getElementById('selectedMapLabel');
@@ -2175,13 +2222,16 @@ button{font:inherit}
         <img class="teamHouseCrest" src="${info.crest}" alt="${escapeHtml(info.label)} crest">
         <div>
           <div class="teamSetupName">Team ${i+1} · ${escapeHtml(info.label)}</div>
-          <select class="teamColourSelect" data-colour-for="${side}" aria-label="Team ${i+1} colour">${options}</select>
+          <div class="dualColourSelects">
+            <label>PRIMARY<select class="teamColourSelect" data-colour-for="${side}" aria-label="Team ${i+1} primary colour">${options}</select></label>
+            ${isHumanFaction(team.faction)?`<label>SECONDARY<select class="teamColourSelect" data-secondary-for="${side}" aria-label="Team ${i+1} secondary colour">${Object.keys(TEAM_COLOUR_PALETTES).map(colour=>`<option value="${colour}" ${colour===secondaryColour(side)?'selected':''}>${TEAM_COLOUR_LABELS[colour]}</option>`).join('')}</select></label>`:''}
+          </div>
           <select class="teamControlSelect" data-controller-for="${side}" aria-label="Team ${i+1} controller">
             <option value="human" ${team.control==='human'?'selected':''}>Human</option>
             <option value="ai" ${team.control==='ai'?'selected':''}>AI</option>
           </select>
         </div>
-        <span class="teamColourSwatch" style="background:${teamColourDisplay(team.colour)}"></span>
+        <span class="dualColourSwatches"><i style="background:${teamColourDisplay(team.colour)}"></i>${isHumanFaction(team.faction)?`<i style="background:${teamColourDisplay(secondaryColour(side))}"></i>`:''}</span>
       </div>`;
     }).join('');
     container.querySelectorAll('[data-colour-for]').forEach(select=>select.addEventListener('change',()=>{
@@ -2190,7 +2240,16 @@ button{font:inherit}
       teams[side].colour=select.value;
       const row=select.closest('[data-setup-team]');
       row.querySelector('.teamSetupPreview').src=teamSprite(side,'soldier');
-      row.querySelector('.teamColourSwatch').style.background=teamColourDisplay(select.value);
+      row.querySelector('.dualColourSwatches i').style.background=teamColourDisplay(select.value);
+    }));
+    container.querySelectorAll('[data-secondary-for]').forEach(select=>select.addEventListener('change',()=>{
+      const side=select.dataset.secondaryFor;
+      if(!TEAM_COLOUR_PALETTES[select.value])return;
+      teams[side].secondary=select.value;
+      const row=select.closest('[data-setup-team]');
+      row.querySelector('.teamSetupPreview').src=teamSprite(side,'soldier');
+      const accents=row.querySelectorAll('.dualColourSwatches i');
+      if(accents[1])accents[1].style.background=teamColourDisplay(select.value);
     }));
     container.querySelectorAll('[data-controller-for]').forEach(select=>select.addEventListener('change',()=>{
       teams[select.dataset.controllerFor].control=select.value;
@@ -2233,11 +2292,13 @@ button{font:inherit}
   let editorPickerKind='soldier';
   let editorPickerFaction='white_walkers';
   let editorPickerColour='blue';
+  let editorPickerSecondary='gold';
   let editorPainting=false;
   let editorPaletteOpen=true;
   let editorZoom=1, editorX=0, editorY=0;
   let editorDragging=false, editorDragMoved=false, editorDragStartX=0, editorDragStartY=0, editorStartX=0, editorStartY=0;
   let editorPointers=new Map(), editorPinching=false, editorPinchStartDist=0, editorPinchStartZoom=1, editorPinchMapX=0, editorPinchMapY=0;
+  const editorPaintedThisStroke=new Set();
 
   function editorCols(){return editorMap?.width||20}
   function editorRows(){return editorMap?.height||20}
@@ -2257,13 +2318,12 @@ button{font:inherit}
   function editorUnitAt(x,y){return editorMap?.units?.find(u=>u.x===x&&u.y===y)||null}
 
   function editorStyle(team){
-    return editorMap?.teamStyles?.[team] || {faction:teamFaction(team),colour:teamColour(team)};
+    return editorMap?.teamStyles?.[team] || {faction:teamFaction(team),colour:teamColour(team),secondary:secondaryColour(team)};
   }
 
   function editorUnitSprite(u){
     const style=editorStyle(u.team);
-    return paletteSpriteCache.get(paletteSpriteKey(style.faction,u.kind,style.colour))
-      ||masterSpriteForFaction(style.faction,u.kind);
+    return paletteSprite(style.faction,u.kind,style.colour,normalSecondary(style.secondary));
   }
 
   function editorHqSprite(team){
@@ -2299,7 +2359,7 @@ button{font:inherit}
       return null;
     }
     if(!editorMap.teamStyles)editorMap.teamStyles={};
-    editorMap.teamStyles[side]={faction:faction||style.faction,colour};
+    editorMap.teamStyles[side]={faction:faction||style.faction,colour,secondary:faction&&isHumanFaction(faction)?normalSecondary(editorPickerSecondary):normalSecondary(style.secondary)};
     return side;
   }
 
@@ -2370,7 +2430,9 @@ button{font:inherit}
     }
     if(feature==='bridge'){
       el.style.backgroundColor='#2d6fae';
-      el.style.backgroundImage="url('./assets/terrain_bridge.png')";
+      el.style.backgroundImage=terrain==='bridge_vertical'
+        ? "url('./assets/terrain_bridge_vertical.png')"
+        : "url('./assets/terrain_bridge.png')";
       el.style.backgroundSize=layerSize;
       el.style.borderRight='1px solid rgba(36,75,114,.18)';
       el.style.borderBottom='1px solid rgba(36,75,114,.18)';
@@ -2460,6 +2522,7 @@ button{font:inherit}
         tile.addEventListener('pointerdown',e=>{
           if(!editorPaletteOpen)return;
           e.preventDefault();
+          editorPaintedThisStroke.clear();
           editorPainting=true;
           applyEditorBrush(x,y);
         });
@@ -2524,6 +2587,11 @@ button{font:inherit}
     if(!editorMap||!editorInside(x,y))return;
 
     if(editorTool==='terrain'){
+      if(editorPainting){
+        const key=`${x},${y}`;
+        if(editorPaintedThisStroke.has(key))return;
+        editorPaintedThisStroke.add(key);
+      }
       if(editorCastleAt(x,y)&&!BIOME_BASES.has(editorSelection)){setEditorMessage('An HQ needs grass, snow or desert underneath it.');return;}
       const nextTerrain=paintTerrainOnTile(editorTerrainAt(x,y),editorSelection);
       editorMap.tiles[editorIndex(x,y)]=nextTerrain;
@@ -2535,7 +2603,9 @@ button{font:inherit}
       refreshEditorTerrainNeighborhood(x,y);
       renderEditorObjects();
       const terrainName={grass:'Grass',sea:'Sea',forest:'Forest',mountain:'Mountain',snow:'Snow',desert:'Desert',bridge:'Bridge',clearFeature:'Remove trees/rocks'}[editorSelection]||'Terrain';
-      setEditorMessage(`${terrainName} painted.`);
+      setEditorMessage(editorSelection==='bridge'
+        ? `Bridge placed ${nextTerrain==='bridge_vertical'?'vertically':'horizontally'}. Tap again to rotate.`
+        : `${terrainName} painted.`);
       return;
     }
 
@@ -2588,10 +2658,11 @@ button{font:inherit}
     document.getElementById('editorHint').textContent='Palette hidden — drag to pan, pinch or use +/− to zoom. Tap a tool above to reopen it.';
   }
 
-  function editorColourButtons(){
+  function editorColourButtons(channel='primary'){
+    const current=channel==='secondary'?editorPickerSecondary:editorPickerColour;
     return Object.keys(TEAM_COLOUR_PALETTES).map(colour=>{
       const ramp=TEAM_COLOUR_PALETTES[colour];
-      return `<button class="editorChoice editorColourChoice ${editorPickerColour===colour?'active':''}" data-editor-colour="${colour}" type="button" title="${TEAM_COLOUR_LABELS[colour]}" aria-label="${TEAM_COLOUR_LABELS[colour]}" aria-pressed="${editorPickerColour===colour}"><span class="editorColourChip" style="background:${ramp[4]}"></span></button>`;
+      return `<button class="editorChoice editorColourChoice ${current===colour?'active':''}" data-editor-${channel}="${colour}" type="button" title="${TEAM_COLOUR_LABELS[colour]}" aria-label="${channel} ${TEAM_COLOUR_LABELS[colour]}" aria-pressed="${current===colour}"><span class="editorColourChip" style="background:${ramp[4]}"></span></button>`;
     }).join('');
   }
 
@@ -2608,7 +2679,7 @@ button{font:inherit}
     const choice=(picture,label,choiceId,active=false)=>`<button class="editorChoice ${active?'active':''}" type="button" data-picker-choice="${choiceId}" aria-pressed="${active}"><img src="${picture}" alt=""><span>${label}</span></button>`;
     const remove=(label,id,active=false)=>`<button class="editorChoice removeChoice ${active?'active':''}" type="button" data-picker-choice="${id}" aria-pressed="${active}"><span class="removeIcon">×</span><span>${label}</span></button>`;
     const head=(label)=>`<div class="editorPaletteHead"><div class="editorPaletteTitle">${label}</div><button class="editorPaletteClose" id="editorPaletteClose" type="button" aria-label="Close selector">×</button></div>`;
-    const colours=()=>`<div class="editorStepLabel">TEAM COLOUR</div><div class="editorColours">${editorColourButtons()}</div>`;
+    const colours=(human=false)=>`<div class="editorStepLabel">PRIMARY COLOUR</div><div class="editorColours">${editorColourButtons('primary')}</div>${human?`<div class="editorStepLabel">SECONDARY COLOUR</div><div class="editorColours">${editorColourButtons('secondary')}</div>`:''}`;
 
     if(editorTool==='terrain'){
       title='TERRAIN';
@@ -2618,14 +2689,14 @@ button{font:inherit}
       title='UNITS';
       const currentFaction=factionInfo(editorPickerFaction);
       const unitChoices=Object.keys(UNIT_DEFS).map(kind=>{
-        const picture=paletteSpriteCache.get(paletteSpriteKey(editorPickerFaction,kind,editorPickerColour))||masterSpriteForFaction(editorPickerFaction,kind);
+        const picture=paletteSprite(editorPickerFaction,kind,editorPickerColour,editorPickerSecondary);
         return choice(picture,UNIT_DEFS[kind].label,`kind:${kind}`,editorSelection==='placeUnit'&&editorPickerKind===kind);
       }).join('');
       const houseOptions=Object.entries(FACTION_CONFIG).map(([f,info])=>`<option value="${f}" ${editorPickerFaction===f?'selected':''}>${info.label}</option>`).join('');
       content=`<div class="editorUnitsLayout">
         <div class="editorUnitsList">${unitChoices}${remove('Remove unit','remove',editorSelection==='remove')}</div>
         <div class="editorHousePicker"><label for="editorHouseChoice">HOUSE</label><select id="editorHouseChoice" aria-label="Unit species or house">${houseOptions}</select><img src="${currentFaction.crest}" alt="${currentFaction.label} crest"></div>
-      </div>${colours()}
+      </div>${colours(isHumanFaction(editorPickerFaction))}
       <div class="editorSelectionText">${editorSelection==='remove'?'Tap a unit on the map to remove it.':editorSelection==='placeUnit'?`Placing ${editorPickerReadyLabel()} — tap a valid tile.`:'Select a unit, then a team colour to place it.'}</div>`;
       hint=editorSelection==='placeUnit'?`${editorPickerReadyLabel()} — tap a map tile to place.`:'Choose a house on the right, then a unit and colour.';
     }else{
@@ -2661,9 +2732,21 @@ button{font:inherit}
         editorPickerKind=val.split(':')[1];editorSelection='placeUnit';renderEditorPalette();return;
       }
     }));
-    palette.querySelectorAll('[data-editor-colour]').forEach(btn=>btn.addEventListener('click',()=>{
-      editorPickerColour=btn.dataset.editorColour;
+    palette.querySelectorAll('[data-editor-primary]').forEach(btn=>btn.addEventListener('click',()=>{
+      editorPickerColour=btn.dataset.editorPrimary;
+      const assigned=editorFindTeamForColour(editorPickerColour);
+      if(assigned)editorPickerSecondary=normalSecondary(editorStyle(assigned).secondary);
       // Preserve the current placement tool if selected; swatch choice alone shouldn't place anything.
+      renderEditorPalette();
+    }));
+    palette.querySelectorAll('[data-editor-secondary]').forEach(btn=>btn.addEventListener('click',()=>{
+      editorPickerSecondary=btn.dataset.editorSecondary;
+      // If we are editing a previously placed team, keep its trim in sync.
+      const side=editorFindTeamForColour(editorPickerColour);
+      if(side && editorMap.teamStyles?.[side] && isHumanFaction(editorMap.teamStyles[side].faction)){
+        editorMap.teamStyles[side].secondary=editorPickerSecondary;
+        renderEditorObjects();
+      }
       renderEditorPalette();
     }));
   }
@@ -2763,7 +2846,7 @@ button{font:inherit}
     const endPointer=e=>{
       editorPointers.delete(e.pointerId);try{viewport.releasePointerCapture(e.pointerId)}catch(err){}
       if(editorPointers.size<2)editorPinching=false;
-      if(editorPointers.size===0){editorDragging=false;editorPainting=false;viewport.classList.remove('dragging')}
+      if(editorPointers.size===0){editorDragging=false;editorPainting=false;editorPaintedThisStroke.clear();viewport.classList.remove('dragging')}
     };
     viewport.addEventListener('pointerup',endPointer);viewport.addEventListener('pointercancel',endPointer);
     viewport.addEventListener('wheel',e=>{e.preventDefault();const r=viewport.getBoundingClientRect();zoomEditorAt(e.deltaY<0?1.12:.89,e.clientX-r.left,e.clientY-r.top)},{passive:false});
@@ -2780,7 +2863,7 @@ button{font:inherit}
       editorMap=cloneMap(map);
     }else{
       const width=20,height=20,castles=defaultCastlePositions(width,height);
-      editorMap={id:null,name:'',created:true,imported:false,width,height,tiles:Array(width*height).fill('grass'),units:[],castles,teamStyles:{player:{faction:'white_walkers',colour:'blue'},enemy:{faction:'lannister',colour:'red'}}};
+      editorMap={id:null,name:'',created:true,imported:false,width,height,tiles:Array(width*height).fill('grass'),units:[],castles,teamStyles:{player:{faction:'white_walkers',colour:'blue',secondary:'silver'},enemy:{faction:'lannister',colour:'red',secondary:'gold'}}};
     }
     document.getElementById('createMapName').value=editorMap.name==='Untitled Map'?'':editorMap.name;
     document.getElementById('editorMapWidth').value=editorMap.width;
@@ -3766,6 +3849,7 @@ button{font:inherit}
           teams[k].control=s.teams[k].control==='human'?'human':(s.teams[k].control==='ai'?'ai':(k==='enemy'?'ai':'human'));
           if(s.teams[k].faction&&FACTION_MASTER_SPRITES[s.teams[k].faction])teams[k].faction=s.teams[k].faction;
           if(s.teams[k].colour&&TEAM_COLOUR_PALETTES[s.teams[k].colour])teams[k].colour=s.teams[k].colour;
+          teams[k].secondary=normalSecondary(s.teams[k].secondary);
           syncTeamIdentity(k);
         }
       }

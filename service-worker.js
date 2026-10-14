@@ -1,6 +1,7 @@
-const CACHE='dynasties-mechanics-v46';
+const CACHE='dynasties-mechanics-v48';
 const STATIC=[
   './index.html',
+  './assets/human_units_dual_colour.png',
   './assets/faction_crests_atlas.png',
   './assets/dynasties_throne_of_twilight.png',
   './assets/hq_master.png',
@@ -17,6 +18,7 @@ const STATIC=[
   './assets/terrain_snow.png',
   './assets/terrain_desert.png',
   './assets/terrain_bridge.png',
+  './assets/terrain_bridge_vertical.png',
   './assets/terrain_forest.png',
   './assets/terrain_mountain.png',
   './assets/wg_grass_0.png',
@@ -103,7 +105,7 @@ const STATIC=[
   './assets/house_lannister_crest.png',
   './assets/white_walker_crest.png',
   './assets/winterfell.png',
-  './assets/casterly_rock.png'
+  './assets/casterly_rock.png',
   './assets/wg_ocean_overlay_0.png',
   './assets/wg_ocean_overlay_1.png',
   './assets/wg_ocean_overlay_2.png',
