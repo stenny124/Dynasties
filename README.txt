@@ -1,19 +1,36 @@
-Dynasties — Build v48
+Dynasties — Build v49
 
-Update: dual-colour human units and house-crest-inspired team colours.
+Main menu: HOUSES
+- Added Houses to the main menu, displaying all ten factions and their crests.
+- Edit House lets you choose permanent primary and secondary colours and see live Soldier, Archer and Cavalry previews.
+- The saved house palettes apply to every map and battle on this browser/device until changed again.
+- White Walkers retain their skeleton sprite palette (primary colour only).
 
-- Replaced the human Soldier / Archer / Cavalry masters with the three user-supplied 64×64 sprites, packed into ONE 192×64 atlas to minimise GitHub uploads.
-- Independent PRIMARY and SECONDARY colours for human teams in New Game. White Walkers retain their existing single-colour skeletons.
-- Soldier and Cavalry: gold pixels belong to primary, red pixels to secondary. Archer: red pixels belong to primary, gold pixels to secondary (following the supplied artworks).
-- Seven new crest-inspired swatches: Gold, Crimson, Burgundy, Navy, Forest Green, Silver and Bronze. Existing ten colours still available.
-- The Create Map unit selector also offers primary/secondary swatches, with live dual-colour previews. HQs still use the primary team colour.
-- Map export/import, local map storage, battle save slots, and team setup carry the secondary palette; old maps and saves default to Gold trim.
-- Palette variants are rendered lazily from the master artwork, rather than precomputing thousands of combinations.
+Create Map
+- Units: choose House and unit type only; no colour options.
+- Buildings: choose House and HQ only; no colour options.
+- Colours for all units and HQs are inherited from each House's saved settings.
+- Each House may belong to only one team/player on a map.
+- On a starting map, select a new house and tap an existing HQ to assign the house to that HQ/army.
+- Legacy map team IDs and existing .dynmap.json formats remain compatible.
 
-Changed files to upload to GitHub (from v47):
+New Game
+- Houses come from the selected map and cannot be changed in team setup.
+- Team Setup shows each house's saved colours and lets you select ONLY Human or AI.
+- Duplicate-house maps are flagged instead of launching a match with the same house twice.
+
+In Battle
+- A small version of the correct house crest appears at the bottom-left of each Soldier, Archer and Cavalry.
+- House colours determine both unit and HQ appearance.
+
+Compatibility
+- Existing save slots, map libraries and map exports remain readable.
+- House settings use this device's browser localStorage; importing a map on another device does not transfer the house colour settings.
+- No existing graphics have been replaced.
+
+Files changed in this update:
 - index.html
 - service-worker.js
 - README.txt
-- assets/human_units_dual_colour.png
 
-Upload the contents of this ZIP into the repository root and overwrite matching files. Leave other game assets unchanged.
+Deploy: upload these files to the root of your GitHub Pages repository, overwriting the previous copies.

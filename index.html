@@ -919,6 +919,28 @@ button{font:inherit}
 #newGameTeamRows select{margin-top:4px}
 #selectedMapLabel{font-size:13px;color:#f3ddac}
 
+/* v49 — permanent house palettes and in-battle house identity. */
+#newGameTeamRows .teamSetupRow{grid-template-columns:45px 38px minmax(0,1fr)!important}
+@media(max-width:450px){#newGameTeamRows .teamSetupRow{grid-template-columns:40px 30px minmax(0,1fr)!important}}
+
+#houseLibrary{display:grid;gap:8px}
+.houseListRow{display:flex;align-items:center;gap:12px;border:1px solid #7a6543;background:#17202dcc;border-radius:6px;padding:7px}
+.houseListRow img{width:48px;height:48px;object-fit:contain;image-rendering:pixelated;flex:none}
+.houseListText{flex:1;min-width:0;color:#f0dfbd;font-weight:700;font-size:13px}
+.houseListColours{display:flex;gap:3px;margin-top:6px}
+.houseListColours i{display:block;width:14px;height:14px;border:1px solid #e0c88a88;border-radius:2px}
+.houseEditButton{padding:7px 9px;background:#402c20;border:1px solid #b99057;border-radius:4px;color:#ffedc2;font-weight:bold;white-space:nowrap}
+.houseEditHeading{display:flex;align-items:center;gap:12px;color:#f4d79f;font-size:20px;margin:8px 0 14px}
+.houseEditHeading img{width:56px;height:56px;image-rendering:pixelated;object-fit:contain}
+.houseEditColourLabel{font-size:11px;letter-spacing:1px;color:#ead19d;margin:12px 0 6px}
+.houseSwatches{display:flex;flex-wrap:wrap;gap:6px}
+.houseSwatch{width:29px;height:29px;padding:3px;border:2px solid #75644b;background:#181b22;border-radius:4px}
+.houseSwatch i{display:block;width:100%;height:100%;border-radius:2px}
+.houseSwatch.chosen{outline:2px solid #f1d087;border-color:#fff0bd}
+.houseUnitPreviews{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:14px 0}
+.houseUnitPreviews>div{text-align:center;color:#e9d2a0;font-size:10px;border:1px solid #6d5b40;background:#121b25;padding:6px;border-radius:4px}
+.houseUnitPreviews img{display:block;width:60px;height:68px;margin:0 auto;object-fit:contain;image-rendering:pixelated}
+.unit img.unitHouseCrest{position:absolute;z-index:5;left:-1px;bottom:4px;width:19px;height:19px;object-fit:contain;transform:none!important;filter:drop-shadow(0 1px 1px #000)!important;pointer-events:none}
 /* v48 — compact independent primary/secondary team palettes. */
 .dualColourSelects{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin-top:3px}
 .dualColourSelects label{display:block;min-width:0;font:bold 9px Georgia,serif;letter-spacing:.6px;color:#c7af7d}
@@ -937,7 +959,7 @@ button{font:inherit}
         <img class="menuCrest" src="./assets/white_walker_crest.png" alt="">
         <div>
           <div class="menuTitle">DYNASTIES</div>
-          <div class="menuSubtitle">WHITE WALKERS · LANNISTER</div>
+          <div class="menuSubtitle">HOUSES OF THE REALM</div>
         </div>
         <img class="menuCrest" src="./assets/house_lannister_crest.png" alt="">
       </div>
@@ -945,10 +967,25 @@ button{font:inherit}
         <button class="menuButton primary" id="menuLoadGame" type="button">Load Game</button>
         <button class="menuButton" id="menuNewGame" type="button">New Game</button>
         <button class="menuButton" id="menuCreateMap" type="button">Create Map</button>
+        <button class="menuButton" id="menuHouses" type="button">Houses</button>
       </div>
       <div class="menuFooter" id="saveStatus">No saved game found.</div>
     </section>
 
+
+    <section class="menuScreen" id="housesScreen" hidden>
+      <div class="menuBackRow"><button class="menuBack" data-menu-back type="button">← Back</button><div class="menuSectionTitle">Houses</div><span></span></div>
+      <div class="menuSectionSub">Set each house's permanent colours. They will be used in every map and future battle until you edit the house again.</div>
+      <div id="houseLibrary"></div>
+    </section>
+    <section class="menuScreen" id="editHouseScreen" hidden>
+      <div class="menuBackRow"><button class="menuBack" id="houseEditBack" type="button">← Houses</button><div class="menuSectionTitle">Edit House</div><span></span></div>
+      <div class="houseEditHeading"><img id="houseEditCrest" alt="House crest"><span id="houseEditName"></span></div>
+      <div class="houseEditColourLabel">PRIMARY COLOUR</div><div class="houseSwatches" id="housePrimaryColours"></div>
+      <div class="houseEditColourLabel" id="houseSecondaryLabel">SECONDARY COLOUR</div><div class="houseSwatches" id="houseSecondaryColours"></div>
+      <div class="houseUnitPreviews" id="houseUnitPreviews"></div>
+      <button class="menuButton primary" id="saveHouseStyle" type="button">Save House</button>
+    </section>
 
     <section class="menuScreen" id="saveSlotsScreen" hidden>
       <div class="menuBackRow">
@@ -1018,7 +1055,7 @@ button{font:inherit}
         <div class="menuSectionTitle">Choose Map</div>
         <span></span>
       </div>
-      <div class="menuSectionSub">Select a map. Its houses and starting armies are set in Create Map; you can choose their colours and controllers next.</div>
+      <div class="menuSectionSub">Select a map. Each house and its permanent colours are set in Create Map and the Houses menu. Only the Human/AI controller is chosen next.</div>
       <div id="mapList"></div>
     </section>
 
@@ -1031,7 +1068,7 @@ button{font:inherit}
       <div class="menuSectionSub" id="selectedMapLabel"></div>
       <div class="teamSetup">
         <div class="teamSetupHeading">HOUSES ASSIGNED IN CREATE MAP</div>
-        <div class="menuSectionSub">Choose each team's colour and whether a Human or AI controls it. Houses are locked to the selected map.</div>
+        <div class="menuSectionSub">The map decides the houses, and the Houses menu decides their colours. Choose only whether each is Human or AI.</div>
         <div class="teamSetupGrid" id="newGameTeamRows"></div>
       </div>
       <button class="menuButton primary" id="beginConfiguredGame" type="button">Begin Battle</button>
@@ -1385,6 +1422,84 @@ button{font:inherit}
   const HUMAN_MASTER='./assets/human_units_dual_colour.png';
   const isHumanFaction=f=>f!=='white_walkers';
   const normalSecondary=colour=>TEAM_COLOUR_PALETTES[colour]?colour:'gold';
+
+  const HOUSE_STYLES_KEY='dynasties-house-styles-v1';
+  const HOUSE_DEFAULT_STYLES={
+    arryn:{primary:'blue',secondary:'white'},
+    baratheon:{primary:'gold',secondary:'black'},
+    greyjoy:{primary:'black',secondary:'gold'},
+    lannister:{primary:'crimson',secondary:'gold'},
+    martell:{primary:'orange',secondary:'red'},
+    stark:{primary:'silver',secondary:'black'},
+    targaryen:{primary:'black',secondary:'crimson'},
+    tully:{primary:'navy',secondary:'red'},
+    tyrell:{primary:'forest',secondary:'gold'},
+    white_walkers:{primary:'cyan',secondary:'silver'}
+  };
+  function loadHouseStyles(){
+    let saved={};try{saved=JSON.parse(localStorage.getItem(HOUSE_STYLES_KEY)||'{}')||{}}catch(e){}
+    return Object.fromEntries(Object.keys(FACTION_CONFIG).map(house=>{
+      const fallback=HOUSE_DEFAULT_STYLES[house];const stored=saved[house]||{};
+      return [house,{
+        primary:TEAM_COLOUR_PALETTES[stored.primary]?stored.primary:fallback.primary,
+        secondary:TEAM_COLOUR_PALETTES[stored.secondary]?stored.secondary:fallback.secondary
+      }];
+    }));
+  }
+  let houseStyles=loadHouseStyles();
+  const styleForHouse=house=>houseStyles[house]||HOUSE_DEFAULT_STYLES[house]||HOUSE_DEFAULT_STYLES.lannister;
+  function applySavedHouseStyle(side){
+    const palette=styleForHouse(teamFaction(side));
+    teams[side].colour=palette.primary;teams[side].secondary=palette.secondary;
+  }
+  function syncAllHouseStyles(){
+    for(const side of TEAM_IDS)if(teams[side])applySavedHouseStyle(side);
+    if(editorMap){
+      for(const style of Object.values(editorMap.teamStyles||{})){
+        if(!FACTION_CONFIG[style.faction])continue;
+        const preset=styleForHouse(style.faction);
+        style.colour=preset.primary;style.secondary=preset.secondary;
+      }
+      if(!document.getElementById('createMapScreen').hidden){renderEditorPalette();renderEditorObjects();}
+    }
+    if(state.gameActive&&typeof updateAll==='function')updateAll();
+  }
+  let editingHouse=null,editingPrimary=null,editingSecondary=null;
+  function renderHouseLibrary(){
+    document.getElementById('houseLibrary').innerHTML=Object.entries(FACTION_CONFIG).map(([id,info])=>{
+      const p=styleForHouse(id);
+      return `<div class="houseListRow"><img src="${info.crest}" alt="${escapeHtml(info.label)} crest"><div class="houseListText">${escapeHtml(info.label)}<div class="houseListColours"><i style="background:${teamColourDisplay(p.primary)}"></i>${isHumanFaction(id)?`<i style="background:${teamColourDisplay(p.secondary)}"></i>`:''}</div></div><button type="button" class="houseEditButton" data-edit-house="${id}">Edit House</button></div>`;
+    }).join('');
+    document.querySelectorAll('[data-edit-house]').forEach(btn=>btn.addEventListener('click',()=>openHouseEditor(btn.dataset.editHouse)));
+  }
+  function openHousesMenu(){renderHouseLibrary();showMenuScreen('housesScreen')}
+  function openHouseEditor(house){
+    editingHouse=house;editingPrimary=styleForHouse(house).primary;editingSecondary=styleForHouse(house).secondary;
+    document.getElementById('houseEditCrest').src=factionInfo(house).crest;
+    document.getElementById('houseEditName').textContent=factionInfo(house).label;
+    document.getElementById('houseSecondaryLabel').hidden=!isHumanFaction(house);
+    document.getElementById('houseSecondaryColours').hidden=!isHumanFaction(house);
+    renderHouseEditControls();showMenuScreen('editHouseScreen');
+  }
+  function renderHouseEditControls(){
+    function swatches(current,channel){
+      return Object.keys(TEAM_COLOUR_PALETTES).map(name=>`<button type="button" class="houseSwatch ${name===current?'chosen':''}" data-house-colour="${channel}" data-palette="${name}" title="${TEAM_COLOUR_LABELS[name]}" aria-label="${channel} ${TEAM_COLOUR_LABELS[name]}" aria-pressed="${name===current}"><i style="background:${teamColourDisplay(name)}"></i></button>`).join('');
+    }
+    document.getElementById('housePrimaryColours').innerHTML=swatches(editingPrimary,'primary');
+    document.getElementById('houseSecondaryColours').innerHTML=swatches(editingSecondary,'secondary');
+    document.querySelectorAll('#editHouseScreen [data-house-colour]').forEach(btn=>btn.addEventListener('click',()=>{
+      if(btn.dataset.houseColour==='primary')editingPrimary=btn.dataset.palette;
+      else editingSecondary=btn.dataset.palette;
+      renderHouseEditControls();
+    }));
+    document.getElementById('houseUnitPreviews').innerHTML=Object.keys(UNIT_DEFS).map(kind=>`<div><img src="${paletteSprite(editingHouse,kind,editingPrimary,editingSecondary)}" alt="${kind}">${UNIT_DEFS[kind].label}</div>`).join('');
+  }
+  function saveHouseEdits(){
+    if(!editingHouse)return;
+    houseStyles[editingHouse]={primary:editingPrimary,secondary:editingSecondary};
+    try{localStorage.setItem(HOUSE_STYLES_KEY,JSON.stringify(houseStyles))}catch(e){alert('Unable to save house colours on this device.');return;}
+    syncAllHouseStyles();renderHouseLibrary();showMenuScreen('housesScreen');
+  }
 
   function secondaryColour(team){return normalSecondary(teams[team]?.secondary||'gold');}
 
@@ -2148,7 +2263,7 @@ button{font:inherit}
     ctx.imageSmoothingEnabled=false;
     ctx.drawImage(tmp,dx,dy,w*scale,h*scale);
     const markerColour=(side)=>{
-      const key=map.teamStyles?.[side]?.colour||teams[side]?.colour||'blue';
+      const key=styleForHouse(map.teamStyles?.[side]?.faction||teams[side]?.faction||fallbackTeamFaction(side)).primary;
       return TEAM_COLOUR_PALETTES[key]?.[4]||'#6fc6ed';
     };
     const mark=(x,y,width,height,colour,outline=true)=>{
@@ -2195,17 +2310,20 @@ button{font:inherit}
     const sides=teamsOnMap(pendingNewGameMap);
     teamCount=sides.length;
     for(const side of sides){
-      // The editor's house choice is authoritative. The colour is only the starting suggestion.
+      // The editor assigns the house; its permanent House profile supplies all colours.
       const style=pendingNewGameMap.teamStyles?.[side];
       teams[side].faction=style?.faction&&FACTION_CONFIG[style.faction]
         ? style.faction : fallbackTeamFaction(side);
-      teams[side].colour=style?.colour&&TEAM_COLOUR_PALETTES[style.colour]
-        ? style.colour : fallbackTeamColour(side);
-      teams[side].secondary=normalSecondary(style?.secondary);
+      applySavedHouseStyle(side);
       syncTeamIdentity(side);
     }
     const label=document.getElementById('selectedMapLabel');
     label.textContent=`${pendingNewGameMap.name} · ${pendingNewGameMap.width} × ${pendingNewGameMap.height} · ${sides.length} teams`;
+    const selectedHouses=sides.map(side=>teamFaction(side));
+    if(new Set(selectedHouses).size!==selectedHouses.length){
+      alert('This map has the same house assigned to multiple teams. Edit the map so each house is unique.');
+      return;
+    }
     renderConfiguredTeamRows();
     showMenuScreen('newGameTeamScreen');
   }
@@ -2213,44 +2331,18 @@ button{font:inherit}
   function renderConfiguredTeamRows(){
     const container=document.getElementById('newGameTeamRows');
     container.innerHTML=activeSides().map((side,i)=>{
-      const team=teams[side],info=factionInfo(team.faction);
-      const options=Object.keys(TEAM_COLOUR_PALETTES).map(colour=>
-        `<option value="${colour}" ${colour===team.colour?'selected':''}>${TEAM_COLOUR_LABELS[colour]}</option>`
-      ).join('');
+      const info=factionInfo(teamFaction(side));
       return `<div class="teamSetupRow" data-setup-team="${side}">
         <img class="teamSetupPreview" src="${teamSprite(side,'soldier')}" alt="${escapeHtml(info.label)} soldier">
         <img class="teamHouseCrest" src="${info.crest}" alt="${escapeHtml(info.label)} crest">
-        <div>
-          <div class="teamSetupName">Team ${i+1} · ${escapeHtml(info.label)}</div>
-          <div class="dualColourSelects">
-            <label>PRIMARY<select class="teamColourSelect" data-colour-for="${side}" aria-label="Team ${i+1} primary colour">${options}</select></label>
-            ${isHumanFaction(team.faction)?`<label>SECONDARY<select class="teamColourSelect" data-secondary-for="${side}" aria-label="Team ${i+1} secondary colour">${Object.keys(TEAM_COLOUR_PALETTES).map(colour=>`<option value="${colour}" ${colour===secondaryColour(side)?'selected':''}>${TEAM_COLOUR_LABELS[colour]}</option>`).join('')}</select></label>`:''}
-          </div>
-          <select class="teamControlSelect" data-controller-for="${side}" aria-label="Team ${i+1} controller">
-            <option value="human" ${team.control==='human'?'selected':''}>Human</option>
-            <option value="ai" ${team.control==='ai'?'selected':''}>AI</option>
-          </select>
-        </div>
-        <span class="dualColourSwatches"><i style="background:${teamColourDisplay(team.colour)}"></i>${isHumanFaction(team.faction)?`<i style="background:${teamColourDisplay(secondaryColour(side))}"></i>`:''}</span>
+        <div><div class="teamSetupName">Team ${i+1} · ${escapeHtml(info.label)}</div>
+        <div class="houseListColours"><i style="background:${teamColourDisplay(teamColour(side))}"></i>${isHumanFaction(teamFaction(side))?`<i style="background:${teamColourDisplay(secondaryColour(side))}"></i>`:''}</div>
+        <select class="teamControlSelect" data-controller-for="${side}" aria-label="Team ${i+1} controller">
+          <option value="human" ${teams[side].control==='human'?'selected':''}>Human</option>
+          <option value="ai" ${teams[side].control==='ai'?'selected':''}>AI</option>
+        </select></div>
       </div>`;
     }).join('');
-    container.querySelectorAll('[data-colour-for]').forEach(select=>select.addEventListener('change',()=>{
-      const side=select.dataset.colourFor;
-      if(!TEAM_COLOUR_PALETTES[select.value])return;
-      teams[side].colour=select.value;
-      const row=select.closest('[data-setup-team]');
-      row.querySelector('.teamSetupPreview').src=teamSprite(side,'soldier');
-      row.querySelector('.dualColourSwatches i').style.background=teamColourDisplay(select.value);
-    }));
-    container.querySelectorAll('[data-secondary-for]').forEach(select=>select.addEventListener('change',()=>{
-      const side=select.dataset.secondaryFor;
-      if(!TEAM_COLOUR_PALETTES[select.value])return;
-      teams[side].secondary=select.value;
-      const row=select.closest('[data-setup-team]');
-      row.querySelector('.teamSetupPreview').src=teamSprite(side,'soldier');
-      const accents=row.querySelectorAll('.dualColourSwatches i');
-      if(accents[1])accents[1].style.background=teamColourDisplay(select.value);
-    }));
     container.querySelectorAll('[data-controller-for]').forEach(select=>select.addEventListener('change',()=>{
       teams[select.dataset.controllerFor].control=select.value;
     }));
@@ -2318,7 +2410,9 @@ button{font:inherit}
   function editorUnitAt(x,y){return editorMap?.units?.find(u=>u.x===x&&u.y===y)||null}
 
   function editorStyle(team){
-    return editorMap?.teamStyles?.[team] || {faction:teamFaction(team),colour:teamColour(team),secondary:secondaryColour(team)};
+    const faction=editorMap?.teamStyles?.[team]?.faction||teamFaction(team);
+    const palette=styleForHouse(faction);
+    return {faction,colour:palette.primary,secondary:palette.secondary};
   }
 
   function editorUnitSprite(u){
@@ -2335,31 +2429,21 @@ button{font:inherit}
     return editorStyle(team).colour;
   }
 
-  function editorFindTeamForColour(colour){
-    // Only colours already assigned to placed units/HQs (or explicit styles)
-    // claim a slot. Older maps without teamStyles use the setup's team colours.
-    const occupied=new Set([...Object.keys(editorMap.castles),...editorMap.units.map(u=>u.team),...Object.keys(editorMap.teamStyles||{})]);
-    return TEAM_IDS.find(side=>occupied.has(side)&&editorColourForTeam(side)===colour)||null;
+  function editorFindTeamForHouse(house){
+    return TEAM_IDS.find(side=>editorMap.teamStyles?.[side]?.faction===house)||null;
   }
-
-  function editorCandidateTeamForColour(colour){
-    const existing=editorFindTeamForColour(colour);
+  function editorCandidateTeamForHouse(house){
+    const existing=editorFindTeamForHouse(house);
     if(existing)return existing;
-    const used=new Set([...Object.keys(editorMap.castles),...editorMap.units.map(u=>u.team),...Object.keys(editorMap.teamStyles||{})]);
-    return TEAM_IDS.find(id=>!used.has(id))||null;
+    const occupied=new Set([...Object.keys(editorMap.castles),...editorMap.units.map(u=>u.team),...Object.keys(editorMap.teamStyles||{})]);
+    return TEAM_IDS.find(side=>!occupied.has(side))||null;
   }
-
-  function editorGetTeamForColour(colour,faction=null){
-    const side=editorCandidateTeamForColour(colour);
-    if(!side){setEditorMessage('All eight teams are already assigned. Choose an existing team colour.');return null;}
-    const style=editorStyle(side);
-    const unitsOfSide=editorMap.units.filter(u=>u.team===side);
-    if(faction && unitsOfSide.length && style.faction!==faction){
-      setEditorMessage(`${TEAM_COLOUR_LABELS[colour]} is already used by ${factionInfo(style.faction).label}. Choose another colour.`);
-      return null;
-    }
+  function editorGetTeamForHouse(house){
+    const side=editorCandidateTeamForHouse(house);
+    if(!side){setEditorMessage('All eight teams already have houses. Remove one before adding another.');return null;}
     if(!editorMap.teamStyles)editorMap.teamStyles={};
-    editorMap.teamStyles[side]={faction:faction||style.faction,colour,secondary:faction&&isHumanFaction(faction)?normalSecondary(editorPickerSecondary):normalSecondary(style.secondary)};
+    const palette=styleForHouse(house);
+    editorMap.teamStyles[side]={faction:house,colour:palette.primary,secondary:palette.secondary};
     return side;
   }
 
@@ -2612,21 +2696,38 @@ button{font:inherit}
     if(editorTool==='buildings'){
       if(editorSelection==='removeHQ'){
         const found=editorCastleTeamAt(x,y);
-        if(found && !['player','enemy'].includes(found)){delete editorMap.castles[found];renderCreatorPreview();setEditorMessage('HQ removed.');}
+        if(found && !['player','enemy'].includes(found)){
+          delete editorMap.castles[found];delete editorMap.teamStyles[found];
+          editorMap.units=editorMap.units.filter(unit=>unit.team!==found);
+          renderCreatorPreview();setEditorMessage('HQ and its army removed.');
+        }
         else setEditorMessage('Teams 1 and 2 require an HQ.');
         return;
       }
       if(editorSelection==='placeHQ'){
-        const candidate=editorCandidateTeamForColour(editorPickerColour);
+        const occupied=editorCastleTeamAt(x,y);
+        if(occupied){
+          const already=editorFindTeamForHouse(editorPickerFaction);
+          if(already && already!==occupied){
+            setEditorMessage(`${factionInfo(editorPickerFaction).label} already has a team. Select its existing HQ to move it, or remove that HQ first.`);
+            return;
+          }
+          const preset=styleForHouse(editorPickerFaction);
+          editorMap.teamStyles[occupied]={faction:editorPickerFaction,colour:preset.primary,secondary:preset.secondary};
+          renderCreatorPreview();
+          setEditorMessage(`${factionInfo(editorPickerFaction).label} assigned to this HQ and its existing units.`);
+          return;
+        }
+        const candidate=editorCandidateTeamForHouse(editorPickerFaction);
         if(!candidate){setEditorMessage('All eight teams are already assigned.');return;}
         const check=canPlaceHQ(candidate,x,y);
         if(!check.ok){setEditorMessage(check.msg);return;}
-        const team=editorGetTeamForColour(editorPickerColour);
+        const team=editorGetTeamForHouse(editorPickerFaction);
         if(!team)return;
         editorMap.castles[team]={x,y};
         editorMap.units=editorMap.units.filter(u=>!(u.x===x&&u.y>=y&&u.y<y+2));
         renderCreatorPreview();
-        setEditorMessage(`${TEAM_COLOUR_LABELS[editorColourForTeam(team)]} HQ placed.`);
+        setEditorMessage(`${factionInfo(editorPickerFaction).label} HQ placed.`);
         return;
       }
     }
@@ -2642,12 +2743,12 @@ button{font:inherit}
       const kind=editorPickerKind;
       const terrain=editorTerrainAt(x,y);
       if(!Number.isFinite(passabilityCost(kind,terrain))){setEditorMessage('That unit cannot enter this terrain.');return;}
-      const team=editorGetTeamForColour(editorPickerColour,editorPickerFaction);
+      const team=editorGetTeamForHouse(editorPickerFaction);
       if(!team)return;
       editorMap.units=editorMap.units.filter(u=>!(u.x===x&&u.y===y));
       editorMap.units.push({team,kind,x,y});
       renderEditorObjects();
-      setEditorMessage(`${factionInfo(editorStyle(team).faction).label} ${UNIT_DEFS[kind].label} (${TEAM_COLOUR_LABELS[editorColourForTeam(team)]}) placed.`);
+      setEditorMessage(`${factionInfo(editorStyle(team).faction).label} ${UNIT_DEFS[kind].label} placed.`);
     }
   }
 
@@ -2667,8 +2768,8 @@ button{font:inherit}
   }
 
   function editorPickerReadyLabel(){
-    if(editorTool==='buildings')return `HQ · ${TEAM_COLOUR_LABELS[editorPickerColour]}`;
-    return `${UNIT_DEFS[editorPickerKind].label} · ${factionInfo(editorPickerFaction).label} · ${TEAM_COLOUR_LABELS[editorPickerColour]}`;
+    if(editorTool==='buildings')return `HQ · ${factionInfo(editorPickerFaction).label}`;
+    return `${UNIT_DEFS[editorPickerKind].label} · ${factionInfo(editorPickerFaction).label}`;
   }
 
   function renderEditorPalette(){
@@ -2679,7 +2780,11 @@ button{font:inherit}
     const choice=(picture,label,choiceId,active=false)=>`<button class="editorChoice ${active?'active':''}" type="button" data-picker-choice="${choiceId}" aria-pressed="${active}"><img src="${picture}" alt=""><span>${label}</span></button>`;
     const remove=(label,id,active=false)=>`<button class="editorChoice removeChoice ${active?'active':''}" type="button" data-picker-choice="${id}" aria-pressed="${active}"><span class="removeIcon">×</span><span>${label}</span></button>`;
     const head=(label)=>`<div class="editorPaletteHead"><div class="editorPaletteTitle">${label}</div><button class="editorPaletteClose" id="editorPaletteClose" type="button" aria-label="Close selector">×</button></div>`;
-    const colours=(human=false)=>`<div class="editorStepLabel">PRIMARY COLOUR</div><div class="editorColours">${editorColourButtons('primary')}</div>${human?`<div class="editorStepLabel">SECONDARY COLOUR</div><div class="editorColours">${editorColourButtons('secondary')}</div>`:''}`;
+    const houseChooser=()=>{
+      const options=Object.entries(FACTION_CONFIG).map(([id,info])=>`<option value="${id}" ${editorPickerFaction===id?'selected':''}>${info.label}</option>`).join('');
+      const info=factionInfo(editorPickerFaction);
+      return `<div class="editorHousePicker"><label for="editorHouseChoice">HOUSE</label><select id="editorHouseChoice" aria-label="House to place">${options}</select><img src="${info.crest}" alt="${info.label} crest"></div>`;
+    };
 
     if(editorTool==='terrain'){
       title='TERRAIN';
@@ -2687,24 +2792,18 @@ button{font:inherit}
       hint='Paint grass/snow/desert first, then add forests/mountains. Use Clear trees/rocks to keep the ground underneath.';
     }else if(editorTool==='units'){
       title='UNITS';
-      const currentFaction=factionInfo(editorPickerFaction);
-      const unitChoices=Object.keys(UNIT_DEFS).map(kind=>{
-        const picture=paletteSprite(editorPickerFaction,kind,editorPickerColour,editorPickerSecondary);
-        return choice(picture,UNIT_DEFS[kind].label,`kind:${kind}`,editorSelection==='placeUnit'&&editorPickerKind===kind);
-      }).join('');
-      const houseOptions=Object.entries(FACTION_CONFIG).map(([f,info])=>`<option value="${f}" ${editorPickerFaction===f?'selected':''}>${info.label}</option>`).join('');
-      content=`<div class="editorUnitsLayout">
-        <div class="editorUnitsList">${unitChoices}${remove('Remove unit','remove',editorSelection==='remove')}</div>
-        <div class="editorHousePicker"><label for="editorHouseChoice">HOUSE</label><select id="editorHouseChoice" aria-label="Unit species or house">${houseOptions}</select><img src="${currentFaction.crest}" alt="${currentFaction.label} crest"></div>
-      </div>${colours(isHumanFaction(editorPickerFaction))}
-      <div class="editorSelectionText">${editorSelection==='remove'?'Tap a unit on the map to remove it.':editorSelection==='placeUnit'?`Placing ${editorPickerReadyLabel()} — tap a valid tile.`:'Select a unit, then a team colour to place it.'}</div>`;
-      hint=editorSelection==='placeUnit'?`${editorPickerReadyLabel()} — tap a map tile to place.`:'Choose a house on the right, then a unit and colour.';
+      const p=styleForHouse(editorPickerFaction);
+      const unitChoices=Object.keys(UNIT_DEFS).map(kind=>choice(paletteSprite(editorPickerFaction,kind,p.primary,p.secondary),UNIT_DEFS[kind].label,`kind:${kind}`,editorSelection==='placeUnit'&&editorPickerKind===kind)).join('');
+      content=`<div class="editorUnitsLayout"><div class="editorUnitsList">${unitChoices}${remove('Remove unit','remove',editorSelection==='remove')}</div>${houseChooser()}</div>
+      <div class="editorSelectionText">${editorSelection==='placeUnit'?`Placing ${editorPickerReadyLabel()}.`:'Choose a house and unit.'}</div>`;
+      hint='Choose a house and unit, then tap a valid tile. Colours are edited from Main Menu → Houses.';
     }else{
       title='BUILDINGS';
-      const picture=hqSpriteCache.get(editorPickerColour)||HQ_MASTER;
-      content=`<div class="editorChoices">${choice(picture,'HQ','hq',editorSelection==='placeHQ')}${remove('Remove HQ','removeHQ',editorSelection==='removeHQ')}</div>${colours()}
-        <div class="editorSelectionText">${editorSelection==='placeHQ'?`Placing ${editorPickerReadyLabel()} — tap a valid 1×2 grass, snow or desert area.`:editorSelection==='removeHQ'?'Tap an HQ on the map to remove it.':'Select HQ and team colour; it can stand on grass, snow or desert.'}</div>`;
-      hint=editorSelection==='placeHQ'?`${editorPickerReadyLabel()} — tap a grass tile to place.`:'Select HQ, then its team colour. HQs occupy 1×2 tiles.';
+      const p=styleForHouse(editorPickerFaction);
+      const picture=hqSpriteCache.get(p.primary)||HQ_MASTER;
+      content=`<div class="editorUnitsLayout"><div class="editorUnitsList">${choice(picture,'HQ','hq',editorSelection==='placeHQ')}${remove('Remove HQ','removeHQ',editorSelection==='removeHQ')}</div>${houseChooser()}</div>
+      <div class="editorSelectionText">${editorSelection==='placeHQ'?`Placing ${editorPickerReadyLabel()}.`:'Choose the house whose HQ you want to place.'}</div>`;
+      hint='Place a 1×2 HQ on grass, snow or desert. Colours follow Main Menu → Houses.';
     }
 
     palette.innerHTML=head(title)+content;
@@ -2713,8 +2812,7 @@ button{font:inherit}
     const house=palette.querySelector('#editorHouseChoice');
     if(house)house.addEventListener('change',()=>{
       editorPickerFaction=house.value;
-      // Keep type and colour, but require a click on a unit to arm placement for the new house.
-      editorSelection='';
+      // Keep the selected unit/HQ tool while switching house.
       renderEditorPalette();
     });
     palette.querySelectorAll('[data-picker-choice]').forEach(btn=>btn.addEventListener('click',()=>{
@@ -2731,23 +2829,6 @@ button{font:inherit}
       if(val.startsWith('kind:')){
         editorPickerKind=val.split(':')[1];editorSelection='placeUnit';renderEditorPalette();return;
       }
-    }));
-    palette.querySelectorAll('[data-editor-primary]').forEach(btn=>btn.addEventListener('click',()=>{
-      editorPickerColour=btn.dataset.editorPrimary;
-      const assigned=editorFindTeamForColour(editorPickerColour);
-      if(assigned)editorPickerSecondary=normalSecondary(editorStyle(assigned).secondary);
-      // Preserve the current placement tool if selected; swatch choice alone shouldn't place anything.
-      renderEditorPalette();
-    }));
-    palette.querySelectorAll('[data-editor-secondary]').forEach(btn=>btn.addEventListener('click',()=>{
-      editorPickerSecondary=btn.dataset.editorSecondary;
-      // If we are editing a previously placed team, keep its trim in sync.
-      const side=editorFindTeamForColour(editorPickerColour);
-      if(side && editorMap.teamStyles?.[side] && isHumanFaction(editorMap.teamStyles[side].faction)){
-        editorMap.teamStyles[side].secondary=editorPickerSecondary;
-        renderEditorObjects();
-      }
-      renderEditorPalette();
     }));
   }
 
@@ -2861,9 +2942,16 @@ button{font:inherit}
   function openCreateMapScreen(map=null){
     if(map){
       editorMap=cloneMap(map);
+      for(const style of Object.values(editorMap.teamStyles||{})){
+        const palette=styleForHouse(style.faction);
+        style.colour=palette.primary;style.secondary=palette.secondary;
+      }
     }else{
       const width=20,height=20,castles=defaultCastlePositions(width,height);
-      editorMap={id:null,name:'',created:true,imported:false,width,height,tiles:Array(width*height).fill('grass'),units:[],castles,teamStyles:{player:{faction:'white_walkers',colour:'blue',secondary:'silver'},enemy:{faction:'lannister',colour:'red',secondary:'gold'}}};
+      editorMap={id:null,name:'',created:true,imported:false,width,height,tiles:Array(width*height).fill('grass'),units:[],castles,teamStyles:{
+        player:{faction:'white_walkers',colour:styleForHouse('white_walkers').primary,secondary:styleForHouse('white_walkers').secondary},
+        enemy:{faction:'lannister',colour:styleForHouse('lannister').primary,secondary:styleForHouse('lannister').secondary}
+      }};
     }
     document.getElementById('createMapName').value=editorMap.name==='Untitled Map'?'':editorMap.name;
     document.getElementById('editorMapWidth').value=editorMap.width;
@@ -2885,6 +2973,8 @@ button{font:inherit}
       return;
     }
     if(editorMap.units.length<2){setEditorMessage('Place at least two starting units.');setEditorTool('units');return;}
+    const houseIds=Object.values(editorMap.teamStyles||{}).map(style=>style.faction);
+    if(new Set(houseIds).size!==houseIds.length){setEditorMessage('Each house may only belong to one team. Reassign duplicate houses before saving.');return;}
     const maps=getCreatedMaps();
     const existingIndex=editorMap.id?maps.findIndex(m=>m.id===editorMap.id):-1;
     const now=new Date().toISOString();
@@ -3052,7 +3142,8 @@ button{font:inherit}
     el.id='unit-'+u.id;
     el.className='unit '+(u.team==='enemy'?'enemy':'player')+' '+u.kind;
     el.setAttribute('aria-label',u.name);
-    el.innerHTML='<img alt=""><span class="hpNumber" hidden></span>';
+    el.innerHTML='<img class="unitArt" alt=""><img class="unitHouseCrest" alt="House crest"><span class="hpNumber" hidden></span>';
+    el.querySelector('.unitHouseCrest').src=factionInfo(teamFaction(u.team)).crest;
     el.querySelector('img').src=spriteFor(u);
     el.querySelector('img').alt=u.name;
     el.addEventListener('click',e=>{
@@ -3850,6 +3941,7 @@ button{font:inherit}
           if(s.teams[k].faction&&FACTION_MASTER_SPRITES[s.teams[k].faction])teams[k].faction=s.teams[k].faction;
           if(s.teams[k].colour&&TEAM_COLOUR_PALETTES[s.teams[k].colour])teams[k].colour=s.teams[k].colour;
           teams[k].secondary=normalSecondary(s.teams[k].secondary);
+          applySavedHouseStyle(k);
           syncTeamIdentity(k);
         }
       }
@@ -3928,6 +4020,7 @@ button{font:inherit}
       hp.hidden=!u.alive||u.hp>=u.maxHp;
       hp.textContent=u.hp;
       el.querySelector('img').src=spriteFor(u);
+      el.querySelector('.unitHouseCrest').src=factionInfo(teamFaction(u.team)).crest;
     });
     document.querySelectorAll('.barracks').forEach(el=>el.classList.toggle('selected',el.id==='barracks-'+state.selectedBarracks));
     const active=teams[state.activeTeam]||teams.player;
@@ -4129,6 +4222,9 @@ button{font:inherit}
   });
   document.getElementById('menuNewGame').addEventListener('click',openNewGameScreen);
   document.getElementById('menuCreateMap').addEventListener('click',openMapManagerScreen);
+  document.getElementById('menuHouses').addEventListener('click',openHousesMenu);
+  document.getElementById('houseEditBack').addEventListener('click',openHousesMenu);
+  document.getElementById('saveHouseStyle').addEventListener('click',saveHouseEdits);
   document.getElementById('mapCreateNew').addEventListener('click',()=>openCreateMapScreen(null));
   document.getElementById('mapImportButton').addEventListener('click',()=>{
     const input=document.getElementById('importMapInput');
@@ -4184,6 +4280,7 @@ button{font:inherit}
   state.gameActive=false;
   await initialiseFactionCrests();
   await initialisePaletteSprites();
+  syncAllHouseStyles();
   refreshPaletteDependentUI();
   updateAll();
   showMainMenu();
