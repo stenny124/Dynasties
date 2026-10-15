@@ -1258,8 +1258,8 @@ button{font:inherit}
     cavalry:{label:'Cavalry',cost:600,hp:10,atk:4,def:2,maxMove:4,minRange:1,maxRange:1}
   };
 
-  const TEAM_IDS=['player','enemy','team3','team4','team5','team6','team7','team8'];
-  const TEAM_DEFAULT_COLOURS=['blue','red','green','yellow','purple','orange','white','black'];
+  const TEAM_IDS=['player','enemy',...Array.from({length:18},(_,i)=>`team${i+3}`)];
+  const TEAM_DEFAULT_COLOURS=['blue','red','green','yellow','purple','orange','white','black',...Array(12).fill('grey')];
   let teamCount=2;
   let activeSideIds=['player','enemy'];
   const activeSides=()=>activeSideIds;
@@ -1519,10 +1519,17 @@ button{font:inherit}
   function secondaryColour(team){return normalSecondary(teams[team]?.secondary||'gold');}
 
   const HQ_MASTER='./assets/hq_master.png';
+  // Stone wall shades follow the primary house colour; roof tiles follow secondary.
+  // Black outlining and the earthy recesses stay neutral for legibility.
   const HQ_TEAM_SHADES=[
-    {rgb:[139,28,32],channel:'primary',step:1},
-    {rgb:[180,28,16],channel:'primary',step:4},
-    {rgb:[213,89,57],channel:'secondary',step:4}
+    {rgb:[85,92,92],channel:'primary',step:0},
+    {rgb:[129,130,130],channel:'primary',step:2},
+    {rgb:[168,155,140],channel:'primary',step:3},
+    {rgb:[197,190,175],channel:'primary',step:4},
+    {rgb:[153,175,191],channel:'primary',step:5},
+    {rgb:[139,28,32],channel:'secondary',step:1},
+    {rgb:[180,28,16],channel:'secondary',step:3},
+    {rgb:[213,89,57],channel:'secondary',step:5}
   ];
   const hqSpriteCache=new Map();
   const paletteSpriteCache=new Map();
@@ -2342,11 +2349,6 @@ button{font:inherit}
     }
     const label=document.getElementById('selectedMapLabel');
     label.textContent=`${pendingNewGameMap.name} · ${pendingNewGameMap.width} × ${pendingNewGameMap.height} · ${sides.length} teams`;
-    const selectedHouses=sides.map(side=>teamFaction(side));
-    if(new Set(selectedHouses).size!==selectedHouses.length){
-      alert('This map has the same house assigned to multiple teams. Edit the map so each house is unique.');
-      return;
-    }
     renderConfiguredTeamRows();
     showMenuScreen('newGameTeamScreen');
   }
@@ -2406,6 +2408,7 @@ button{font:inherit}
   let editorPickerStage='terrain';
   let editorPickerKind='soldier';
   let editorPickerFaction='white_walkers';
+  let editorPickerTeam='auto'; // selected house-team slot, or 'new' for another independent team
   let editorPickerColour='blue';
   let editorPickerSecondary='gold';
   let editorPainting=false;
@@ -2452,21 +2455,28 @@ button{font:inherit}
     return editorStyle(team).colour;
   }
 
+  function editorTeamsForHouse(house){
+    return TEAM_IDS.filter(id=>editorMap?.teamStyles?.[id]?.faction===house
+      && (!!editorMap.castles[id] || editorMap.units.some(u=>u.team===id)));
+  }
   function editorFindTeamForHouse(house){
-    return TEAM_IDS.find(side=>editorMap.teamStyles?.[side]?.faction===house)||null;
+    return editorTeamsForHouse(house)[0]||null;
   }
   function editorCandidateTeamForHouse(house){
-    const existing=editorFindTeamForHouse(house);
-    if(existing)return existing;
-    const occupied=new Set([...Object.keys(editorMap.castles),...editorMap.units.map(u=>u.team),...Object.keys(editorMap.teamStyles||{})]);
+    const existing=editorTeamsForHouse(house);
+    if(editorPickerTeam!=='new' && existing.includes(editorPickerTeam))return editorPickerTeam;
+    if(editorPickerTeam!=='new' && existing.length)return existing[0];
+    // A new slot is reserved only when placing a building or a unit.
+    const occupied=new Set([...Object.keys(editorMap.castles),...editorMap.units.map(u=>u.team)]);
     return TEAM_IDS.find(side=>!occupied.has(side))||null;
   }
   function editorGetTeamForHouse(house){
     const side=editorCandidateTeamForHouse(house);
-    if(!side){setEditorMessage('All eight teams already have houses. Remove one before adding another.');return null;}
+    if(!side){setEditorMessage('All 20 team slots are occupied. Remove an existing team to free one.');return null;}
     if(!editorMap.teamStyles)editorMap.teamStyles={};
     const palette=styleForHouse(house);
     editorMap.teamStyles[side]={faction:house,colour:palette.primary,secondary:palette.secondary};
+    editorPickerTeam=side;
     return side;
   }
 
@@ -2515,6 +2525,8 @@ button{font:inherit}
     return WG_MOUNTAIN_AUTOTILES[mask];
   }
 
+  // Inline vertical bridge to avoid missing-file/cache failures on deployed GitHub Pages.
+  const BRIDGE_VERTICAL_IMAGE='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAA4UlEQVR4nO3WMQrCQBAF0K+orfYrIiGVN5CcRAjoRbTwJAoBr2BjKVpZWkkQMb22WmiXapuRXYeB/7qEXTIfNp9tZPPtBx6P1RQAMBkn9bvy/ka+yH3LgymWBZJ+u37eHEoAQG+29q5vRp3mD1rSDZf9OcYcPxMHSLNRjDlqx91JtN78EWIAbeYDsIVCYwtZwwDa2EKhsYWsYQBt5gOwRkNjjVrDANrYQqGxhaxhAG1sodDYQtYwgDbxT/yqKtyuzxizYDDsiveIA3ScQ+qc+EOxmD9CDKCNAbTxMhea9DL3BcMROo4+ys7yAAAAAElFTkSuQmCC';
   function applyTerrainVisual(el,terrain,x,y,size,map,width,height){
     const base=terrainBase(terrain), feature=terrainFeature(terrain);
     const baseSource=base==='snow'?'./assets/terrain_snow.png':
@@ -2538,7 +2550,7 @@ button{font:inherit}
     if(feature==='bridge'){
       el.style.backgroundColor='#2d6fae';
       el.style.backgroundImage=terrain==='bridge_vertical'
-        ? "url('./assets/terrain_bridge_vertical.png')"
+        ? `url("${BRIDGE_VERTICAL_IMAGE}")`
         : "url('./assets/terrain_bridge.png')";
       el.style.backgroundSize=layerSize;
       el.style.borderRight='1px solid rgba(36,75,114,.18)';
@@ -2727,34 +2739,31 @@ button{font:inherit}
         if(found){
           delete editorMap.castles[found];delete editorMap.teamStyles[found];
           editorMap.units=editorMap.units.filter(unit=>unit.team!==found);
-          renderCreatorPreview();setEditorMessage('HQ and its army removed.');
+          if(editorPickerTeam===found)editorPickerTeam='auto';
+          renderCreatorPreview();renderEditorPalette();setEditorMessage('HQ and its army removed.');
         }else setEditorMessage('Tap an HQ to remove it.');
         return;
       }
       if(editorSelection==='placeHQ'){
         const occupied=editorCastleTeamAt(x,y);
         if(occupied){
-          const already=editorFindTeamForHouse(editorPickerFaction);
-          if(already && already!==occupied){
-            setEditorMessage(`${factionInfo(editorPickerFaction).label} already has a team. Select its existing HQ to move it, or remove that HQ first.`);
-            return;
-          }
           const preset=styleForHouse(editorPickerFaction);
           editorMap.teamStyles[occupied]={faction:editorPickerFaction,colour:preset.primary,secondary:preset.secondary};
-          renderCreatorPreview();
+          editorPickerTeam=occupied;
+          renderCreatorPreview();renderEditorPalette();
           setEditorMessage(`${factionInfo(editorPickerFaction).label} assigned to this HQ and its existing units.`);
           return;
         }
         const candidate=editorCandidateTeamForHouse(editorPickerFaction);
-        if(!candidate){setEditorMessage('All eight teams are already assigned.');return;}
+        if(!candidate){setEditorMessage('All 20 team slots are assigned.');return;}
         const check=canPlaceHQ(candidate,x,y);
         if(!check.ok){setEditorMessage(check.msg);return;}
         const team=editorGetTeamForHouse(editorPickerFaction);
         if(!team)return;
         editorMap.castles[team]={x,y};
         editorMap.units=editorMap.units.filter(u=>!(u.x===x&&u.y>=y&&u.y<y+2));
-        renderCreatorPreview();
-        setEditorMessage(`${factionInfo(editorPickerFaction).label} HQ placed.`);
+        renderCreatorPreview();renderEditorPalette();
+        setEditorMessage(`${factionInfo(editorPickerFaction).label} HQ placed for Team ${TEAM_IDS.indexOf(team)+1}.`);
         return;
       }
     }
@@ -2774,8 +2783,8 @@ button{font:inherit}
       if(!team)return;
       editorMap.units=editorMap.units.filter(u=>!(u.x===x&&u.y===y));
       editorMap.units.push({team,kind,x,y});
-      renderEditorObjects();
-      setEditorMessage(`${factionInfo(editorStyle(team).faction).label} ${UNIT_DEFS[kind].label} placed.`);
+      renderEditorObjects();renderEditorPalette();
+      setEditorMessage(`${factionInfo(editorStyle(team).faction).label} ${UNIT_DEFS[kind].label} placed for Team ${TEAM_IDS.indexOf(team)+1}.`);
     }
   }
 
@@ -2810,7 +2819,12 @@ button{font:inherit}
     const houseChooser=()=>{
       const options=Object.entries(FACTION_CONFIG).map(([id,info])=>`<option value="${id}" ${editorPickerFaction===id?'selected':''}>${info.label}</option>`).join('');
       const info=factionInfo(editorPickerFaction);
-      return `<div class="editorHousePicker"><label for="editorHouseChoice">HOUSE</label><select id="editorHouseChoice" aria-label="House to place">${options}</select><img src="${info.crest}" alt="${info.label} crest"></div>`;
+      const available=editorTeamsForHouse(editorPickerFaction);
+      const selected=(editorPickerTeam==='new'||available.includes(editorPickerTeam))?editorPickerTeam:(available[0]||'new');
+      const teamChoices=available.map((id,i)=>`<option value="${id}" ${selected===id?'selected':''}>Team ${TEAM_IDS.indexOf(id)+1}</option>`).join('');
+      const canAdd=Object.keys(editorMap.castles).length<TEAM_IDS.length;
+      const newChoice=canAdd?`<option value="new" ${selected==='new'?'selected':''}>+ New team</option>`:'';
+      return `<div class="editorHousePicker"><label for="editorHouseChoice">HOUSE</label><select id="editorHouseChoice" aria-label="House to place">${options}</select><img src="${info.crest}" alt="${info.label} crest"><label for="editorTeamChoice">TEAM</label><select id="editorTeamChoice" aria-label="Select team of this house">${teamChoices}${newChoice}</select></div>`;
     };
 
     if(editorTool==='terrain'){
@@ -2839,7 +2853,13 @@ button{font:inherit}
     const house=palette.querySelector('#editorHouseChoice');
     if(house)house.addEventListener('change',()=>{
       editorPickerFaction=house.value;
+      editorPickerTeam='auto';
       // Keep the selected unit/HQ tool while switching house.
+      renderEditorPalette();
+    });
+    const teamSelector=palette.querySelector('#editorTeamChoice');
+    if(teamSelector)teamSelector.addEventListener('change',()=>{
+      editorPickerTeam=teamSelector.value;
       renderEditorPalette();
     });
     palette.querySelectorAll('[data-picker-choice]').forEach(btn=>btn.addEventListener('click',()=>{
@@ -2984,7 +3004,7 @@ button{font:inherit}
     document.getElementById('editorMapWidth').value=editorMap.width;
     document.getElementById('editorMapHeight').value=editorMap.height;
     showMenuScreen('createMapScreen');
-    editorTool='terrain';editorSelection='grass';editorPaletteOpen=true;editorPickerStage='kind';
+    editorTool='terrain';editorSelection='grass';editorPaletteOpen=true;editorPickerStage='kind';editorPickerTeam='auto';
     document.getElementById('editorTerrainTool').classList.add('active');document.getElementById('editorUnitsTool').classList.remove('active');document.getElementById('editorBuildingsTool').classList.remove('active');
     renderEditorPalette();renderCreatorPreview();setupEditorPanZoom();
     setEditorMessage(map?'Editing existing map. Save Map will update it.':'');
@@ -3000,8 +3020,6 @@ button{font:inherit}
       return;
     }
     if(Object.keys(editorMap.castles).length<2){setEditorMessage('Place at least two HQs. Starting units are optional.');setEditorTool('buildings');return;}
-    const houseIds=Object.values(editorMap.teamStyles||{}).map(style=>style.faction);
-    if(new Set(houseIds).size!==houseIds.length){setEditorMessage('Each house may only belong to one team. Reassign duplicate houses before saving.');return;}
     const maps=getCreatedMaps();
     const existingIndex=editorMap.id?maps.findIndex(m=>m.id===editorMap.id):-1;
     const now=new Date().toISOString();

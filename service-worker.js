@@ -1,4 +1,4 @@
-const CACHE='dynasties-mechanics-v50';
+const CACHE='dynasties-mechanics-v51';
 const STATIC=[
   './index.html',
   './assets/human_units_dual_colour.png',
@@ -18,7 +18,6 @@ const STATIC=[
   './assets/terrain_snow.png',
   './assets/terrain_desert.png',
   './assets/terrain_bridge.png',
-  './assets/terrain_bridge_vertical.png',
   './assets/terrain_forest.png',
   './assets/terrain_mountain.png',
   './assets/wg_grass_0.png',
@@ -133,7 +132,7 @@ const STATIC=[
   './assets/wg_mountain_snow_peak.png',
 ];
 self.addEventListener('install',e=>{
-  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(STATIC)).then(()=>self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c=>Promise.allSettled(STATIC.map(url=>c.add(url)))).then(()=>self.skipWaiting()));
 });
 self.addEventListener('activate',e=>{
   e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));

@@ -1,17 +1,14 @@
-Dynasties — Build v50
+Dynasties — Build v51
 
 WHAT CHANGED
-- Any HQ, including original Team 1/Team 2 HQs, can now be removed in Create Map.
-- A map needs at least two HQs but no longer needs any starting units.
-- Removed forced starting-army creation. Battles can begin with HQs only; players recruit their first units.
-- Team assignments come from actual HQs on the map, including non-consecutive saved team slots.
-- HQs now have 20 HP and 2 defence. Tap an enemy HQ to inspect its health and attack it with a unit in range.
-- Destroying a faction's HQ eliminates that faction and its remaining soldiers. A faction with zero soldiers stays alive while its HQ survives.
-- AI targets enemy HQs as well as enemy units and can recruit from an empty starting army.
-- HQs now use BOTH of the house's saved colours: primary for main trim, secondary for highlight trim.
-- HQs display the house's official crest, including in the map editor.
-- HQ colour generation loads the master art once and recolours synchronously from house settings. This also fixes the mobile fallback to red.
-- Save slots store current HQ health and exact participating team slots. Older saves load with full-health HQs.
+- Expanded playable/editor team slots from 8 to 20. Legacy 'player', 'enemy' and team3–team8 identifiers are preserved.
+- Because there are currently ten houses, Create Map now supports several independent teams sharing the same house. Each team has its own HQ, army and turn, but shares that house's saved colours, crest and unit style.
+- Create Map → Buildings or Units now has a TEAM selector below HOUSE. Pick an existing Team number or "+ New team" to add another team of that house.
+- New Game automatically recognises all HQ teams present on the map, up to 20, and gives each its own Human/AI control.
+- HQ stone/walls now use the primary house colour. The central and smaller turret roofs use the secondary house colour. House crest remains visible.
+- Fixed vertical bridge rendering using the exact supplied vertical bridge sprite embedded directly in index.html, so it no longer requires a separate asset to be uploaded.
+- Made the service-worker installation tolerant of optional or missing legacy image files instead of failing the entire cache install.
+- Existing maps and save slots retain their previous side identifiers.
 
 CHANGED FILES IN THIS PATCH
 - index.html
@@ -19,9 +16,4 @@ CHANGED FILES IN THIS PATCH
 - README.txt
 
 INSTALLATION
-Upload these three files into the ROOT of the existing GitHub Pages repository, replacing their older versions. Leave the current assets folder untouched. A cache-version bump in service-worker.js refreshes index.html when the game next loads.
-
-NOTES
-- HQs still occupy 1 tile wide by 2 tiles tall.
-- For existing maps, all current saved houses/colours and tiles are retained.
-- The two-colour HQ sprite uses the existing hq_master.png; no new sprite assets are needed.
+Overwrite those three files in the ROOT of your existing GitHub Pages repository. No new image uploads required.
