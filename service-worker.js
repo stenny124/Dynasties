@@ -1,4 +1,4 @@
-const CACHE='dynasties-mechanics-v49';
+const CACHE='dynasties-mechanics-v50';
 const STATIC=[
   './index.html',
   './assets/human_units_dual_colour.png',

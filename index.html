@@ -127,7 +127,7 @@ button{font:inherit}
   background:transparent;
   box-shadow:none;
 }
-.barracks img{
+.barracks img.hqArt{
   width:100%;
   height:100%;
   object-fit:fill;
@@ -135,13 +135,25 @@ button{font:inherit}
   filter:drop-shadow(0 4px 6px rgba(0,0,0,.38));
   display:block;
 }
-.barracks.selected img{
+.barracks.selected img.hqArt{
   filter:
     drop-shadow(0 0 0 rgba(0,0,0,0))
     drop-shadow(0 0 8px rgba(255,233,140,.85))
     drop-shadow(0 4px 6px rgba(0,0,0,.38));
 }
 .barracks .tiny{display:none}
+.barracks img.hqHouseCrest{
+  position:absolute;left:3px;bottom:24px;width:22px;height:22px;
+  image-rendering:pixelated;object-fit:contain;pointer-events:none;
+  filter:drop-shadow(0 1px 2px #050505);
+}
+.barracks .hqHpNumber{
+  position:absolute;right:1px;bottom:3px;min-width:25px;
+  color:#251d11;background:#f8ead0;border:2px solid #2f2920;border-radius:2px;
+  font:bold 13px/20px system-ui,sans-serif;text-align:center;pointer-events:none;
+  box-shadow:1px 2px 0 #0008;
+}
+.editorCastleCrest{position:absolute;width:12px;height:12px;object-fit:contain;image-rendering:pixelated;pointer-events:none;filter:drop-shadow(0 1px 1px #000a)}
 
 .unit{
   position:absolute;width:62px;height:76px;transform:translate(1px,-13px);pointer-events:auto;
@@ -1173,8 +1185,8 @@ button{font:inherit}
       <div id="grass"></div>
       <div id="overlay"></div>
       <div id="objectLayer">
-        <button class="barracks player" id="barracks-player" type="button" aria-label="HQ"><img src="./assets/hq_master.png" alt="HQ"></button>
-        <button class="barracks enemy" id="barracks-enemy" type="button" aria-label="HQ"><img src="./assets/hq_master.png" alt="HQ"></button>
+        <button class="barracks player" id="barracks-player" type="button" aria-label="HQ"><img class="hqArt" src="./assets/hq_master.png" alt="HQ"></button>
+        <button class="barracks enemy" id="barracks-enemy" type="button" aria-label="HQ"><img class="hqArt" src="./assets/hq_master.png" alt="HQ"></button>
       </div>
       <div id="unitLayer"></div>
     </div>
@@ -1249,11 +1261,14 @@ button{font:inherit}
   const TEAM_IDS=['player','enemy','team3','team4','team5','team6','team7','team8'];
   const TEAM_DEFAULT_COLOURS=['blue','red','green','yellow','purple','orange','white','black'];
   let teamCount=2;
-  const activeSides=()=>TEAM_IDS.slice(0,teamCount);
+  let activeSideIds=['player','enemy'];
+  const activeSides=()=>activeSideIds;
+  const HQ_MAX_HP=20;
+  const HQ_DEF=2;
   const allOtherUnits=side=>Object.values(units).filter(u=>u.alive&&u.team!==side&&activeSides().includes(u.team));
-  const aliveSides=()=>activeSides().filter(side=>living(side).length>0);
+  const aliveSides=()=>activeSides().filter(side=>!!barracks[side]?.alive && barracks[side].hp>0);
   const state={
-    turn:1,activeTeam:'player',skipAiView:false,watchingAi:false,gameOver:false,selectedUnitId:'blue-1',inspectedUnitId:null,selectedBarracks:null,busy:false,nextRecruitId:2,gameActive:false,currentSaveSlot:null,
+    inspectedHq:null,turn:1,activeTeam:'player',skipAiView:false,watchingAi:false,gameOver:false,selectedUnitId:'blue-1',inspectedUnitId:null,selectedBarracks:null,busy:false,nextRecruitId:2,gameActive:false,currentSaveSlot:null,
     mapZoom:.52,mapX:0,mapY:0,dragging:false,dragMoved:false,dragStartX:0,dragStartY:0,
     mapStartX:0,mapStartY:0,pointers:new Map(),pinching:false,pinchStartDist:0,pinchStartZoom:.52,
     pinchMapX:0,pinchMapY:0
@@ -1505,9 +1520,9 @@ button{font:inherit}
 
   const HQ_MASTER='./assets/hq_master.png';
   const HQ_TEAM_SHADES=[
-    {rgb:[139,28,32],step:1},
-    {rgb:[180,28,16],step:3},
-    {rgb:[213,89,57],step:5}
+    {rgb:[139,28,32],channel:'primary',step:1},
+    {rgb:[180,28,16],channel:'primary',step:4},
+    {rgb:[213,89,57],channel:'secondary',step:4}
   ];
   const hqSpriteCache=new Map();
   const paletteSpriteCache=new Map();
@@ -1619,33 +1634,39 @@ button{font:inherit}
     return result;
   }
 
-  async function buildHqSprite(colour){
-    if(hqSpriteCache.has(colour))return hqSpriteCache.get(colour);
-    try{
-      const img=await loadPaletteImage(HQ_MASTER);
-      const canvas=document.createElement('canvas');canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
-      const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(img,0,0);
-      const data=ctx.getImageData(0,0,canvas.width,canvas.height);
-      const ramp=TEAM_COLOUR_PALETTES[colour]||TEAM_COLOUR_PALETTES.red;
-      const replaces=new Map(HQ_TEAM_SHADES.map(s=>[s.rgb.join(','),hexRgb(ramp[s.step])]));
-      for(let i=0;i<data.data.length;i+=4){
-        if(!data.data[i+3])continue;
-        const repl=replaces.get(`${data.data[i]},${data.data[i+1]},${data.data[i+2]}`);
-        if(repl){data.data[i]=repl[0];data.data[i+1]=repl[1];data.data[i+2]=repl[2];}
-      }
-      ctx.putImageData(data,0,0);
-      const url=canvas.toDataURL('image/png');hqSpriteCache.set(colour,url);return url;
-    }catch(e){return HQ_MASTER;}
+  // Generic two-channel palette swap for HQs and future buildings.
+  // Source colours are explicitly tagged primary/secondary so neutral stone stays untouched.
+  function buildingSprite(primary,secondary='gold'){
+    const key=`${primary}|${secondary}`;
+    if(hqSpriteCache.has(key))return hqSpriteCache.get(key);
+    const img=MASTER_IMAGES.get(HQ_MASTER);
+    if(!img)return HQ_MASTER;
+    const canvas=document.createElement('canvas');canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
+    const ctx=canvas.getContext('2d',{willReadFrequently:true});if(!ctx)return HQ_MASTER;
+    ctx.imageSmoothingEnabled=false;ctx.drawImage(img,0,0);
+    const data=ctx.getImageData(0,0,canvas.width,canvas.height);
+    const colours={primary:TEAM_COLOUR_PALETTES[primary]||TEAM_COLOUR_PALETTES.red,
+                   secondary:TEAM_COLOUR_PALETTES[secondary]||TEAM_COLOUR_PALETTES.gold};
+    const replacement=new Map(HQ_TEAM_SHADES.map(s=>[s.rgb.join(','),hexRgb(colours[s.channel][s.step])]));
+    for(let i=0;i<data.data.length;i+=4){
+      if(data.data[i+3]===0)continue;
+      const p=replacement.get(`${data.data[i]},${data.data[i+1]},${data.data[i+2]}`);
+      if(p){data.data[i]=p[0];data.data[i+1]=p[1];data.data[i+2]=p[2];}
+    }
+    ctx.putImageData(data,0,0);
+    const result=canvas.toDataURL('image/png');
+    if(hqSpriteCache.size>300)hqSpriteCache.clear();
+    hqSpriteCache.set(key,result);
+    return result;
   }
-  function hqSprite(side){return hqSpriteCache.get(teamColour(side))||HQ_MASTER;}
+  function hqSprite(side){return buildingSprite(teamColour(side),secondaryColour(side));}
 
   async function initialisePaletteSprites(){
-    const paths=new Set([HUMAN_MASTER,...Object.values(FACTION_MASTER_SPRITES.white_walkers)]);
+    const paths=new Set([HUMAN_MASTER,HQ_MASTER,...Object.values(FACTION_MASTER_SPRITES.white_walkers)]);
     await Promise.all([...paths].map(async src=>{
       try{MASTER_IMAGES.set(src,await loadPaletteImage(src));}
       catch(err){console.warn('Sprite master could not load:',src,err);}
     }));
-    await Promise.all(Object.keys(TEAM_COLOUR_PALETTES).map(buildHqSprite));
   }
 
   function teamSprite(team,kind){
@@ -1790,11 +1811,9 @@ button{font:inherit}
       width,height,tiles,
       teamStyles:Object.fromEntries(Object.entries(map?.teamStyles||{}).filter(([id,v])=>TEAM_IDS.includes(id)&&v&&FACTION_CONFIG[v.faction]&&TEAM_COLOUR_PALETTES[v.colour]).map(([id,v])=>[id,{faction:v.faction,colour:v.colour,secondary:normalSecondary(v.secondary)}])),
       units:Array.isArray(map?.units)?map.units.map(u=>({...u})):fallbackUnits,
-      castles:{
-        ...Object.fromEntries(Object.entries(map?.castles||{}).map(([id,pos])=>[id,{...pos}])),
-        player:{...(map?.castles?.player||defaults.player)},
-        enemy:{...(map?.castles?.enemy||defaults.enemy)}
-      }
+      castles:Object.fromEntries(Object.entries(map?.castles===undefined?defaults:map.castles)
+        .filter(([id,pos])=>TEAM_IDS.includes(id)&&pos)
+        .map(([id,pos])=>[id,{x:pos.x,y:pos.y}]))
     };
   }
 
@@ -1868,8 +1887,9 @@ button{font:inherit}
       if(!Number.isInteger(x)||!Number.isInteger(y)||x<0||y<0||x>=width||y+1>=height)return {...(defaults[team]||defaults.player)};
       return {x,y};
     };
-    const castles={player:castleFor('player'),enemy:castleFor('enemy')};
-    for(const id of TEAM_IDS.slice(2))if(payload.castles?.[id])castles[id]=castleFor(id);
+    const castleIds=payload.castles?Object.keys(payload.castles).filter(id=>validTeams.has(id)):['player','enemy'];
+    const castles=Object.fromEntries(castleIds.map(id=>[id,castleFor(id)]));
+    if(castleIds.length<2)throw new Error('A map needs at least two HQs.');
     const entries=Object.entries(castles);
     for(let i=0;i<entries.length;i++)for(let j=i+1;j<entries.length;j++){
       const a=entries[i][1],b=entries[j][1];
@@ -2025,7 +2045,7 @@ button{font:inherit}
   function applyMap(map,prepareForMatch=false){
     activeMap=cloneMap(map);
     COLS=activeMap.width;ROWS=activeMap.height;
-    if(prepareForMatch)fitExtraTeamsOnMap();
+    // Map editor supplies the participating HQs; starting units are optional.
     for(const side of activeSides()){
       const c=activeMap.castles[side];
       if(!c)continue;
@@ -2045,7 +2065,13 @@ button{font:inherit}
 
   function resetGameState(){
     state.turn=1;
-    state.activeTeam='player';state.gameOver=false;state.skipAiView=false;state.watchingAi=false;
+    state.activeTeam=activeSides()[0];state.gameOver=false;state.skipAiView=false;state.watchingAi=false;
+    state.inspectedHq=null;
+    for(const side of TEAM_IDS){
+      const b=barracks[side];b.team=side;b.id=`hq-${side}`;b.kind='hq';
+      b.name=`${teams[side].name} HQ`;b.def=HQ_DEF;
+      b.maxHp=HQ_MAX_HP;b.hp=HQ_MAX_HP;b.alive=activeSides().includes(side);
+    }
     state.selectedUnitId=null;
     state.inspectedUnitId=null;
     state.selectedBarracks=null;
@@ -2069,7 +2095,7 @@ button{font:inherit}
       const raw=localStorage.getItem(slotKey(slot));
       if(!raw)return null;
       const s=JSON.parse(raw);
-      if(!s || ![21,22,23].includes(s.version) || !Array.isArray(s.units))return null;
+      if(!s || ![21,22,23,24].includes(s.version) || !Array.isArray(s.units))return null;
       return s;
     }catch(e){ return null; }
   }
@@ -2099,13 +2125,14 @@ button{font:inherit}
 
   function makeSaveSnapshot(slot){
     return {
-      version:23,
+      version:24,
       slot,
       savedAt:new Date().toISOString(),
       state:{
         turn:state.turn,
         activeTeam:state.activeTeam,
         teamCount,
+        activeSideIds:[...activeSides()],
         gameOver:state.gameOver,
         selectedUnitId:state.selectedUnitId,
         inspectedUnitId:state.inspectedUnitId,
@@ -2127,6 +2154,7 @@ button{font:inherit}
         castles:activeMap.castles
       },
       teams:teams,
+      hqs:Object.fromEntries(activeSides().map(side=>[side,{hp:barracks[side].hp,alive:barracks[side].alive}])),
       units:Object.values(units)
     };
   }
@@ -2296,19 +2324,14 @@ button{font:inherit}
   const fallbackTeamColour=(side)=>TEAM_DEFAULT_COLOURS[TEAM_IDS.indexOf(side)]||'grey';
 
   function teamsOnMap(map){
-    const included=new Set(['player','enemy']);
-    for(const side of Object.keys(map?.teamStyles||{}))if(TEAM_IDS.includes(side))included.add(side);
-    for(const side of Object.keys(map?.castles||{}))if(TEAM_IDS.includes(side))included.add(side);
-    for(const u of map?.units||[])if(TEAM_IDS.includes(u.team))included.add(u.team);
-    // Teams are stored as sequential IDs for turn order. Keep slots 1..N active.
-    const n=Math.max(2,...[...included].map(s=>TEAM_IDS.indexOf(s)+1));
-    return TEAM_IDS.slice(0,Math.min(8,n));
+    return TEAM_IDS.filter(id=>!!map?.castles?.[id]);
   }
 
   function configureMapForNewGame(map){
     pendingNewGameMap=cloneMap(map);
     const sides=teamsOnMap(pendingNewGameMap);
-    teamCount=sides.length;
+    if(sides.length<2){alert('A playable map needs at least two HQs.');return;}
+    activeSideIds=sides;teamCount=sides.length;
     for(const side of sides){
       // The editor assigns the house; its permanent House profile supplies all colours.
       const style=pendingNewGameMap.teamStyles?.[side];
@@ -2422,7 +2445,7 @@ button{font:inherit}
 
   function editorHqSprite(team){
     const style=editorStyle(team);
-    return hqSpriteCache.get(style.colour)||HQ_MASTER;
+    return buildingSprite(style.colour,style.secondary);
   }
 
   function editorColourForTeam(team){
@@ -2643,6 +2666,11 @@ button{font:inherit}
       img.style.left=`${c.x*EDITOR_CELL}px`;img.style.top=`${c.y*EDITOR_CELL}px`;
       img.style.width=`${EDITOR_CELL}px`;img.style.height=`${EDITOR_CELL*2}px`;
       objectLayer.appendChild(img);
+      const crest=document.createElement('img');crest.className='editorCastleCrest';
+      crest.src=factionInfo(editorStyle(team).faction).crest;
+      crest.style.left=`${c.x*EDITOR_CELL+2}px`;
+      crest.style.top=`${c.y*EDITOR_CELL+EDITOR_CELL*2-14}px`;
+      objectLayer.appendChild(crest);
     }
     editorMap.units.forEach(u=>{
       const img=document.createElement('img');
@@ -2696,12 +2724,11 @@ button{font:inherit}
     if(editorTool==='buildings'){
       if(editorSelection==='removeHQ'){
         const found=editorCastleTeamAt(x,y);
-        if(found && !['player','enemy'].includes(found)){
+        if(found){
           delete editorMap.castles[found];delete editorMap.teamStyles[found];
           editorMap.units=editorMap.units.filter(unit=>unit.team!==found);
           renderCreatorPreview();setEditorMessage('HQ and its army removed.');
-        }
-        else setEditorMessage('Teams 1 and 2 require an HQ.');
+        }else setEditorMessage('Tap an HQ to remove it.');
         return;
       }
       if(editorSelection==='placeHQ'){
@@ -2800,7 +2827,7 @@ button{font:inherit}
     }else{
       title='BUILDINGS';
       const p=styleForHouse(editorPickerFaction);
-      const picture=hqSpriteCache.get(p.primary)||HQ_MASTER;
+      const picture=buildingSprite(p.primary,p.secondary);
       content=`<div class="editorUnitsLayout"><div class="editorUnitsList">${choice(picture,'HQ','hq',editorSelection==='placeHQ')}${remove('Remove HQ','removeHQ',editorSelection==='removeHQ')}</div>${houseChooser()}</div>
       <div class="editorSelectionText">${editorSelection==='placeHQ'?`Placing ${editorPickerReadyLabel()}.`:'Choose the house whose HQ you want to place.'}</div>`;
       hint='Place a 1×2 HQ on grass, snow or desert. Colours follow Main Menu → Houses.';
@@ -2862,7 +2889,7 @@ button{font:inherit}
     // If resize caused HQ overlap, restore sensible opposite ends.
     for(const side of TEAM_IDS.slice(2))if(editorMap.castles[side]){const c=editorMap.castles[side];if(c.x>=newW||c.y+1>=newH)delete editorMap.castles[side];}
     const p=editorMap.castles.player,e=editorMap.castles.enemy;
-    if(p.x===e.x&&!(p.y+1<e.y||p.y>e.y+1))editorMap.castles={player:{...defaults.player},enemy:{...defaults.enemy}};
+    if(p&&e&&p.x===e.x&&!(p.y+1<e.y||p.y>e.y+1))editorMap.castles={...editorMap.castles,player:{...defaults.player},enemy:{...defaults.enemy}};
     for(const team of Object.keys(editorMap.castles)){
       const c=editorMap.castles[team];
       for(let y=c.y;y<c.y+2;y++)editorMap.tiles[y*newW+c.x]=terrainBase(editorMap.tiles[y*newW+c.x]);
@@ -2972,7 +2999,7 @@ button{font:inherit}
       input.focus();
       return;
     }
-    if(editorMap.units.length<2){setEditorMessage('Place at least two starting units.');setEditorTool('units');return;}
+    if(Object.keys(editorMap.castles).length<2){setEditorMessage('Place at least two HQs. Starting units are optional.');setEditorTool('buildings');return;}
     const houseIds=Object.values(editorMap.teamStyles||{}).map(style=>style.faction);
     if(new Set(houseIds).size!==houseIds.length){setEditorMessage('Each house may only belong to one team. Reassign duplicate houses before saving.');return;}
     const maps=getCreatedMaps();
@@ -3108,17 +3135,32 @@ button{font:inherit}
   const manhattan=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
   const living=team=>Object.values(units).filter(u=>u.team===team&&u.alive);
   const unitAt=(x,y)=>Object.values(units).find(u=>u.alive&&u.x===x&&u.y===y)||null;
-  const barracksAt=(x,y)=>activeSides().map(id=>barracks[id]).find(b=>x>=b.x&&x<b.x+(b.w||1)&&y>=b.y&&y<b.y+(b.h||1))||null;
+  const barracksAt=(x,y)=>activeSides().map(id=>barracks[id]).find(b=>b.alive&&x>=b.x&&x<b.x+(b.w||1)&&y>=b.y&&y<b.y+(b.h||1))||null;
   const selectedUnit=()=>state.selectedUnitId?units[state.selectedUnitId]:null;
   const inspectedUnit=()=>state.inspectedUnitId?units[state.inspectedUnitId]:null;
   const inRange=(attacker,target)=>{
-    const d=manhattan(attacker,target);
+    const d=target.kind==='hq'
+      ?Math.min(...Array.from({length:target.h||2},(_,dy)=>Math.abs(attacker.x-target.x)+Math.abs(attacker.y-(target.y+dy))))
+      :manhattan(attacker,target);
     return d>=attacker.minRange && d<=attacker.maxRange;
   };
   const rangeLabel=u=>u.minRange===u.maxRange?`${u.maxRange}`:`${u.minRange}-${u.maxRange}`;
 
   function enemyTeamFor(team){return activeSides().find(s=>s!==team)||team;}
-  function hostiles(side){return allOtherUnits(side);}
+  function hostiles(side){return allOtherUnits(side).filter(u=>barracks[u.team]?.alive);}
+  function hostileTargets(side){return [...hostiles(side),...activeSides()
+    .filter(id=>id!==side&&barracks[id]?.alive).map(id=>barracks[id])];}
+  function targetDistance(pos,target){return target.kind==='hq'
+    ?Math.min(...Array.from({length:target.h||2},(_,dy)=>Math.abs(pos.x-target.x)+Math.abs(pos.y-target.y-dy)))
+    :manhattan(pos,target);}
+  function damageHq(target){
+    if(target.hp>0)return;
+    target.hp=0;target.alive=false;
+    living(target.team).forEach(u=>{u.hp=0;u.alive=false;});
+    if(state.inspectedHq===target.team)state.inspectedHq=null;
+    if(state.selectedBarracks===target.team)hideRecruitPopup();
+    setStatus(`${teams[target.team].name} HQ destroyed — faction eliminated!`);
+  }
   function humanTurn(){return state.gameActive && !state.busy && !state.gameOver && teams[state.activeTeam]?.control==='human';}
   function canHumanControl(team){return humanTurn() && state.activeTeam===team;}
 
@@ -3169,12 +3211,17 @@ button{font:inherit}
         el.innerHTML='<img alt="HQ">';layer.appendChild(el);
         el.addEventListener('click',e=>{e.stopPropagation();selectBarracks(side);});
       }
-      el.hidden=!activeSides().includes(side);
-      if(!activeSides().includes(side))continue;
+      el.hidden=!activeSides().includes(side)||!barracks[side].alive;
+      if(el.hidden)continue;
       const b=barracks[side];el.style.left=(b.x*CELL)+'px';el.style.top=(b.y*CELL)+'px';
-      const newHqSprite=hqSprite(side);if(el.querySelector('img').src!==newHqSprite)el.querySelector('img').src=newHqSprite;
-      el.setAttribute('aria-label',`${teams[side].name} HQ`);
-      el.classList.toggle('selected',state.selectedBarracks===side);
+      let art=el.querySelector('.hqArt');
+      if(!el.querySelector('.hqHouseCrest')){el.innerHTML='<img class="hqArt" alt="HQ"><img class="hqHouseCrest" alt="House crest"><span class="hqHpNumber"></span>';art=el.querySelector('.hqArt');}
+      const sprite=hqSprite(side);if(art.getAttribute('src')!==sprite)art.src=sprite;
+      const crest=el.querySelector('.hqHouseCrest'),crestSrc=factionInfo(teamFaction(side)).crest;
+      if(crest.getAttribute('src')!==crestSrc)crest.src=crestSrc;
+      el.querySelector('.hqHpNumber').textContent=b.hp;
+      el.setAttribute('aria-label',`${teams[side].name} HQ ${b.hp}/${b.maxHp} HP`);
+      el.classList.toggle('selected',state.selectedBarracks===side||state.inspectedHq===side);
     }
   }
   function setUnitPos(u){
@@ -3254,7 +3301,11 @@ button{font:inherit}
       addOverlayCell(x,y,'moveCell',()=>moveSelectedTo(x,y));
     }
     if(!u.attacked){
-      hostiles(u.team).forEach(e=>{if(inRange(u,e))addOverlayCell(e.x,e.y,'attackCell',()=>attack(u,e));});
+      hostileTargets(u.team).forEach(e=>{
+        if(!inRange(u,e))return;
+        if(e.kind==='hq')for(let dy=0;dy<(e.h||2);dy++)addOverlayCell(e.x,e.y+dy,'attackCell',()=>attack(u,e));
+        else addOverlayCell(e.x,e.y,'attackCell',()=>attack(u,e));
+      });
     }
   }
 
@@ -3297,10 +3348,7 @@ button{font:inherit}
     const u=unitAt(x,y);
     if(u){ if(u.team===state.activeTeam)selectUnit(u.id);else inspectUnit(u.id);return; }
     const castle=barracksAt(x,y);
-    if(castle){
-      const team=Object.keys(barracks).find(id=>barracks[id]===castle);
-      selectBarracks(team);
-    }
+    if(castle)selectBarracks(castle.team);
   }
 
   const damage=(a,d)=>Math.max(1,a.atk-Math.floor(d.def/2));
@@ -3330,9 +3378,8 @@ button{font:inherit}
     a.attacked=true; a.move=0;
     setStatus(`${a.name} attacks ${d.name} for ${dmg} damage.`);
     if(d.hp<=0){
-      d.alive=false;
-      if(state.inspectedUnitId===d.id)state.inspectedUnitId=null;
-      setStatus(`${d.name} has fallen.`);
+      if(d.kind==='hq')damageHq(d);
+      else{d.alive=false;if(state.inspectedUnitId===d.id)state.inspectedUnitId=null;setStatus(`${d.name} has fallen.`);}
     }
     updateAll(); checkGameOver();
   }
@@ -3393,7 +3440,7 @@ button{font:inherit}
     hideRecruitPopup();
     state.selectedUnitId=id;
     state.inspectedUnitId=null;
-    state.selectedBarracks=null;
+    state.selectedBarracks=null;state.inspectedHq=null;
     if(archerEngaged(u)) setStatus(`${u.name} is engaged by enemy infantry/cavalry — it can attack, but cannot move away this turn.`);
     else setStatus(`${u.name} selected.`);
     updateAll();
@@ -3403,7 +3450,7 @@ button{font:inherit}
     const u=units[id];
     if(!u||!u.alive||!humanTurn()||u.team===state.activeTeam)return;
     hideRecruitPopup();
-    state.inspectedUnitId=id;
+    state.inspectedUnitId=id;state.inspectedHq=null;
     state.selectedBarracks=null;
     const attacker=selectedUnit();
     if(attacker&&attacker.alive&&attacker.team===state.activeTeam&&inRange(attacker,u)&&!attacker.attacked){
@@ -3414,12 +3461,14 @@ button{font:inherit}
     updateAll();
   }
   function selectBarracks(team){
-    if(!humanTurn())return;
+    if(!humanTurn()||!barracks[team]?.alive)return;
     if(team===state.activeTeam){
+      state.inspectedHq=null;state.inspectedUnitId=null;
       if(!recruitPopup.hidden){hideRecruitPopup();updateAll();return;}
-      showRecruitPopup();setStatus(`${teams[team].name} HQ. Recruit units.`);updateAll();
+      showRecruitPopup();setStatus(`${teams[team].name} HQ · ${barracks[team].hp}/${HQ_MAX_HP} HP · Recruit units.`);updateAll();
     }else{
-      hideRecruitPopup();setStatus(`${teams[team].name} HQ.`);updateAll();
+      hideRecruitPopup();state.inspectedUnitId=null;state.inspectedHq=team;
+      setStatus(`${teams[team].name} HQ · ${barracks[team].hp}/${HQ_MAX_HP} HP.`);updateAll();
     }
   }
 
@@ -3430,7 +3479,7 @@ button{font:inherit}
   function recruit(team,kind='soldier',announce=true){
     const t=teams[team];
     const def=UNIT_DEFS[kind];
-    if(t.gold<def.cost||t.recruited)return null;
+    if(t.gold<def.cost||t.recruited||!barracks[team]?.alive)return null;
     const spawn=nextSpawn(team,kind);
     if(!spawn)return null;
     t.gold-=def.cost; t.recruited=true;
@@ -3450,14 +3499,14 @@ button{font:inherit}
     score += (target.maxHp-target.hp)*10;
     if(target.kind==='archer')score += 26;
     if(target.hp<=3)score += 18;
-    score -= manhattan(fromPos,target)*2;
+    score -= targetDistance(fromPos,target)*2;
     if(unit.kind==='archer' && (target.kind==='soldier' || target.kind==='cavalry'))score += 4;
     if(unit.kind==='cavalry' && target.kind==='archer')score += 22;
     return score;
   }
 
   function preferredPlayerTarget(unit,fromPos){
-    return hostiles(aiSide).slice().sort((a,b)=>{
+    return hostileTargets(aiSide).slice().sort((a,b)=>{
       return priorityPlayerTarget(unit,fromPos,b)-priorityPlayerTarget(unit,fromPos,a);
     })[0]||null;
   }
@@ -3476,9 +3525,9 @@ button{font:inherit}
   }
 
   function nearestPlayerDistance(x,y){
-    const ps=hostiles(aiSide);
+    const ps=hostileTargets(aiSide);
     if(!ps.length)return 99;
-    return Math.min(...ps.map(p=>manhattan({x,y},p)));
+    return Math.min(...ps.map(p=>targetDistance({x,y},p)));
   }
 
   function enemyCastlePressure(){
@@ -3494,9 +3543,9 @@ button{font:inherit}
   }
 
   function distanceToClosestPlayerAt(x,y){
-    const players=hostiles(aiSide);
+    const players=hostileTargets(aiSide);
     if(!players.length)return 99;
-    return Math.min(...players.map(p=>manhattan({x,y},p)));
+    return Math.min(...players.map(p=>targetDistance({x,y},p)));
   }
 
   function enemyFormationDistance(excludeId=null){
@@ -3607,7 +3656,7 @@ button{font:inherit}
     }
 
     if(target){
-      const d=manhattan({x,y},target);
+      const d=targetDistance({x,y},target);
       if(unit.kind==='archer'){
         if(d===2)score += 25;
         else if(d===3)score += 22;
@@ -3625,13 +3674,14 @@ button{font:inherit}
   }
 
   function attackScore(unit,target,x,y){
-    const dist=manhattan({x,y},target);
+    const dist=targetDistance({x,y},target);
     const dmg=damage(unit,target);
     let score=positionScore(unit,x,y,target);
     if(dmg>=target.hp)score += 155;
     score += dmg*16;
     score += (target.maxHp-target.hp)*8;
     if(target.kind==='archer')score += 42;
+    if(target.kind==='hq')score += 120;
     if(target.hp<=3)score += 24;
     if(unit.kind==='archer'){
       if(dist===2)score += 20;
@@ -3657,10 +3707,7 @@ button{font:inherit}
       const path=reconstruct(data.prev,unit,tile)||[];
       const preferred=preferredPlayerTarget(unit,tile);
       const moveBias=-(cost*1.5);
-      const attackables=hostiles(aiSide).filter(t=>{
-        const d=manhattan(tile,t);
-        return d>=unit.minRange && d<=unit.maxRange;
-      });
+      const attackables=hostileTargets(aiSide).filter(t=>inRange({...unit,x,y},t));
 
       if(attackables.length){
         for(const target of attackables){
@@ -3673,7 +3720,7 @@ button{font:inherit}
       }else{
         let score=positionScore(unit,x,y,preferred)+moveBias;
         if(preferred){
-          const d=manhattan(tile,preferred);
+          const d=targetDistance(tile,preferred);
           if(unit.kind==='archer'){
             if(d===2)score += 20;
             else if(d===3)score += 17;
@@ -3779,15 +3826,15 @@ button{font:inherit}
       }else if(plan.saving) setStatus(`${teams[side].name} is saving for ${UNIT_DEFS[plan.kind].label}.`);
     }
     const ours=living(side).slice().sort((a,b)=>{
-      const their=hostiles(side);
-      const ad=Math.min(99,...their.map(p=>manhattan(a,p)));
-      const bd=Math.min(99,...their.map(p=>manhattan(b,p)));
+      const their=hostileTargets(side);
+      const ad=Math.min(99,...their.map(p=>targetDistance(a,p)));
+      const bd=Math.min(99,...their.map(p=>targetDistance(b,p)));
       const aAttack=their.some(p=>inRange(a,p)),bAttack=their.some(p=>inRange(b,p));
       if(aAttack!==bAttack)return aAttack?-1:1;
       return bd-ad;
     });
     for(const unit of ours){
-      if(!unit.alive||!hostiles(side).length||!state.gameActive)break;
+      if(!unit.alive||!hostileTargets(side).length||!state.gameActive)break;
       if(unit.move<=0&&unit.attacked)continue;
       await followUnitCamera(unit,90);
       const plan=evaluateEnemyAction(unit);
@@ -3808,7 +3855,7 @@ button{font:inherit}
       }
       let target=plan.target;
       if(!target||!target.alive||!inRange(unit,target)){
-        target=hostiles(side).filter(p=>inRange(unit,p))
+        target=hostileTargets(side).filter(p=>inRange(unit,p))
           .sort((a,b)=>attackScore(unit,b,unit.x,unit.y)-attackScore(unit,a,unit.x,unit.y))[0]||null;
       }
       if(target&&!unit.attacked){
@@ -3818,7 +3865,10 @@ button{font:inherit}
         target.hp=Math.max(0,target.hp-dmg);
         unit.attacked=true;unit.move=0;
         setStatus(`${unit.name} attacks ${target.name} for ${dmg}.`);
-        if(target.hp<=0){target.alive=false;if(state.inspectedUnitId===target.id)state.inspectedUnitId=null;}
+        if(target.hp<=0){
+          if(target.kind==='hq')damageHq(target);
+          else{target.alive=false;if(state.inspectedUnitId===target.id)state.inspectedUnitId=null;}
+        }
         updateAll();await spectateWait(420);
       }
       if(state.gameOver||checkGameOver())break;
@@ -3842,19 +3892,19 @@ button{font:inherit}
   function advanceSide(){
     if(state.gameOver||!state.gameActive)return;
     hideRecruitPopup();
-    const order=activeSides().filter(side=>living(side).length>0);
+    const order=aliveSides();
     if(order.length<=1){checkGameOver();return;}
     const currentIndex=TEAM_IDS.indexOf(state.activeTeam);
     let next=order.find(id=>TEAM_IDS.indexOf(id)>currentIndex);
     if(!next){
       next=order[0];state.turn++;
-      for(const side of activeSides()){
+      for(const side of aliveSides()){
         teams[side].gold+=teams[side].income;teams[side].recruited=false;
         living(side).forEach(u=>{u.move=u.maxMove;u.attacked=false;});
       }
     }
     state.activeTeam=next;
-    state.selectedBarracks=null;state.inspectedUnitId=null;
+    state.selectedBarracks=null;state.inspectedUnitId=null;state.inspectedHq=null;
     const first=living(next)[0]||null;
     state.selectedUnitId=(teams[next].control==='human'&&first)?first.id:null;
     setStatus(`${teams[next].name} · ${teams[next].control==='ai'?'AI':'Human'} turn · Round ${state.turn}.`);
@@ -3883,32 +3933,36 @@ button{font:inherit}
 
   function updateBottomInfo(){
     const inspected=inspectedUnit();
+    const inspectedHq=state.inspectedHq?barracks[state.inspectedHq]:null;
     const selected=selectedUnit();
-    const u=(inspected&&inspected.alive)?inspected:(selected||living(state.activeTeam)[0]||null);
+    const u=(inspected&&inspected.alive)?inspected:
+      (inspectedHq?.alive?inspectedHq:(state.selectedBarracks?barracks[state.selectedBarracks]:null))
+      ||(selected?.alive?selected:null)||living(state.activeTeam)[0]||barracks[state.activeTeam];
     if(!u)return;
 
     const portrait=document.getElementById('portraitImg');
     portrait.style.display='';
-    portrait.src=spriteFor(u);
-    document.getElementById('selectedName').textContent=u.name;
-    document.getElementById('selectedSub').textContent=u.title + (u.team!==state.activeTeam?' · Opponent':'');
+    const isHQ=u.kind==='hq';
+    portrait.src=isHQ?hqSprite(u.team):spriteFor(u);
+    document.getElementById('selectedName').textContent=isHQ?`${teams[u.team].name} HQ`:u.name;
+    document.getElementById('selectedSub').textContent=(isHQ?'Headquarters':u.title)+(u.team!==state.activeTeam?' · Opponent':'');
     document.getElementById('statHP').textContent=`${u.hp}/${u.maxHp}`;
-    document.getElementById('statAtk').textContent=u.atk;
+    document.getElementById('statAtk').textContent=isHQ?'—':u.atk;
     document.getElementById('statDef').textContent=u.def;
-    document.getElementById('statMov').textContent=archerEngaged(u)?`0/${u.maxMove} ENGAGED`:`${u.move}/${u.maxMove}`;
-    document.getElementById('statRng').textContent=rangeLabel(u);
-    document.getElementById('statAttack').textContent=u.attacked?'Yes':'No';
+    document.getElementById('statMov').textContent=isHQ?'—':(archerEngaged(u)?`0/${u.maxMove} ENGAGED`:`${u.move}/${u.maxMove}`);
+    document.getElementById('statRng').textContent=isHQ?'—':rangeLabel(u);
+    document.getElementById('statAttack').textContent=isHQ?'—':(u.attacked?'Yes':'No');
 
     const attackBtn=document.getElementById('attackInspected');
     const canAttack=!!(
-      inspected && inspected.alive &&
+      ((inspected&&inspected.alive)||(inspectedHq&&inspectedHq.alive)) &&
       selected && selected.alive &&
       canHumanControl(selected.team) &&
       !selected.attacked &&
-      inRange(selected,inspected)
+      inRange(selected,inspectedHq?.alive?inspectedHq:inspected)
     );
     attackBtn.hidden=!canAttack;
-    if(canAttack)attackBtn.textContent=`Attack ${UNIT_DEFS[inspected.kind].label}`;
+    if(canAttack)attackBtn.textContent=inspectedHq?.alive?'Attack HQ':`Attack ${UNIT_DEFS[inspected.kind].label}`;
 
     updateRecruitPopup();
   }
@@ -3918,14 +3972,26 @@ button{font:inherit}
       const s=readSaveSlot(slot);
       if(!s)return false;
 
-      teamCount=Math.max(2,Math.min(8,Number(s.state?.teamCount)||2));
-      applyMap(s.map ? cloneMap(s.map) : cloneMap(DEFAULT_MAP));
+      const loadedMap=s.map ? cloneMap(s.map) : cloneMap(DEFAULT_MAP);
+      activeSideIds=Array.isArray(s.state?.activeSideIds)
+        ?TEAM_IDS.filter(id=>s.state.activeSideIds.includes(id))
+        :teamsOnMap(loadedMap);
+      if(activeSideIds.length<2)activeSideIds=TEAM_IDS.slice(0,Math.max(2,Number(s.state?.teamCount)||2));
+      teamCount=activeSideIds.length;
+      applyMap(loadedMap);
+      for(const side of TEAM_IDS){
+        const b=barracks[side];b.team=side;b.id=`hq-${side}`;b.kind='hq';
+        b.name=`${teams[side].name} HQ`;
+        b.def=HQ_DEF;b.maxHp=HQ_MAX_HP;
+        b.hp=Math.max(0,Number(s.hqs?.[side]?.hp ?? HQ_MAX_HP));
+        b.alive=activeSides().includes(side)&&b.hp>0&&s.hqs?.[side]?.alive!==false;
+      }
 
       state.turn=s.state?.turn||1;
       state.activeTeam=activeSides().includes(s.state?.activeTeam)?s.state.activeTeam:'player';
       state.gameOver=!!s.state?.gameOver;state.watchingAi=false;state.skipAiView=false;
       state.selectedUnitId=s.state?.selectedUnitId||null;
-      state.inspectedUnitId=s.state?.inspectedUnitId||null;
+      state.inspectedUnitId=s.state?.inspectedUnitId||null;state.inspectedHq=null;
       state.selectedBarracks=s.state?.selectedBarracks||null;
       state.nextRecruitId=s.state?.nextRecruitId||2;
       state.mapZoom=s.state?.mapZoom ?? .52;
@@ -3954,7 +4020,7 @@ button{font:inherit}
         if(oldMax!==10){u.maxHp=10;u.hp=Math.max(0,10-(oldMax-oldHp));}
         units[u.id]=u;
       });
-      if(!Object.keys(units).length)resetUnits();
+      // Empty armies are valid: HQs can recruit their first units after load.
       return true;
     }catch(e){
       return false;
@@ -3975,14 +4041,14 @@ button{font:inherit}
       // Currently the only building type is the HQ. Count placed HQs
       // for active teams; building types can be added here later.
       const hq=barracks[side];
-      const buildings=hq && Number.isFinite(hq.x) && Number.isFinite(hq.y)?1:0;
+      const buildings=hq?.alive?1:0;
       const swatch=teamColourDisplay(team.colour);
-      return `<tr class="${side===state.activeTeam?'active':''} ${warriors===0?'eliminated':''}">
+      return `<tr class="${side===state.activeTeam?'active':''} ${!hq?.alive?'eliminated':''}">
         <td><div class="performanceFaction">
           <img src="${info.crest}" alt="${escapeHtml(info.label)} crest">
           <span class="performanceSwatch" style="background:${swatch}" aria-label="${escapeHtml(team.colour)}"></span>
           <span class="factionInfo"><span class="factionName">${escapeHtml(info.label)}</span>
-          <span class="factionNumber" style="display:block">Team ${i+1}${warriors===0?' · Eliminated':''}</span></span>
+          <span class="factionNumber" style="display:block">Team ${i+1}${!hq?.alive?' · Eliminated':''}</span></span>
         </div></td>
         <td>${team.gold}</td><td>${buildings}</td><td>${warriors}</td>
       </tr>`;
@@ -4183,7 +4249,7 @@ button{font:inherit}
   document.getElementById('popupRecruitCavalry').addEventListener('click',()=>{ const u=recruit(state.activeTeam,'cavalry',true); if(u){hideRecruitPopup(); updateAll();} });
   document.getElementById('attackInspected').addEventListener('click',()=>{
     const attacker=selectedUnit();
-    const target=inspectedUnit();
+    const target=state.inspectedHq?barracks[state.inspectedHq]:inspectedUnit();
     if(attacker&&target&&attacker.alive&&target.alive&&!attacker.attacked&&inRange(attacker,target)){
       attack(attacker,target);
     }

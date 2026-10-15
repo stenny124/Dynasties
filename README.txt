@@ -1,36 +1,27 @@
-Dynasties — Build v49
+Dynasties — Build v50
 
-Main menu: HOUSES
-- Added Houses to the main menu, displaying all ten factions and their crests.
-- Edit House lets you choose permanent primary and secondary colours and see live Soldier, Archer and Cavalry previews.
-- The saved house palettes apply to every map and battle on this browser/device until changed again.
-- White Walkers retain their skeleton sprite palette (primary colour only).
+WHAT CHANGED
+- Any HQ, including original Team 1/Team 2 HQs, can now be removed in Create Map.
+- A map needs at least two HQs but no longer needs any starting units.
+- Removed forced starting-army creation. Battles can begin with HQs only; players recruit their first units.
+- Team assignments come from actual HQs on the map, including non-consecutive saved team slots.
+- HQs now have 20 HP and 2 defence. Tap an enemy HQ to inspect its health and attack it with a unit in range.
+- Destroying a faction's HQ eliminates that faction and its remaining soldiers. A faction with zero soldiers stays alive while its HQ survives.
+- AI targets enemy HQs as well as enemy units and can recruit from an empty starting army.
+- HQs now use BOTH of the house's saved colours: primary for main trim, secondary for highlight trim.
+- HQs display the house's official crest, including in the map editor.
+- HQ colour generation loads the master art once and recolours synchronously from house settings. This also fixes the mobile fallback to red.
+- Save slots store current HQ health and exact participating team slots. Older saves load with full-health HQs.
 
-Create Map
-- Units: choose House and unit type only; no colour options.
-- Buildings: choose House and HQ only; no colour options.
-- Colours for all units and HQs are inherited from each House's saved settings.
-- Each House may belong to only one team/player on a map.
-- On a starting map, select a new house and tap an existing HQ to assign the house to that HQ/army.
-- Legacy map team IDs and existing .dynmap.json formats remain compatible.
-
-New Game
-- Houses come from the selected map and cannot be changed in team setup.
-- Team Setup shows each house's saved colours and lets you select ONLY Human or AI.
-- Duplicate-house maps are flagged instead of launching a match with the same house twice.
-
-In Battle
-- A small version of the correct house crest appears at the bottom-left of each Soldier, Archer and Cavalry.
-- House colours determine both unit and HQ appearance.
-
-Compatibility
-- Existing save slots, map libraries and map exports remain readable.
-- House settings use this device's browser localStorage; importing a map on another device does not transfer the house colour settings.
-- No existing graphics have been replaced.
-
-Files changed in this update:
+CHANGED FILES IN THIS PATCH
 - index.html
 - service-worker.js
 - README.txt
 
-Deploy: upload these files to the root of your GitHub Pages repository, overwriting the previous copies.
+INSTALLATION
+Upload these three files into the ROOT of the existing GitHub Pages repository, replacing their older versions. Leave the current assets folder untouched. A cache-version bump in service-worker.js refreshes index.html when the game next loads.
+
+NOTES
+- HQs still occupy 1 tile wide by 2 tiles tall.
+- For existing maps, all current saved houses/colours and tiles are retained.
+- The two-colour HQ sprite uses the existing hq_master.png; no new sprite assets are needed.
