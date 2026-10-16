@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#182014">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dynasties — Build v45</title>
+<title>Dynasties — Build v54</title>
 <style>
 :root{
   --blue:#315f9b; --red:#93433d; --gold:#d7b96e; --cream:#f3e4bd;
@@ -1180,6 +1180,11 @@ button{font:inherit}
         <span class="recruitName">Cavalry</span>
         <span class="recruitPrice"><img class="goldIcon" src="./assets/gold_icon.png" alt="gold">600</span>
       </button>
+      <button class="recruitOption" id="popupRecruitDragon" type="button" hidden>
+        <img class="recruitSprite" src="./assets/dragon_targaryen_64.png" alt="">
+        <span class="recruitName">Dragon</span>
+        <span class="recruitPrice"><img class="goldIcon" src="./assets/gold_icon.png" alt="gold">1500</span>
+      </button>
       <div class="recruitNote" id="recruitNote">One recruit per turn.</div>
     </div>
     <div id="board">
@@ -1255,11 +1260,24 @@ button{font:inherit}
     castles:{player:{...DEFAULT_MAP.castles.player},enemy:{...DEFAULT_MAP.castles.enemy}}
   };
   const UNIT_DEFS={
-    soldier:{label:'Soldier',cost:300,hp:10,atk:3,def:2,maxMove:2,minRange:1,maxRange:1},
-    archer:{label:'Archer',cost:400,hp:10,atk:3,def:1,maxMove:2,minRange:1,maxRange:3},
-    cavalry:{label:'Cavalry',cost:600,hp:10,atk:4,def:2,maxMove:4,minRange:1,maxRange:1}
+    soldier:{label:'Soldier',cost:300,hp:10,atk:4,def:1,maxMove:2,minRange:1,maxRange:1},
+    archer:{label:'Archer',cost:400,hp:10,atk:4,def:0,maxMove:2,minRange:1,maxRange:3},
+    cavalry:{label:'Cavalry',cost:600,hp:10,atk:6,def:1,maxMove:4,minRange:1,maxRange:1},
+    dragon:{label:'Dragon',cost:1500,hp:10,atk:10,def:3,maxMove:7,minRange:1,maxRange:1,missile:true,flying:true}
   };
 
+  const DRAGON_FACTIONS=new Set(['targaryen','white_walkers']);
+  const WW_KINDS=['soldier','archer','cavalry','dragon'];
+  const isWwTeam=side=>teams[side]?.faction==='white_walkers';
+  const allowsKind=(faction,kind)=>!!UNIT_DEFS[kind] && (kind!=='dragon'||DRAGON_FACTIONS.has(faction));
+  const freshWwCredits=()=>({soldier:0,archer:0,cavalry:1,dragon:0});
+  function ensureWwCredits(side){
+    const t=teams[side];
+    if(!t)return null;
+    if(!t.wwCredits)t.wwCredits=freshWwCredits();
+    for(const kind of WW_KINDS)t.wwCredits[kind]=Math.max(0,Math.floor(Number(t.wwCredits[kind])||0));
+    return t.wwCredits;
+  }
   const TEAM_IDS=['player','enemy',...Array.from({length:18},(_,i)=>`team${i+3}`)];
   const TEAM_DEFAULT_COLOURS=['blue','red','green','yellow','purple','orange','white','black',...Array(12).fill('grey')];
   let teamCount=2;
@@ -1437,6 +1455,7 @@ button{font:inherit}
   const HUMAN_KIND_ATLAS={soldier:0,archer:1,cavalry:2};
   const MASTER_IMAGES=new Map();
   const HUMAN_MASTER='./assets/human_units_dual_colour.png';
+  const DRAGON_SPRITES={targaryen:'./assets/dragon_targaryen_64.png',white_walkers:'./assets/dragon_white_walker_64.png'};
   const isHumanFaction=f=>f!=='white_walkers';
   const normalSecondary=colour=>TEAM_COLOUR_PALETTES[colour]?colour:'gold';
 
@@ -1509,7 +1528,7 @@ button{font:inherit}
       else editingSecondary=btn.dataset.palette;
       renderHouseEditControls();
     }));
-    document.getElementById('houseUnitPreviews').innerHTML=Object.keys(UNIT_DEFS).map(kind=>`<div><img src="${paletteSprite(editingHouse,kind,editingPrimary,editingSecondary)}" alt="${kind}">${UNIT_DEFS[kind].label}</div>`).join('');
+    document.getElementById('houseUnitPreviews').innerHTML=Object.keys(UNIT_DEFS).filter(kind=>allowsKind(editingHouse,kind)).map(kind=>`<div><img src="${paletteSprite(editingHouse,kind,editingPrimary,editingSecondary)}" alt="${kind}">${UNIT_DEFS[kind].label}</div>`).join('');
   }
   function saveHouseEdits(){
     if(!editingHouse)return;
@@ -1603,6 +1622,7 @@ button{font:inherit}
   }
 
   function paletteSprite(faction,kind,colour,secondary='gold'){
+    if(kind==='dragon')return DRAGON_SPRITES[faction]||DRAGON_SPRITES.targaryen;
     const key=paletteSpriteKey(faction,kind,colour,secondary);
     if(paletteSpriteCache.has(key))return paletteSpriteCache.get(key);
     const src=masterSpriteForFaction(faction,kind);
@@ -1718,6 +1738,8 @@ button{font:inherit}
     if(soldier)soldier.src=teamSprite(state.activeTeam,'soldier');
     if(archer)archer.src=teamSprite(state.activeTeam,'archer');
     if(cavalry)cavalry.src=teamSprite(state.activeTeam,'cavalry');
+    const dragon=document.querySelector('#popupRecruitDragon .recruitSprite');
+    if(dragon)dragon.src=teamSprite(state.activeTeam,'dragon');
 
     const active=teams[state.activeTeam]||teams.player;
     const info=factionInfo(active.faction);
@@ -1810,6 +1832,7 @@ button{font:inherit}
     return brush; // Grass clears an overlay, as do Sea and Bridge.
   }
   function passabilityCost(kind,tile){
+    if(kind==='dragon')return 1; // flying ignores all ground movement penalties and can cross water
     const feature=terrainFeature(tile);
     if(feature==='sea')return Infinity;
     if(feature==='bridge')return 1;
@@ -1907,7 +1930,10 @@ button{font:inherit}
     const units=(Array.isArray(payload.units)?payload.units:[])
       .filter(u=>u&&validTeams.has(u.team)&&validKinds.has(u.kind)&&Number.isInteger(Number(u.x))&&Number.isInteger(Number(u.y)))
       .map(u=>({team:u.team,kind:u.kind,x:Number(u.x),y:Number(u.y)}))
-      .filter(u=>u.x>=0&&u.x<width&&u.y>=0&&u.y<height&&Number.isFinite(passabilityCost(u.kind,tiles[u.y*width+u.x])));
+      .filter(u=>u.x>=0&&u.x<width&&u.y>=0&&u.y<height
+        &&Number.isFinite(passabilityCost(u.kind,tiles[u.y*width+u.x]))
+        &&(u.kind!=='dragon'||terrainFeature(tiles[u.y*width+u.x])!=='sea')
+        &&allowsKind(payload.teamStyles?.[u.team]?.faction||fallbackTeamFaction(u.team),u.kind));
     const defaults=defaultCastlePositions(width,height);
     const castleFor=team=>{
       const c=payload.castles?.[team];
@@ -2087,7 +2113,8 @@ button{font:inherit}
 
   function resetTeamState(){
     for(const side of activeSides()){
-      teams[side].gold=300;teams[side].income=100;teams[side].recruited=false;
+      teams[side].gold=isWwTeam(side)?0:300;teams[side].income=isWwTeam(side)?0:100;teams[side].recruited=false;
+      teams[side].wwCredits=isWwTeam(side)?freshWwCredits():null;
     }
   }
 
@@ -2799,8 +2826,9 @@ button{font:inherit}
       }
       if(editorSelection!=='placeUnit')return;
       const kind=editorPickerKind;
+      if(!allowsKind(editorPickerFaction,kind)){setEditorMessage('Dragons are exclusive to House Targaryen and White Walkers.');return;}
       const terrain=editorTerrainAt(x,y);
-      if(!Number.isFinite(passabilityCost(kind,terrain))){setEditorMessage('That unit cannot enter this terrain.');return;}
+      if(!Number.isFinite(passabilityCost(kind,terrain))||(kind==='dragon'&&terrainFeature(terrain)==='sea')){setEditorMessage('That unit cannot finish on this terrain.');return;}
       const team=editorGetTeamForHouse(editorPickerFaction);
       if(!team)return;
       editorMap.units=editorMap.units.filter(u=>!(u.x===x&&u.y===y));
@@ -2856,7 +2884,7 @@ button{font:inherit}
     }else if(editorTool==='units'){
       title='UNITS';
       const p=styleForHouse(editorPickerFaction);
-      const unitChoices=Object.keys(UNIT_DEFS).map(kind=>choice(paletteSprite(editorPickerFaction,kind,p.primary,p.secondary),UNIT_DEFS[kind].label,`kind:${kind}`,editorSelection==='placeUnit'&&editorPickerKind===kind)).join('');
+      const unitChoices=Object.keys(UNIT_DEFS).filter(kind=>allowsKind(editorPickerFaction,kind)).map(kind=>choice(paletteSprite(editorPickerFaction,kind,p.primary,p.secondary),UNIT_DEFS[kind].label,`kind:${kind}`,editorSelection==='placeUnit'&&editorPickerKind===kind)).join('');
       content=`<div class="editorUnitsLayout"><div class="editorUnitsList">${unitChoices}${remove('Remove unit','remove',editorSelection==='remove')}</div>${houseChooser()}</div>
       <div class="editorSelectionText">${editorSelection==='placeUnit'?`Placing ${editorPickerReadyLabel()}.`:'Choose a house and unit.'}</div>`;
       hint='Choose a house and unit, then tap a valid tile. Colours are edited from Main Menu → Houses.';
@@ -2879,6 +2907,7 @@ button{font:inherit}
     const house=palette.querySelector('#editorHouseChoice');
     if(house)house.addEventListener('change',()=>{
       editorPickerFaction=house.value;
+      if(!allowsKind(editorPickerFaction,editorPickerKind))editorPickerKind='soldier';
       editorPickerTeam='auto';
       // Keep the selected unit/HQ tool while switching house.
       renderEditorPalette();
@@ -3098,7 +3127,10 @@ button{font:inherit}
 
   function resetUnits(){
     units={};
-    const placements=(Array.isArray(activeMap.units)?activeMap.units:DEFAULT_MAP.units).filter(u=>activeSides().includes(u.team)&&u.x>=0&&u.x<COLS&&u.y>=0&&u.y<ROWS);
+    const placements=(Array.isArray(activeMap.units)?activeMap.units:DEFAULT_MAP.units).filter(u=>
+      activeSides().includes(u.team)&&u.x>=0&&u.x<COLS&&u.y>=0&&u.y<ROWS
+      &&allowsKind(teamFaction(u.team),u.kind)
+      &&terrainPassable(u.x,u.y,u.kind));
     let idx=1;
     placements.forEach(p=>{
       const id=`map-${p.team}-${p.kind}-${idx++}`;
@@ -3160,7 +3192,7 @@ button{font:inherit}
   }
 
   function terrainPassable(x,y,kind='soldier'){
-    return Number.isFinite(terrainMoveCostForKind(kind,x,y));
+    return Number.isFinite(terrainMoveCostForKind(kind,x,y)) && (kind!=='dragon'||terrainFeature(terrainAt(x,y))!=='sea');
   }
 
   function renderActiveMapTerrain(){
@@ -3182,7 +3214,9 @@ button{font:inherit}
   const barracksAt=(x,y)=>activeSides().map(id=>barracks[id]).find(b=>b.alive&&x>=b.x&&x<b.x+(b.w||1)&&y>=b.y&&y<b.y+(b.h||1))||null;
   const selectedUnit=()=>state.selectedUnitId?units[state.selectedUnitId]:null;
   const inspectedUnit=()=>state.inspectedUnitId?units[state.inspectedUnitId]:null;
+  const canDamageTarget=(attacker,target)=>target.kind!=='dragon'||attacker.kind==='archer'||!!UNIT_DEFS[attacker.kind]?.missile;
   const inRange=(attacker,target)=>{
+    if(!canDamageTarget(attacker,target))return false;
     const d=target.kind==='hq'
       ?Math.min(...Array.from({length:target.h||2},(_,dy)=>Math.abs(attacker.x-target.x)+Math.abs(attacker.y-(target.y+dy))))
       :manhattan(attacker,target);
@@ -3197,6 +3231,13 @@ button{font:inherit}
   function targetDistance(pos,target){return target.kind==='hq'
     ?Math.min(...Array.from({length:target.h||2},(_,dy)=>Math.abs(pos.x-target.x)+Math.abs(pos.y-target.y-dy)))
     :manhattan(pos,target);}
+  function recordDeath(target,killerTeam){
+    if(!target||target.kind==='hq'||target.deathRecorded)return;
+    target.deathRecorded=true;
+    if(isWwTeam(killerTeam))ensureWwCredits(killerTeam)[target.kind]++;
+    if(isWwTeam(target.team))ensureWwCredits(target.team)[target.kind]++;
+  }
+
   function damageHq(target){
     if(target.hp>0)return;
     target.hp=0;target.alive=false;
@@ -3293,11 +3334,11 @@ button{font:inherit}
       if(cur.c!==best.get(ck))continue;
       for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
         const nx=cur.x+dx, ny=cur.y+dy;
-        if(!inside(nx,ny)||barracksAt(nx,ny))continue;
+        if(!inside(nx,ny)||(u.kind!=='dragon'&&barracksAt(nx,ny)))continue;
         const stepCost=terrainMoveCost(u,nx,ny);
         if(!Number.isFinite(stepCost))continue;
         const occ=unitAt(nx,ny);
-        if(occ&&occ.id!==u.id)continue;
+        if(occ&&occ.id!==u.id&&u.kind!=='dragon')continue;
         const nc=cur.c+stepCost;
         if(nc>maxCost)continue;
         const nk=key(nx,ny);
@@ -3305,6 +3346,12 @@ button{font:inherit}
       }
     }
     return {best,prev};
+  }
+
+  function legalLanding(u,x,y){
+    if(!inside(x,y)||!terrainPassable(x,y,u.kind))return false;
+    if(barracksAt(x,y))return false;
+    const occ=unitAt(x,y);return !occ||occ.id===u.id;
   }
 
   function reconstruct(prev,start,target){
@@ -3343,6 +3390,7 @@ button{font:inherit}
     for(const [k,cost] of data.best.entries()){
       if(cost===0)continue;
       const [x,y]=k.split(',').map(Number);
+      if(!legalLanding(u,x,y))continue;
       addOverlayCell(x,y,'moveCell',()=>moveSelectedTo(x,y));
     }
     if(!u.attacked){
@@ -3358,7 +3406,7 @@ button{font:inherit}
     const u=selectedUnit();
     if(!u||!canHumanControl(u.team)||state.selectedBarracks)return;
     const data=dijkstra(u,availableMove(u));
-    if(!data.best.has(key(x,y)))return;
+    if(!data.best.has(key(x,y))||!legalLanding(u,x,y))return;
     updateHighlights();
     const path=reconstruct(data.prev,u,{x,y})||[];
     path.forEach(p=>addOverlayCell(p.x,p.y,'pathCell',()=>moveSelectedTo(x,y)));
@@ -3372,7 +3420,7 @@ button{font:inherit}
       return;
     }
     const data=dijkstra(u,availableMove(u));
-    if(!data.best.has(key(x,y)))return;
+    if(!data.best.has(key(x,y))||!legalLanding(u,x,y))return;
     const path=reconstruct(data.prev,u,{x,y});
     if(!path||!path.length)return;
     state.busy=true; clearOverlay();
@@ -3396,7 +3444,7 @@ button{font:inherit}
     if(castle)selectBarracks(castle.team);
   }
 
-  const damage=(a,d)=>Math.max(1,a.atk-Math.floor(d.def/2));
+  const damage=(a,d)=>Math.max(1,a.atk-d.def);
 
   async function playAttackLunge(attacker,target){
     if(!attacker?.alive||!target)return;
@@ -3424,7 +3472,7 @@ button{font:inherit}
     setStatus(`${a.name} attacks ${d.name} for ${dmg} damage.`);
     if(d.hp<=0){
       if(d.kind==='hq')damageHq(d);
-      else{d.alive=false;if(state.inspectedUnitId===d.id)state.inspectedUnitId=null;setStatus(`${d.name} has fallen.`);}
+      else{recordDeath(d,a.team);d.alive=false;if(state.inspectedUnitId===d.id)state.inspectedUnitId=null;setStatus(`${d.name} has fallen.`);}
     }
     updateAll(); checkGameOver();
   }
@@ -3456,18 +3504,28 @@ button{font:inherit}
   function updateRecruitPopup(){
     const team=state.selectedBarracks||state.activeTeam;
     const t=teams[team];
-    const soldierSpace=!!nextSpawn(team,'soldier');
-    const archerSpace=!!nextSpawn(team,'archer');
-    const cavalrySpace=!!nextSpawn(team,'cavalry');
-    const soldierBtn=document.getElementById('popupRecruitSoldier');
-    const archerBtn=document.getElementById('popupRecruitArcher');
-    const cavalryBtn=document.getElementById('popupRecruitCavalry');
-    soldierBtn.disabled=t.recruited||!soldierSpace||t.gold<UNIT_DEFS.soldier.cost;
-    archerBtn.disabled=t.recruited||!archerSpace||t.gold<UNIT_DEFS.archer.cost;
-    cavalryBtn.disabled=t.recruited||!cavalrySpace||t.gold<UNIT_DEFS.cavalry.cost;
+    const ww=isWwTeam(team);
+    const credits=ww?ensureWwCredits(team):null;
+    const dragonAllowed=allowsKind(t.faction,'dragon');
+    let anySpace=false;
+    for(const kind of WW_KINDS){
+      const btn=document.getElementById('popupRecruit'+kind[0].toUpperCase()+kind.slice(1));
+      if(!btn)continue;
+      const available=allowsKind(t.faction,kind);
+      const spawn=available&&!!nextSpawn(team,kind);
+      const price=btn.querySelector('.recruitPrice');
+      if(price){
+        if(ww)price.textContent=`✦ ${credits[kind]||0}`;
+        else price.innerHTML=`<img class="goldIcon" src="./assets/gold_icon.png" alt="gold">${UNIT_DEFS[kind].cost}`;
+      }
+      if(kind==='dragon')btn.hidden=!dragonAllowed;
+      btn.disabled=!available||t.recruited||!spawn||(ww?credits[kind]<=0:t.gold<UNIT_DEFS[kind].cost);
+      anySpace ||= !!spawn;
+    }
     const note=document.getElementById('recruitNote');
-    if(t.recruited) note.textContent='A unit has already been recruited this turn.';
-    else if(!soldierSpace&&!archerSpace&&!cavalrySpace) note.textContent='No usable free tile beside the HQ.';
+    if(t.recruited)note.textContent='One unit may be raised or recruited per turn.';
+    else if(!anySpace)note.textContent='No suitable free tile beside this HQ.';
+    else if(ww)note.textContent='Raise the dead: each enemy kill or own casualty grants 1 credit of that unit type. No gold.';
     else note.textContent=`${t.name} gold: ${t.gold}`;
     positionRecruitPopup();
   }
@@ -3501,7 +3559,7 @@ button{font:inherit}
     if(attacker&&attacker.alive&&attacker.team===state.activeTeam&&inRange(attacker,u)&&!attacker.attacked){
       setStatus(`${u.name} inspected. ${attacker.name} can attack this unit.`);
     }else{
-      setStatus(`${u.name} inspected.`);
+      setStatus(u.kind==='dragon'&&attacker&&!canDamageTarget(attacker,u)?`${u.name} is immune to melee attacks. Use an Archer or Dragon.`:`${u.name} inspected.`);
     }
     updateAll();
   }
@@ -3522,23 +3580,25 @@ button{font:inherit}
   }
 
   function recruit(team,kind='soldier',announce=true){
-    const t=teams[team];
-    const def=UNIT_DEFS[kind];
-    if(t.gold<def.cost||t.recruited||!barracks[team]?.alive)return null;
+    const t=teams[team],def=UNIT_DEFS[kind];
+    if(!def||!allowsKind(t?.faction,kind)||t.recruited||!barracks[team]?.alive)return null;
+    const ww=isWwTeam(team);
+    if(ww){if(ensureWwCredits(team)[kind]<=0)return null;}
+    else if(t.gold<def.cost)return null;
     const spawn=nextSpawn(team,kind);
     if(!spawn)return null;
-    t.gold-=def.cost; t.recruited=true;
+    if(ww)ensureWwCredits(team)[kind]--;
+    else t.gold-=def.cost;
+    t.recruited=true;
     const n=state.nextRecruitId++;
     const id=`${team}-${kind}-${n}`;
     units[id]=createUnit(team,kind,id,spawn.x,spawn.y,true);
     ensureUnitEl(units[id]);
-    const prefix=unitPrefixForTeam(team);
-    if(announce)setStatus(`${prefix} recruits an ${def.label.toLowerCase()} for ${def.cost} gold. It can act next turn.`);
+    if(announce)setStatus(ww?`${t.name} raises a ${def.label.toLowerCase()} using 1 resurrection credit. It can act next turn.`:`${t.name} recruits a ${def.label.toLowerCase()} for ${def.cost} gold. It can act next turn.`);
     updateAll();
     return units[id];
   }
 
-  let aiSide='enemy';
   function priorityPlayerTarget(unit,fromPos,target){
     let score=0;
     score += (target.maxHp-target.hp)*10;
@@ -3728,6 +3788,8 @@ button{font:inherit}
     if(target.kind==='archer')score += 42;
     if(target.kind==='hq')score += 120;
     if(target.hp<=3)score += 24;
+    if(target.kind==='dragon')score += 60;
+    if(unit.kind==='dragon')score += 35;
     if(unit.kind==='archer'){
       if(dist===2)score += 20;
       else if(dist===3)score += 16;
@@ -3761,7 +3823,7 @@ button{font:inherit}
       if(!hq?.alive)continue;
       for(let dy=0;dy<(hq.h||2);dy++)for(let dx=0;dx<(hq.w||1);dx++){
         const x=hq.x+dx,y=hq.y+dy;
-        if(inside(x,y))costs[y*COLS+x]=0;
+        if(inside(x,y)&&unit.kind!=='dragon')costs[y*COLS+x]=0;
       }
     }
     const dist=new Float64Array(length);
@@ -3803,7 +3865,7 @@ button{font:inherit}
       for(let y=Math.max(0,target.y-unit.maxRange);y<=Math.min(ROWS-1,target.y+h-1+unit.maxRange);y++){
         for(let x=Math.max(0,target.x-unit.maxRange);x<=Math.min(COLS-1,target.x+unit.maxRange);x++){
           const idx=y*COLS+x;
-          if(!costs[idx])continue;
+          if(!costs[idx]||(unit.kind==='dragon'&&!legalLanding(unit,x,y)))continue;
           const d=targetDistance({x,y},target);
           if(d<unit.minRange||d>unit.maxRange)continue;
           if(dist[idx]===0)continue;
@@ -3870,6 +3932,7 @@ button{font:inherit}
 
     for(const [k,cost] of data.best.entries()){
       const [x,y]=k.split(',').map(Number);
+      if(!legalLanding(unit,x,y))continue;
       const tile={x,y};
       const path=reconstruct(data.prev,unit,tile)||[];
       const remaining=routeDistance(routeField,x,y);
@@ -3900,6 +3963,12 @@ button{font:inherit}
   }
 
   function chooseEnemyRecruitType(){
+    if(isWwTeam(aiSide)){
+      const credits=ensureWwCredits(aiSide);
+      const priority=['dragon','cavalry','archer','soldier'];
+      return priority.find(k=>credits[k]>0 && nextSpawn(aiSide,k))||'cavalry';
+    }
+    if(teamFaction(aiSide)==='targaryen' && !living(aiSide).some(u=>u.kind==='dragon') && state.turn>=8 && living(aiSide).length>=2)return 'dragon';
     const enemyArchers=living(aiSide).filter(u=>u.kind==='archer').length;
     const enemySoldiers=living(aiSide).filter(u=>u.kind==='soldier').length;
     const enemyCavalry=living(aiSide).filter(u=>u.kind==='cavalry').length;
@@ -3953,6 +4022,7 @@ button{font:inherit}
   function enemyRecruitPlan(){
     const kind=chooseEnemyRecruitType();
     const cost=UNIT_DEFS[kind].cost;
+    if(isWwTeam(aiSide))return {kind,cost:0,canAfford:ensureWwCredits(aiSide)[kind]>0,saving:false};
     return {kind,cost,canAfford:teams[aiSide].gold>=cost,saving:teams[aiSide].gold<cost};
   }
 
@@ -4038,7 +4108,7 @@ button{font:inherit}
         setStatus(`${unit.name} attacks ${target.name} for ${dmg}.`);
         if(target.hp<=0){
           if(target.kind==='hq')damageHq(target);
-          else{target.alive=false;if(state.inspectedUnitId===target.id)state.inspectedUnitId=null;}
+          else{recordDeath(target,side);target.alive=false;if(state.inspectedUnitId===target.id)state.inspectedUnitId=null;}
           aiRouteCache.clear();
         }
         updateAll();await spectateWait(420);
@@ -4071,7 +4141,8 @@ button{font:inherit}
     if(!next){
       next=order[0];state.turn++;
       for(const side of aliveSides()){
-        teams[side].gold+=teams[side].income;teams[side].recruited=false;
+        if(!isWwTeam(side))teams[side].gold+=teams[side].income;
+        teams[side].recruited=false;
         living(side).forEach(u=>{u.move=u.maxMove;u.attacked=false;});
       }
     }
@@ -4190,6 +4261,11 @@ button{font:inherit}
           teams[k].secondary=normalSecondary(s.teams[k].secondary);
           applySavedHouseStyle(k);
           syncTeamIdentity(k);
+          if(isWwTeam(k)){
+            teams[k].gold=0;teams[k].income=0;
+            teams[k].wwCredits=s.teams[k].wwCredits?{...s.teams[k].wwCredits}:freshWwCredits();
+            ensureWwCredits(k);
+          }
         }
       }
 
@@ -4199,6 +4275,9 @@ button{font:inherit}
         if(!u||!u.id)return;
         const oldMax=Number(u.maxHp)||8, oldHp=Number(u.hp)||0;
         if(oldMax!==10){u.maxHp=10;u.hp=Math.max(0,10-(oldMax-oldHp));}
+        // Balance updates apply to previously saved armies as well as new recruits.
+        const currentDef=UNIT_DEFS[u.kind];
+        if(currentDef){u.atk=currentDef.atk;u.def=currentDef.def;}
         units[u.id]=u;
       });
       // Empty armies are valid: HQs can recruit their first units after load.
@@ -4231,7 +4310,7 @@ button{font:inherit}
           <span class="factionInfo"><span class="factionName">${escapeHtml(info.label)}</span>
           <span class="factionNumber" style="display:block">Team ${i+1}${!hq?.alive?' · Eliminated':''}</span></span>
         </div></td>
-        <td>${team.gold}</td><td>${buildings}</td><td>${warriors}</td>
+        <td>${isWwTeam(side)?'— (no gold)':team.gold}</td><td>${buildings}</td><td>${warriors}</td>
       </tr>`;
     }).join('');
   }
@@ -4271,8 +4350,12 @@ button{font:inherit}
     });
     document.querySelectorAll('.barracks').forEach(el=>el.classList.toggle('selected',el.id==='barracks-'+state.selectedBarracks));
     const active=teams[state.activeTeam]||teams.player;
-    document.getElementById('currentGold').textContent=active.gold;
-    document.getElementById('currentIncome').textContent=`+${active.income}/turn`;
+    const ww=isWwTeam(state.activeTeam);
+    const amount=document.getElementById('currentGold');
+    const goldIcon=amount.closest('.goldAmount')?.querySelector('.goldIcon');
+    if(goldIcon)goldIcon.hidden=ww;
+    amount.textContent=ww?`✦ ${Object.values(ensureWwCredits(state.activeTeam)).reduce((a,b)=>a+b,0)} souls`:active.gold;
+    document.getElementById('currentIncome').textContent=ww?'Raised from fallen units':`+${active.income}/turn`;
     document.getElementById('currentUnitCount').textContent=living(state.activeTeam).length;
     document.getElementById('turnNo').textContent=state.turn;
     positionStaticObjects();
@@ -4428,6 +4511,7 @@ button{font:inherit}
   document.getElementById('popupRecruitSoldier').addEventListener('click',()=>{ const u=recruit(state.activeTeam,'soldier',true); if(u){hideRecruitPopup(); updateAll();} });
   document.getElementById('popupRecruitArcher').addEventListener('click',()=>{ const u=recruit(state.activeTeam,'archer',true); if(u){hideRecruitPopup(); updateAll();} });
   document.getElementById('popupRecruitCavalry').addEventListener('click',()=>{ const u=recruit(state.activeTeam,'cavalry',true); if(u){hideRecruitPopup(); updateAll();} });
+  document.getElementById('popupRecruitDragon').addEventListener('click',()=>{ const u=recruit(state.activeTeam,'dragon',true); if(u){hideRecruitPopup(); updateAll();} });
   document.getElementById('attackInspected').addEventListener('click',()=>{
     const attacker=selectedUnit();
     const target=state.inspectedHq?barracks[state.inspectedHq]:inspectedUnit();

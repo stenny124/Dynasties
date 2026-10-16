@@ -1,25 +1,20 @@
-DYNASTIES — BUILD v53
+DYNASTIES — BUILD v55
 
-MOBILE HQ COLOUR FIX
-- HQ artwork now renders from a pre-generated 17×17 palette atlas rather than
-  relying on Safari to recolour the original red-roof master image at runtime.
-- Every supported house primary/secondary combination is included in ONE PNG.
-- Main battle HQs, Create Map HQs, the Buildings selector and the bottom info
-  portrait all draw the appropriate colour pair from the same atlas.
-- Stone walls are primary; turret roofs are secondary; the house crest stays
-  overlaid separately and is unchanged.
-- Addresses the red-roof fallback reported on iPhone without changing desktop
-  appearance, save formats, map formats or gameplay.
-- Uses the same palette ramp and source pixel mappings as the desktop renderer.
+WHAT CHANGED
+- Added Dragon (10 HP, 10 ATK, 3 DEF, 7 MOV, Range 1, cost 1500 gold) for House Targaryen and White Walkers only.
+- Dragons fly over all terrain, HQs, allies and enemies; no terrain movement penalty. They must finish on an unoccupied, non-sea, non-HQ tile.
+- Dragons can only be attacked by missile units: Archers and Dragons. Dragon breath counts as a missile attack.
+- White Walkers no longer earn, hold or spend gold. Instead they earn one resurrection credit matching each type of enemy unit they kill, or matching each type of their own units lost. No credits for HQs.
+- White Walkers begin with one Cavalry recruitment credit. Each credit raises one unit of its kind, up to one HQ recruit/raise per turn.
+- Raised troops act next turn. White Walkers AI recruits using available resurrection credits.
+- Dragon is available in Targaryen and White Walker unit placements and previews; validation prevents other factions or sea tile starting positions.
+- Existing maps and save slots retain their format; old White Walker saves initialise the new credits.
 
-PATCH FILES
-- index.html
-- service-worker.js
-- README.txt
-- assets/hq_palette_atlas_v53.png
+UPLOAD / REPLACE ONLY THESE FILES
+index.html
+service-worker.js
+README.txt
+assets/dragon_targaryen_64.png
+assets/dragon_white_walker_64.png
 
-INSTALLATION
-Upload/overwrite the above files in your existing GitHub Pages repository.
-Put the new PNG in the existing assets/ folder. Do not delete other assets.
-On iPhone, close/reopen the page after deployment; if it remains stale, reload
-so the v53 service worker can take control.
+Do not upload the ZIP folder itself; keep the listed paths in your repository root.

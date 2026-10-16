@@ -1,1 +1,1 @@
-Upload the CONTENTS of this ZIP into your existing GitHub Pages repository root, replacing index.html, service-worker.js and README.txt. Add assets/hq_palette_atlas_v53.png.
+Overwrite the five game files listed in README.txt in your repository root.
