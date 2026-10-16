@@ -1,19 +1,24 @@
-Dynasties — Build v51
+DYNASTIES — BUILD v52
 
-WHAT CHANGED
-- Expanded playable/editor team slots from 8 to 20. Legacy 'player', 'enemy' and team3–team8 identifiers are preserved.
-- Because there are currently ten houses, Create Map now supports several independent teams sharing the same house. Each team has its own HQ, army and turn, but shares that house's saved colours, crest and unit style.
-- Create Map → Buildings or Units now has a TEAM selector below HOUSE. Pick an existing Team number or "+ New team" to add another team of that house.
-- New Game automatically recognises all HQ teams present on the map, up to 20, and gives each its own Human/AI control.
-- HQ stone/walls now use the primary house colour. The central and smaller turret roofs use the secondary house colour. House crest remains visible.
-- Fixed vertical bridge rendering using the exact supplied vertical bridge sprite embedded directly in index.html, so it no longer requires a separate asset to be uploaded.
-- Made the service-worker installation tolerant of optional or missing legacy image files instead of failing the entire cache install.
-- Existing maps and save slots retain their previous side identifiers.
+AI NAVIGATION FIX
+- Added a full-map weighted route planner for each AI unit type.
+- Routes account for mountains, coastlines, water, terrain costs, and solid HQs.
+- AI units will now follow legal detours through gaps and around obstacles,
+  even when doing so temporarily increases straight-line distance to opponents.
+- Short-range movement still respects occupied tiles; global routes treat friendly
+  units as temporarily movable so a blocked tile does not make the whole army
+  believe its objective is unreachable.
+- Front-line units move before units behind to reduce chokepoint traffic jams.
+- Cached route maps are reset for each AI team turn and when a target is destroyed.
+- Truly disconnected areas remain unreachable for land units, as intended;
+  naval or transport gameplay has not been added.
+- No artwork, maps, saves, factions or balance statistics changed.
 
-CHANGED FILES IN THIS PATCH
+PATCH FILES:
 - index.html
 - service-worker.js
 - README.txt
 
 INSTALLATION
-Overwrite those three files in the ROOT of your existing GitHub Pages repository. No new image uploads required.
+Replace the above three files at the root of your existing GitHub Pages repo.
+Your existing assets/ directory and saved maps should remain untouched.

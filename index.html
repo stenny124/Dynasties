@@ -1219,6 +1219,7 @@ button{font:inherit}
 
 <script>
 (async () => {
+  // Dynasties Build v52 — full-map terrain-aware AI route planning.
   // Dynasties v46: houses assigned in Create Map; New Game configures colours and controllers.
   // Dynasties v47: bridge tap-to-rotate while preserving the existing map/save formats.
   // Dynasties v43: match-only performance, per-map thumbnails, snow/desert/bridge terrain.
@@ -3709,50 +3710,165 @@ button{font:inherit}
     return score;
   }
 
+  // Global AI route planning: a weighted reverse Dijkstra flow-field. Unlike
+  // Manhattan scoring, this knows when the best route starts *away* from an enemy
+  // to walk around water, mountains, impassable cells, or an HQ.
+  //
+  // Movement is still resolved by dijkstra(unit,move), which treats other units
+  // as occupied. Global routes ignore mobile units (they may move next turn).
+  let aiRouteCache=new Map();
+
+  function aiRouteField(unit){
+    const cacheKey=`${unit.team}|${unit.kind}`;
+    if(aiRouteCache.has(cacheKey))return aiRouteCache.get(cacheKey);
+
+    const length=COLS*ROWS;
+    const costs=new Uint8Array(length);
+    for(let i=0;i<length;i++){
+      const x=i%COLS,y=(i/COLS)|0;
+      const cost=terrainMoveCostForKind(unit.kind,x,y);
+      costs[i]=Number.isFinite(cost)?cost:0;
+    }
+    // HQs are solid, including friendly and enemy HQ footprints.
+    for(const side of activeSides()){
+      const hq=barracks[side];
+      if(!hq?.alive)continue;
+      for(let dy=0;dy<(hq.h||2);dy++)for(let dx=0;dx<(hq.w||1);dx++){
+        const x=hq.x+dx,y=hq.y+dy;
+        if(inside(x,y))costs[y*COLS+x]=0;
+      }
+    }
+    const dist=new Float64Array(length);
+    dist.fill(Infinity);
+    // Binary min-heap avoids sorting large arrays on 200x200 maps.
+    const heapIds=[],heapVals=[];
+    const push=(id,val)=>{
+      let i=heapIds.length;
+      heapIds.push(id);heapVals.push(val);
+      while(i>0){
+        const p=(i-1)>>1;
+        if(heapVals[p]<=val)break;
+        heapIds[i]=heapIds[p];heapVals[i]=heapVals[p];i=p;
+      }
+      heapIds[i]=id;heapVals[i]=val;
+    };
+    const pop=()=>{
+      const id=heapIds[0],val=heapVals[0];
+      const endId=heapIds.pop(),endVal=heapVals.pop();
+      if(heapIds.length){
+        let i=0;
+        while(true){
+          const l=i*2+1;
+          if(l>=heapIds.length)break;
+          const r=l+1,child=(r<heapIds.length&&heapVals[r]<heapVals[l])?r:l;
+          if(heapVals[child]>=endVal)break;
+          heapIds[i]=heapIds[child];heapVals[i]=heapVals[child];i=child;
+        }
+        heapIds[i]=endId;heapVals[i]=endVal;
+      }
+      return [id,val];
+    };
+
+    // Seed tiles from which this unit can *actually attack* an opponent.
+    // For HQs, distance is measured to either HQ footprint tile.
+    const goals=hostileTargets(unit.team);
+    for(const target of goals){
+      const h=target.kind==='hq'?(target.h||2):1;
+      for(let y=Math.max(0,target.y-unit.maxRange);y<=Math.min(ROWS-1,target.y+h-1+unit.maxRange);y++){
+        for(let x=Math.max(0,target.x-unit.maxRange);x<=Math.min(COLS-1,target.x+unit.maxRange);x++){
+          const idx=y*COLS+x;
+          if(!costs[idx])continue;
+          const d=targetDistance({x,y},target);
+          if(d<unit.minRange||d>unit.maxRange)continue;
+          if(dist[idx]===0)continue;
+          dist[idx]=0;push(idx,0);
+        }
+      }
+    }
+
+    while(heapIds.length){
+      const [idx,value]=pop();
+      if(value!==dist[idx])continue;
+      const x=idx%COLS,y=(idx/COLS)|0;
+      // Reverse edge n -> idx costs exactly the cost of entering idx.
+      const candidate=value+costs[idx];
+      const consider=n=>{
+        if(!costs[n]||candidate>=dist[n])return;
+        dist[n]=candidate;push(n,candidate);
+      };
+      if(x>0)consider(idx-1);
+      if(x+1<COLS)consider(idx+1);
+      if(y>0)consider(idx-COLS);
+      if(y+1<ROWS)consider(idx+COLS);
+    }
+    const result={dist,cols:COLS,rows:ROWS};
+    aiRouteCache.set(cacheKey,result);
+    return result;
+  }
+
+  function routeDistance(field,x,y){
+    return inside(x,y)?field.dist[y*field.cols+x]:Infinity;
+  }
+
+  function routeAwareMoveScore(unit,x,y,cost,field,preferred){
+    const here=routeDistance(field,unit.x,unit.y);
+    const there=routeDistance(field,x,y);
+    if(!Number.isFinite(there))return -1e7;
+    const advance=Number.isFinite(here)?here-there:0;
+    let score=advance*85;
+    // Tactics are secondary to reaching the enemy. Avoid reintroducing
+    // an impassable local minimum through a large "stay with allies" bonus.
+    const nearest=nearestPlayerDistance(x,y);
+    if(nearest<=5){
+      const threats=playerThreatCountAt(x,y);
+      const support=allySupportCount(unit,x,y,2);
+      score+=Math.min(15,support*5);
+      if(threats>support+1)score-=Math.min(35,(threats-support-1)*10);
+      if(unit.kind==='archer'&&nearest===1)score-=28;
+      if(unit.kind==='archer'&&nearest>=2&&nearest<=3)score+=12;
+    }
+    // If already in range but unable to attack again, prefer holding position.
+    if(here===0&&advance<0)score-=50;
+    score-=cost*0.6;
+    if(x===unit.x&&y===unit.y)score+=.3;
+    return score;
+  }
+
   function evaluateEnemyAction(unit){
     const data=dijkstra(unit,availableMove(unit));
-    let best={
-      score:-1e9,
-      tile:{x:unit.x,y:unit.y},
-      path:[],
-      target:null,
-      targetDist:distanceToClosestPlayerAt(unit.x,unit.y)
-    };
+    const routeField=aiRouteField(unit);
+    const here=routeDistance(routeField,unit.x,unit.y);
+    const targets=hostileTargets(unit.team);
+    let best={score:-Infinity,tile:{x:unit.x,y:unit.y},path:[],target:null,
+      remaining:here};
 
     for(const [k,cost] of data.best.entries()){
       const [x,y]=k.split(',').map(Number);
       const tile={x,y};
       const path=reconstruct(data.prev,unit,tile)||[];
-      const preferred=preferredPlayerTarget(unit,tile);
-      const moveBias=-(cost*1.5);
-      const attackables=hostileTargets(aiSide).filter(t=>inRange({...unit,x,y},t));
-
-      if(attackables.length){
-        for(const target of attackables){
-          const score=attackScore(unit,target,x,y)+moveBias;
-          const targetDist=distanceToClosestPlayerAt(x,y);
-          if(score>best.score || (Math.abs(score-best.score)<0.001 && targetDist<best.targetDist)){
-            best={score,tile,path,target,targetDist};
-          }
+      const remaining=routeDistance(routeField,x,y);
+      const canAttack=unit.attacked?[]:targets.filter(t=>inRange({...unit,x,y},t));
+      if(canAttack.length){
+        for(const target of canAttack){
+          // A legal attack is preferable to merely advancing. Still weigh
+          // damage/kills and avoid wasting an archer's mobility to attack.
+          const score=1000+attackScore(unit,target,x,y)-cost;
+          if(score>best.score)best={score,tile,path,target,remaining};
         }
-      }else{
-        let score=positionScore(unit,x,y,preferred)+moveBias;
-        if(preferred){
-          const d=targetDistance(tile,preferred);
-          if(unit.kind==='archer'){
-            if(d===2)score += 20;
-            else if(d===3)score += 17;
-            else if(d===1)score -= 38;
-          }else{
-            score += Math.max(0,7-d)*4;
-            if(preferred.kind==='archer')score += 15;
-          }
-        }
-        const targetDist=distanceToClosestPlayerAt(x,y);
-        if(score>best.score || (Math.abs(score-best.score)<0.001 && targetDist<best.targetDist)){
-          best={score,tile,path,target:null,targetDist};
+      }else if(Number.isFinite(remaining)){
+        // Prefer progress toward an actual reachable opponent even if the
+        // route temporarily heads sideways or away from that opponent.
+        const score=routeAwareMoveScore(unit,x,y,cost,routeField);
+        if(score>best.score || (score===best.score&&remaining<best.remaining)){
+          best={score,tile,path,target:null,remaining};
         }
       }
+    }
+    // A unit genuinely cut off by impassable terrain will hold its ground;
+    // no land-only unit should walk through water to fake a route.
+    if(best.score===-Infinity){
+      return {score:0,tile:{x:unit.x,y:unit.y},path:[],target:null,
+        remaining:Infinity,unreachable:true};
     }
     return best;
   }
@@ -3830,6 +3946,7 @@ button{font:inherit}
   }
 
   async function aiPhase(side){
+    aiRouteCache.clear();
     aiSide=side;state.busy=true;state.watchingAi=true;state.skipAiView=false;
     hideRecruitPopup();updateAll();setStatus(`${teams[side].name} (AI) is thinking…`);
     if(!teams[side].recruited && shouldEnemyRecruit()){
@@ -3849,7 +3966,13 @@ button{font:inherit}
       const bd=Math.min(99,...their.map(p=>targetDistance(b,p)));
       const aAttack=their.some(p=>inRange(a,p)),bAttack=their.some(p=>inRange(b,p));
       if(aAttack!==bAttack)return aAttack?-1:1;
-      return bd-ad;
+      // Advance the route-nearest units first so those behind can move
+      // through narrow passages once the leading units clear them.
+      const ar=routeDistance(aiRouteField(a),a.x,a.y);
+      const br=routeDistance(aiRouteField(b),b.x,b.y);
+      if(Number.isFinite(ar)!==Number.isFinite(br))return Number.isFinite(ar)?-1:1;
+      if(ar!==br)return ar-br;
+      return ad-bd;
     });
     for(const unit of ours){
       if(!unit.alive||!hostileTargets(side).length||!state.gameActive)break;
@@ -3857,6 +3980,10 @@ button{font:inherit}
       await followUnitCamera(unit,90);
       const plan=evaluateEnemyAction(unit);
       if(!plan)continue;
+      if(plan.unreachable){
+        setStatus(`${unit.name} cannot reach any opponent over passable terrain.`);
+        continue;
+      }
       for(const step of (plan.path||[])){
         faceTowardStep(unit,step);
         unit.move=Math.max(0,unit.move-terrainMoveCost(unit,step.x,step.y));
@@ -3886,6 +4013,7 @@ button{font:inherit}
         if(target.hp<=0){
           if(target.kind==='hq')damageHq(target);
           else{target.alive=false;if(state.inspectedUnitId===target.id)state.inspectedUnitId=null;}
+          aiRouteCache.clear();
         }
         updateAll();await spectateWait(420);
       }
