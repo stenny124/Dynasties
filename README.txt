@@ -1,24 +1,25 @@
-DYNASTIES — BUILD v52
+DYNASTIES — BUILD v53
 
-AI NAVIGATION FIX
-- Added a full-map weighted route planner for each AI unit type.
-- Routes account for mountains, coastlines, water, terrain costs, and solid HQs.
-- AI units will now follow legal detours through gaps and around obstacles,
-  even when doing so temporarily increases straight-line distance to opponents.
-- Short-range movement still respects occupied tiles; global routes treat friendly
-  units as temporarily movable so a blocked tile does not make the whole army
-  believe its objective is unreachable.
-- Front-line units move before units behind to reduce chokepoint traffic jams.
-- Cached route maps are reset for each AI team turn and when a target is destroyed.
-- Truly disconnected areas remain unreachable for land units, as intended;
-  naval or transport gameplay has not been added.
-- No artwork, maps, saves, factions or balance statistics changed.
+MOBILE HQ COLOUR FIX
+- HQ artwork now renders from a pre-generated 17×17 palette atlas rather than
+  relying on Safari to recolour the original red-roof master image at runtime.
+- Every supported house primary/secondary combination is included in ONE PNG.
+- Main battle HQs, Create Map HQs, the Buildings selector and the bottom info
+  portrait all draw the appropriate colour pair from the same atlas.
+- Stone walls are primary; turret roofs are secondary; the house crest stays
+  overlaid separately and is unchanged.
+- Addresses the red-roof fallback reported on iPhone without changing desktop
+  appearance, save formats, map formats or gameplay.
+- Uses the same palette ramp and source pixel mappings as the desktop renderer.
 
-PATCH FILES:
+PATCH FILES
 - index.html
 - service-worker.js
 - README.txt
+- assets/hq_palette_atlas_v53.png
 
 INSTALLATION
-Replace the above three files at the root of your existing GitHub Pages repo.
-Your existing assets/ directory and saved maps should remain untouched.
+Upload/overwrite the above files in your existing GitHub Pages repository.
+Put the new PNG in the existing assets/ folder. Do not delete other assets.
+On iPhone, close/reopen the page after deployment; if it remains stale, reload
+so the v53 service worker can take control.

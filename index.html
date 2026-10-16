@@ -127,7 +127,7 @@ button{font:inherit}
   background:transparent;
   box-shadow:none;
 }
-.barracks img.hqArt{
+.barracks .hqArt{
   width:100%;
   height:100%;
   object-fit:fill;
@@ -135,7 +135,7 @@ button{font:inherit}
   filter:drop-shadow(0 4px 6px rgba(0,0,0,.38));
   display:block;
 }
-.barracks.selected img.hqArt{
+.barracks.selected .hqArt{
   filter:
     drop-shadow(0 0 0 rgba(0,0,0,0))
     drop-shadow(0 0 8px rgba(255,233,140,.85))
@@ -615,6 +615,7 @@ button{font:inherit}
   background:#ead5ab;color:#4d3823;text-align:center;font:10px Georgia,serif;
 }
 .editorChoice img{display:block;width:40px;height:40px;margin:0 auto 2px;object-fit:contain;image-rendering:pixelated}
+.editorChoice .hqPreviewAtlas{display:block;margin:0 auto 2px;image-rendering:pixelated}
 .editorChoice.active{background:#c8a773;border-color:#604426;box-shadow:inset 0 0 0 1px #f8edcf}
 .editorChoice.removeChoice .removeIcon{display:grid;place-items:center;width:40px;height:40px;margin:0 auto 2px;font:bold 28px Arial;color:#91493e}
 .editorFactionLabel{align-self:center;flex:0 0 auto;padding:0 3px;font:bold 9px Georgia;color:#6a5133;writing-mode:vertical-rl;transform:rotate(180deg)}
@@ -1185,8 +1186,8 @@ button{font:inherit}
       <div id="grass"></div>
       <div id="overlay"></div>
       <div id="objectLayer">
-        <button class="barracks player" id="barracks-player" type="button" aria-label="HQ"><img class="hqArt" src="./assets/hq_master.png" alt="HQ"></button>
-        <button class="barracks enemy" id="barracks-enemy" type="button" aria-label="HQ"><img class="hqArt" src="./assets/hq_master.png" alt="HQ"></button>
+        <button class="barracks player" id="barracks-player" type="button" aria-label="HQ"><span class="hqArt" role="img" aria-label="HQ"></span></button>
+        <button class="barracks enemy" id="barracks-enemy" type="button" aria-label="HQ"><span class="hqArt" role="img" aria-label="HQ"></span></button>
       </div>
       <div id="unitLayer"></div>
     </div>
@@ -1666,6 +1667,25 @@ button{font:inherit}
     if(hqSpriteCache.size>300)hqSpriteCache.clear();
     hqSpriteCache.set(key,result);
     return result;
+  }
+  // v53: Device-independent HQ colour rendering. A single prebuilt atlas contains
+  // each primary/secondary colour pair (matching the desktop canvas result).
+  // Using a CSS sprite here bypasses mobile Safari's canvas/image fallback,
+  // which previously showed the original HQ's red roof on some devices.
+  const HQ_ATLAS_URL='./assets/hq_palette_atlas_v53.png';
+  const HQ_ATLAS_COLOURS=["red", "blue", "green", "yellow", "purple", "orange", "grey", "cyan", "white", "black", "gold", "crimson", "burgundy", "navy", "forest", "silver", "bronze"];
+  function applyHqAtlas(el,primary,secondary,width,height){
+    if(!el)return;
+    const px=Math.max(0,HQ_ATLAS_COLOURS.indexOf(primary));
+    const sy=Math.max(0,HQ_ATLAS_COLOURS.indexOf(secondary));
+    el.style.display='block';
+    el.style.width=`${width}px`;
+    el.style.height=`${height}px`;
+    el.style.backgroundImage=`url('${HQ_ATLAS_URL}')`;
+    el.style.backgroundRepeat='no-repeat';
+    el.style.backgroundSize=`${HQ_ATLAS_COLOURS.length*width}px ${HQ_ATLAS_COLOURS.length*height}px`;
+    el.style.backgroundPosition=`${-px*width}px ${-sy*height}px`;
+    el.style.imageRendering='pixelated';
   }
   function hqSprite(side){return buildingSprite(teamColour(side),secondaryColour(side));}
 
@@ -2674,10 +2694,11 @@ button{font:inherit}
 
     for(const team of Object.keys(editorMap.castles)){
       const c=editorMap.castles[team];
-      const img=document.createElement('img');
-      img.className='editorCastle';img.src=editorHqSprite(team);
+      const img=document.createElement('span');
+      img.className='editorCastle';
+      const style=editorStyle(team);
+      applyHqAtlas(img,style.colour,style.secondary,EDITOR_CELL,EDITOR_CELL*2);
       img.style.left=`${c.x*EDITOR_CELL}px`;img.style.top=`${c.y*EDITOR_CELL}px`;
-      img.style.width=`${EDITOR_CELL}px`;img.style.height=`${EDITOR_CELL*2}px`;
       objectLayer.appendChild(img);
       const crest=document.createElement('img');crest.className='editorCastleCrest';
       crest.src=factionInfo(editorStyle(team).faction).crest;
@@ -2842,13 +2863,17 @@ button{font:inherit}
     }else{
       title='BUILDINGS';
       const p=styleForHouse(editorPickerFaction);
-      const picture=buildingSprite(p.primary,p.secondary);
-      content=`<div class="editorUnitsLayout"><div class="editorUnitsList">${choice(picture,'HQ','hq',editorSelection==='placeHQ')}${remove('Remove HQ','removeHQ',editorSelection==='removeHQ')}</div>${houseChooser()}</div>
+      const preview=`<button class="editorChoice ${editorSelection==='placeHQ'?'active':''}" type="button" data-picker-choice="hq" aria-pressed="${editorSelection==='placeHQ'}"><span class="hqPreviewAtlas"></span><span>HQ</span></button>`;
+      content=`<div class="editorUnitsLayout"><div class="editorUnitsList">${preview}${remove('Remove HQ','removeHQ',editorSelection==='removeHQ')}</div>${houseChooser()}</div>
       <div class="editorSelectionText">${editorSelection==='placeHQ'?`Placing ${editorPickerReadyLabel()}.`:'Choose the house whose HQ you want to place.'}</div>`;
       hint='Place a 1×2 HQ on grass, snow or desert. Colours follow Main Menu → Houses.';
     }
 
     palette.innerHTML=head(title)+content;
+    if(editorTool==='buildings'){
+      const p=styleForHouse(editorPickerFaction);
+      applyHqAtlas(palette.querySelector('.hqPreviewAtlas'),p.primary,p.secondary,36,40);
+    }
     document.getElementById('editorHint').textContent=hint;
     palette.querySelector('#editorPaletteClose').addEventListener('click',closeEditorPalette);
     const house=palette.querySelector('#editorHouseChoice');
@@ -3233,9 +3258,10 @@ button{font:inherit}
       el.hidden=!activeSides().includes(side)||!barracks[side].alive;
       if(el.hidden)continue;
       const b=barracks[side];el.style.left=(b.x*CELL)+'px';el.style.top=(b.y*CELL)+'px';
-      let art=el.querySelector('.hqArt');
-      if(!el.querySelector('.hqHouseCrest')){el.innerHTML='<img class="hqArt" alt="HQ"><img class="hqHouseCrest" alt="House crest"><span class="hqHpNumber"></span>';art=el.querySelector('.hqArt');}
-      const sprite=hqSprite(side);if(art.getAttribute('src')!==sprite)art.src=sprite;
+      if(!el.querySelector('.hqHouseCrest') || !el.querySelector('span.hqArt')){
+        el.innerHTML='<span class="hqArt" role="img" aria-label="HQ"></span><img class="hqHouseCrest" alt="House crest"><span class="hqHpNumber"></span>';
+      }
+      applyHqAtlas(el.querySelector('.hqArt'),teamColour(side),secondaryColour(side),CELL,CELL*2);
       const crest=el.querySelector('.hqHouseCrest'),crestSrc=factionInfo(teamFaction(side)).crest;
       if(crest.getAttribute('src')!==crestSrc)crest.src=crestSrc;
       el.querySelector('.hqHpNumber').textContent=b.hp;
@@ -4089,7 +4115,16 @@ button{font:inherit}
     const portrait=document.getElementById('portraitImg');
     portrait.style.display='';
     const isHQ=u.kind==='hq';
-    portrait.src=isHQ?hqSprite(u.team):spriteFor(u);
+    if(isHQ){
+      // A transparent image avoids flashing the original red HQ before palette application.
+      if(portrait.getAttribute('src')!=='data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=')
+        portrait.src='data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+      applyHqAtlas(portrait,teamColour(u.team),secondaryColour(u.team),48,60);
+    }else{
+      portrait.style.backgroundImage='none';
+      portrait.style.width='';portrait.style.height='';
+      portrait.src=spriteFor(u);
+    }
     document.getElementById('selectedName').textContent=isHQ?`${teams[u.team].name} HQ`:u.name;
     document.getElementById('selectedSub').textContent=(isHQ?'Headquarters':u.title)+(u.team!==state.activeTeam?' · Opponent':'');
     document.getElementById('statHP').textContent=`${u.hp}/${u.maxHp}`;

@@ -1,1 +1,1 @@
-v46: overwrite index.html, service-worker.js, README.txt in the GitHub Pages repo root. No asset changes.
+Upload the CONTENTS of this ZIP into your existing GitHub Pages repository root, replacing index.html, service-worker.js and README.txt. Add assets/hq_palette_atlas_v53.png.
