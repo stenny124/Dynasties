@@ -1,4 +1,4 @@
-Dynasties — Build v56
+Dynasties — Build v57
 
 New Villager unit
 - Costs 100 gold; HP 10; ATK 0 (cannot attack); DEF 0; MOV 2.
@@ -18,3 +18,18 @@ service-worker.js
 README.txt
 assets/villager_master.png (new)
 assets/forest_stump.png (new)
+
+
+v57 changes
+- Villagers now recolour with their house palette.
+- Villagers must stand on a tile adjacent to a forest to chop it.
+- If assigned a forest within three tiles but not adjacent, they keep the work order and auto-move on their next turn to an adjacent chopping position when possible.
+- The chopped-forest sprite now uses the supplied art style, with biome-aware grass/snow/desert variants so the background matches the underlying terrain.
+
+Files in this patch (replace/update at repo root):
+index.html
+service-worker.js
+README.txt
+assets/forest_stump_grass.png (new)
+assets/forest_stump_snow.png (new)
+assets/forest_stump_desert.png (new)

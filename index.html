@@ -1234,7 +1234,7 @@ button{font:inherit}
 
 <script>
 (async () => {
-  // Dynasties Build v56 — Villagers, renewable timber, forestry work orders.
+  // Dynasties Build v57 — Villager house colours, adjacency chopping, biome-aware stumps.
   // Dynasties Build v52 — full-map terrain-aware AI route planning.
   // Dynasties v46: houses assigned in Create Map; New Game configures colours and controllers.
   // Dynasties v47: bridge tap-to-rotate while preserving the existing map/save formats.
@@ -1638,7 +1638,7 @@ button{font:inherit}
   function paletteSprite(faction,kind,colour,secondary='gold'){
     if(kind==='dragon')return DRAGON_SPRITES[faction]||DRAGON_SPRITES.targaryen;
     if(kind==='villager'){
-      const key=`villager|${colour}`;
+      const key=`villager|${colour}|${secondary}`;
       if(paletteSpriteCache.has(key))return paletteSpriteCache.get(key);
       const master=MASTER_IMAGES.get(VILLAGER_MASTER);
       if(!master)return VILLAGER_MASTER;
@@ -1646,15 +1646,20 @@ button{font:inherit}
       const ctx=canvas.getContext('2d',{willReadFrequently:true});if(!ctx)return VILLAGER_MASTER;
       ctx.imageSmoothingEnabled=false;ctx.drawImage(master,0,0,64,64);
       const data=ctx.getImageData(0,0,64,64);
-      const ramp=TEAM_COLOUR_PALETTES[colour]||TEAM_COLOUR_PALETTES.red;
-      const swaps=new Map([
-        ['71,32,46',0],['92,17,30',1],['131,6,51',2],['170,0,63',3],['224,0,49',4]
+      const primary=TEAM_COLOUR_PALETTES[colour]||TEAM_COLOUR_PALETTES.red;
+      const secondaryRamp=TEAM_COLOUR_PALETTES[secondary]||TEAM_COLOUR_PALETTES.gold;
+      const exact=new Map([
+        ['71,32,46',{channel:'primary',step:0}],['92,17,30',{channel:'primary',step:1}],
+        ['131,6,51',{channel:'primary',step:2}],['170,0,63',{channel:'primary',step:3}],
+        ['224,0,49',{channel:'primary',step:4}],
+        ['187,117,71',{channel:'secondary',step:3}],['142,87,61',{channel:'secondary',step:2}]
       ]);
       for(let i=0;i<data.data.length;i+=4){
         if(!data.data[i+3])continue;
-        const step=swaps.get(`${data.data[i]},${data.data[i+1]},${data.data[i+2]}`);
-        if(step===undefined)continue;
-        const rgb=hexRgb(ramp[step]);data.data[i]=rgb[0];data.data[i+1]=rgb[1];data.data[i+2]=rgb[2];
+        const spec=exact.get(`${data.data[i]},${data.data[i+1]},${data.data[i+2]}`);
+        if(!spec)continue;
+        const ramp=spec.channel==='secondary'?secondaryRamp:primary;
+        const rgb=hexRgb(ramp[spec.step]);data.data[i]=rgb[0];data.data[i+1]=rgb[1];data.data[i+2]=rgb[2];
       }
       ctx.putImageData(data,0,0);
       const src=canvas.toDataURL('image/png');paletteSpriteCache.set(key,src);return src;
@@ -3237,13 +3242,21 @@ button{font:inherit}
     return Number.isFinite(terrainMoveCostForKind(kind,x,y)) && (kind!=='dragon'||terrainFeature(terrainAt(x,y))!=='sea');
   }
 
+  function stumpAssetFor(originalTile){
+    const base=terrainBase(originalTile||'grass');
+    if(base==='snow')return './assets/forest_stump_snow.png';
+    if(base==='desert')return './assets/forest_stump_desert.png';
+    return './assets/forest_stump_grass.png';
+  }
+
   function refreshActiveTerrainCell(x,y){
     const cell=grass.children[y*COLS+x];if(!cell)return;
     const terrain=terrainAt(x,y);
     cell.dataset.terrain=terrain;
     applyTerrainVisual(cell,terrain,x,y,CELL,activeMap,COLS,ROWS);
     if(state.forestStumps[`${x},${y}`]){
-      cell.style.backgroundImage=`url('./assets/forest_stump.png'), ${cell.style.backgroundImage}`;
+      const stump=state.forestStumps[`${x},${y}`];
+      cell.style.backgroundImage=`url('${stumpAssetFor(stump.original)}'), ${cell.style.backgroundImage}`;
       cell.style.backgroundSize=`${CELL}px ${CELL}px, ${CELL}px ${CELL}px`;
     }
   }
@@ -3503,11 +3516,45 @@ button{font:inherit}
     return candidates;
   }
 
+  function villagerCanChopFrom(u,x,y){
+    return manhattan(u,{x,y})===1;
+  }
+
+  function villagerAdjacentSpots(u,x,y){
+    const data=dijkstra(u,availableMove(u));
+    const spots=[];
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+      const nx=x+dx,ny=y+dy;
+      if(!inside(nx,ny))continue;
+      if(!legalLanding(u,nx,ny))continue;
+      const dist=data.best.get(key(nx,ny));
+      if(dist===undefined)continue;
+      spots.push({x:nx,y:ny,cost:dist});
+    }
+    spots.sort((a,b)=>a.cost-b.cost||manhattan(u,a)-manhattan(u,b)||a.y-b.y||a.x-b.x);
+    return {data,spots};
+  }
+
+  function autoMoveVillagerToWork(u,x,y){
+    const {data,spots}=villagerAdjacentSpots(u,x,y);
+    const dest=spots[0];
+    if(!dest)return false;
+    const path=reconstruct(data.prev,u,dest);
+    if(!path||!path.length)return false;
+    for(const step of path){
+      faceTowardStep(u,step);
+      u.move=Math.max(0,u.move-terrainMoveCost(u,step.x,step.y));
+      u.x=step.x;u.y=step.y;
+    }
+    setUnitPos(u);
+    return true;
+  }
+
   // Villagers remain in their working area and take one chop per faction turn.
   // Forest tiles are removed temporarily (exposing their original biome).
   function chopForest(u,x,y){
     if(!u.alive||u.kind!=='villager'||u.lastChopRound===state.turn)return false;
-    if(manhattan(u,{x,y})>VILLAGER_WORK_RADIUS||terrainFeature(terrainAt(x,y))!=='forest')return false;
+    if(!villagerCanChopFrom(u,x,y)||terrainFeature(terrainAt(x,y))!=='forest')return false;
     const tile=terrainAt(x,y);
     state.forestStumps[`${x},${y}`]={original:tile,regrowAt:state.turn+FOREST_REGROW_TURNS};
     activeMap.tiles[y*COLS+x]=terrainBase(tile);
@@ -3527,20 +3574,24 @@ button{font:inherit}
       return true;
     }
     u.workTarget={x,y};
-    if(u.lastChopRound!==state.turn)chopForest(u,x,y);
-    else setStatus(`${u.name} assigned to this forest; it will resume chopping next turn.`);
+    if(villagerCanChopFrom(u,x,y) && u.lastChopRound!==state.turn)chopForest(u,x,y);
+    else setStatus(`${u.name} assigned to this forest. It must stand next to the forest to chop, and will auto-move next turn.`);
     updateAll();return true;
   }
 
   function processVillagers(side){
     for(const u of living(side)){
-      if(u.kind!=='villager'||!u.workTarget||u.lastChopRound===state.turn)continue;
-      // Look for another forest within three tiles when the previous one is depleted.
+      if(u.kind!=='villager'||u.lastChopRound===state.turn)continue;
       const targets=availableForestNear(u);
       if(!targets.length){u.workTarget=null;continue;}
-      const preferred=targets.find(p=>p.x===u.workTarget.x&&p.y===u.workTarget.y);
+      const preferred=u.workTarget && targets.find(p=>p.x===u.workTarget.x&&p.y===u.workTarget.y);
       const target=preferred||targets[0];
-      chopForest(u,target.x,target.y);
+      u.workTarget={x:target.x,y:target.y};
+      if(villagerCanChopFrom(u,target.x,target.y)){
+        chopForest(u,target.x,target.y);
+      }else{
+        autoMoveVillagerToWork(u,target.x,target.y);
+      }
     }
   }
 
@@ -3668,7 +3719,7 @@ button{font:inherit}
     state.inspectedUnitId=null;
     state.selectedBarracks=null;state.inspectedHq=null;
     if(archerEngaged(u)) setStatus(`${u.name} is engaged by enemy infantry/cavalry — it can attack, but cannot move away this turn.`);
-    else setStatus(u.kind==='villager'?`${u.name} selected. Tap a forest within 3 tiles to chop and collect 100 wood each turn.`:`${u.name} selected.`);
+    else setStatus(u.kind==='villager'?`${u.name} selected. Tap a forest within 3 tiles to assign it; villagers must stand next to a forest to chop it.`:`${u.name} selected.`);
     updateAll();
   }
 
