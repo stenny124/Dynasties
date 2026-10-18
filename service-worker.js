@@ -1,7 +1,9 @@
-const CACHE='dynasties-mechanics-v55';
+const CACHE='dynasties-mechanics-v56';
 const STATIC=[
   './assets/dragon_targaryen_64.png',
   './assets/dragon_white_walker_64.png',
+  './assets/villager_master.png',
+  './assets/forest_stump.png',
   './index.html',
   './assets/human_units_dual_colour.png',
   './assets/faction_crests_atlas.png',

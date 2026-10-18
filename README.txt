@@ -1,20 +1,20 @@
-DYNASTIES — BUILD v55
+Dynasties — Build v56
 
-WHAT CHANGED
-- Added Dragon (10 HP, 10 ATK, 3 DEF, 7 MOV, Range 1, cost 1500 gold) for House Targaryen and White Walkers only.
-- Dragons fly over all terrain, HQs, allies and enemies; no terrain movement penalty. They must finish on an unoccupied, non-sea, non-HQ tile.
-- Dragons can only be attacked by missile units: Archers and Dragons. Dragon breath counts as a missile attack.
-- White Walkers no longer earn, hold or spend gold. Instead they earn one resurrection credit matching each type of enemy unit they kill, or matching each type of their own units lost. No credits for HQs.
-- White Walkers begin with one Cavalry recruitment credit. Each credit raises one unit of its kind, up to one HQ recruit/raise per turn.
-- Raised troops act next turn. White Walkers AI recruits using available resurrection credits.
-- Dragon is available in Targaryen and White Walker unit placements and previews; validation prevents other factions or sea tile starting positions.
-- Existing maps and save slots retain their format; old White Walker saves initialise the new credits.
+New Villager unit
+- Costs 100 gold; HP 10; ATK 0 (cannot attack); DEF 0; MOV 2.
+- Available in New Game HQ recruitment and Create Map unit placement.
+- A villager can be assigned to forest within a 3-tile Manhattan work radius: select villager, tap a highlighted Forest tile.
+- Chops one forest per faction turn for 100 wood added to faction reserves.
+- Chopped forest becomes a stump and preserves the underlying grass/snow/desert; automatically regrows after five full rounds.
+- Villagers with an active work order continue harvesting another eligible forest within their work radius each turn. Moving the Villager cancels the order. When no forest remains, they stop.
+- Human and AI villagers use the same work/regen logic; AI Villagers assigned near forests work automatically.
+- Wood appears in active-team HUD and Faction Performance.
+- Save slots preserve current wood, forest stumps, regrowth timers and work orders.
+- White Walkers do not purchase villagers with gold; a Villager resurrection credit is required (only from deaths of Villagers), consistent with the undead recruiting system.
 
-UPLOAD / REPLACE ONLY THESE FILES
+Files in this patch (replace/update at repo root):
 index.html
 service-worker.js
 README.txt
-assets/dragon_targaryen_64.png
-assets/dragon_white_walker_64.png
-
-Do not upload the ZIP folder itself; keep the listed paths in your repository root.
+assets/villager_master.png (new)
+assets/forest_stump.png (new)
