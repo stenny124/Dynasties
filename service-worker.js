@@ -1,4 +1,4 @@
-const CACHE='dynasties-mechanics-v58';
+const CACHE='dynasties-mechanics-v59';
 const STATIC=[
   './assets/dragon_targaryen_64.png',
   './assets/dragon_white_walker_64.png',

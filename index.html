@@ -134,6 +134,8 @@ button{font:inherit}
   image-rendering:pixelated;
   filter:drop-shadow(0 4px 6px rgba(0,0,0,.38));
   display:block;
+  transform:scaleY(.95);
+  transform-origin:bottom center;
 }
 .barracks.selected .hqArt{
   filter:
@@ -1244,7 +1246,7 @@ button{font:inherit}
 
 <script>
 (async () => {
-  // Dynasties Build v58 — reliable mobile villager palettes, manual forestry, farms and food caps.
+  // Dynasties Build v59 — White Walkers cannot recruit Villagers; HQ sprite shortened slightly.
   // Dynasties Build v52 — full-map terrain-aware AI route planning.
   // Dynasties v46: houses assigned in Create Map; New Game configures colours and controllers.
   // Dynasties v47: bridge tap-to-rotate while preserving the existing map/save formats.
@@ -1288,7 +1290,8 @@ button{font:inherit}
   };
 
   const DRAGON_FACTIONS=new Set(['targaryen','white_walkers']);
-  const WW_KINDS=['soldier','archer','cavalry','dragon','villager'];
+  const RECRUIT_KINDS=['soldier','archer','cavalry','dragon','villager'];
+  const WW_KINDS=['soldier','archer','cavalry','dragon'];
   const isWwTeam=side=>teams[side]?.faction==='white_walkers';
   const allowsKind=(faction,kind)=>!!UNIT_DEFS[kind] && (kind!=='dragon'||DRAGON_FACTIONS.has(faction));
   const freshWwCredits=()=>({soldier:0,archer:0,cavalry:1,dragon:0});
@@ -1297,6 +1300,7 @@ button{font:inherit}
     if(!t)return null;
     if(!t.wwCredits)t.wwCredits=freshWwCredits();
     for(const kind of WW_KINDS)t.wwCredits[kind]=Math.max(0,Math.floor(Number(t.wwCredits[kind])||0));
+    if('villager' in t.wwCredits) delete t.wwCredits.villager;
     return t.wwCredits;
   }
   const TEAM_IDS=['player','enemy',...Array.from({length:18},(_,i)=>`team${i+3}`)];
@@ -3352,8 +3356,8 @@ button{font:inherit}
   function recordDeath(target,killerTeam){
     if(!target||target.kind==='hq'||target.deathRecorded)return;
     target.deathRecorded=true;
-    if(isWwTeam(killerTeam))ensureWwCredits(killerTeam)[target.kind]++;
-    if(isWwTeam(target.team))ensureWwCredits(target.team)[target.kind]++;
+    if(isWwTeam(killerTeam)) { const c=ensureWwCredits(killerTeam); if(target.kind in c) c[target.kind]++; }
+    if(isWwTeam(target.team)) { const c=ensureWwCredits(target.team); if(target.kind in c) c[target.kind]++; }
   }
 
   function damageHq(target){
@@ -3703,18 +3707,22 @@ button{font:inherit}
     const credits=ww?ensureWwCredits(team):null;
     const dragonAllowed=allowsKind(t.faction,'dragon');
     let anySpace=false;
-    for(const kind of WW_KINDS){
+    for(const kind of RECRUIT_KINDS){
       const btn=document.getElementById('popupRecruit'+kind[0].toUpperCase()+kind.slice(1));
       if(!btn)continue;
-      const available=allowsKind(t.faction,kind);
+      const wwAllowed=!ww || WW_KINDS.includes(kind);
+      const available=allowsKind(t.faction,kind) && wwAllowed;
       const spawn=available&&!!nextSpawn(team,kind);
       const price=btn.querySelector('.recruitPrice');
       if(price){
-        if(ww)price.textContent=`✦ ${credits[kind]||0}`;
+        if(ww && available)price.textContent=`✦ ${credits[kind]||0}`;
+        else if(ww && !available)price.textContent='—';
         else price.innerHTML=`<img class="goldIcon" src="./assets/gold_icon.png" alt="gold">${UNIT_DEFS[kind].cost}`;
       }
       if(kind==='dragon')btn.hidden=!dragonAllowed;
-      btn.disabled=!available||t.recruited||!spawn||teamSlotsLeft(team)<=0||(ww?credits[kind]<=0:t.gold<UNIT_DEFS[kind].cost);
+      else if(kind==='villager' && ww)btn.hidden=true;
+      else btn.hidden=false;
+      btn.disabled=btn.hidden||!available||t.recruited||!spawn||teamSlotsLeft(team)<=0||(ww?((credits[kind]||0)<=0):t.gold<UNIT_DEFS[kind].cost);
       anySpace ||= !!spawn;
     }
     const note=document.getElementById('recruitNote');
@@ -3782,6 +3790,7 @@ button{font:inherit}
     const t=teams[team],def=UNIT_DEFS[kind];
     if(!def||!allowsKind(t?.faction,kind)||t.recruited||!barracks[team]?.alive)return null;
     const ww=isWwTeam(team);
+    if(ww && !WW_KINDS.includes(kind))return null;
     if(teamSlotsLeft(team)<=0){if(announce)setStatus(`${t.name} needs more food. Capacity: ${teamFood(team)} units.`);return null;}
     if(ww){if(ensureWwCredits(team)[kind]<=0)return null;}
     else if(t.gold<def.cost)return null;
@@ -4166,7 +4175,7 @@ button{font:inherit}
   function chooseEnemyRecruitType(){
     if(isWwTeam(aiSide)){
       const credits=ensureWwCredits(aiSide);
-      const priority=['dragon','cavalry','archer','soldier','villager'];
+      const priority=['dragon','cavalry','archer','soldier'];
       return priority.find(k=>credits[k]>0 && nextSpawn(aiSide,k))||'cavalry';
     }
     if(teamFaction(aiSide)==='targaryen' && !living(aiSide).some(u=>u.kind==='dragon') && state.turn>=8 && living(aiSide).length>=2)return 'dragon';
