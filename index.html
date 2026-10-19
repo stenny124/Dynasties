@@ -189,7 +189,14 @@ button{font:inherit}
   color:#281c13;font:bold 15px/1 system-ui,sans-serif;image-rendering:pixelated;
   pointer-events:none}
 .hpNumber[hidden]{display:none}
-.woodCell{position:absolute;width:64px;height:64px;z-index:5;cursor:pointer;
+.farmCell{position:absolute;width:64px;height:64px;z-index:6;cursor:pointer;pointer-events:auto;
+  background:rgba(242,207,112,.24);box-shadow:inset 0 0 0 3px #e9c264}
+.farm{position:absolute;z-index:4;width:64px;height:64px;pointer-events:none;
+  border:3px solid var(--farm-primary,#caa44f);box-shadow:inset 0 0 0 2px var(--farm-secondary,#fae093);
+  background:transparent;image-rendering:pixelated}
+.farmArt{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated}
+.farmCrest{position:absolute;bottom:1px;left:1px;width:17px;height:17px;object-fit:contain;image-rendering:pixelated}
+.woodCell{position:absolute;width:64px;height:64px;z-index:5;cursor:pointer;pointer-events:auto;
   background:rgba(153,106,47,.22);box-shadow:inset 0 0 0 2px #eeb85c}
 .rangeCell{position:absolute;width:64px;height:64px;pointer-events:none;
   background:rgba(250,116,70,.19);box-shadow:inset 0 0 0 2px rgba(255,140,96,.66)}
@@ -221,6 +228,7 @@ button{font:inherit}
   border:2px solid #bd9957;border-radius:5px;font-weight:bold;
 }
 .action:disabled{opacity:.45}
+.action[hidden]{display:none}
 #newGame{min-width:56px;font-size:11px}
 .goldAmount{display:inline-flex;align-items:center;gap:3px;vertical-align:middle}
 .goldIcon{width:15px;height:15px;image-rendering:pixelated;vertical-align:middle;flex:0 0 auto}
@@ -1056,13 +1064,14 @@ button{font:inherit}
             <th scope="col">Faction</th>
             <th scope="col"><span class="performanceHeading"><img src="./assets/gold_icon.png" alt="">Gold</span></th>
             <th scope="col"><span class="performanceHeading">🪵 Wood</span></th>
+            <th scope="col">🌾 Food</th>
             <th scope="col"><span class="performanceHeading"><img src="./assets/toolbar_buildings.png" alt="">Buildings</span></th>
             <th scope="col"><span class="performanceHeading"><img src="./assets/toolbar_units.png" alt="">Warriors</span></th>
           </tr></thead>
           <tbody id="performanceRows"></tbody>
         </table>
       </div>
-      <div class="performanceNote">Buildings currently count each faction’s HQ. Warriors count surviving units.</div>
+      <div class="performanceNote">Food = 5 from HQ + 3 per Farm. Food limits all living units, including Villagers.</div>
     </section>
 
     <section class="menuScreen" id="newGameScreen" hidden>
@@ -1149,7 +1158,7 @@ button{font:inherit}
           <span class="goldAmount"><img class="goldIcon" src="./assets/gold_icon.png" alt="gold"><b id="currentGold">300</b></span>
           <span class="income" id="currentIncome">+100/turn</span>
           <span>🪵 <b id="currentWood">0</b> wood</span>
-          <span><b id="currentUnitCount">1</b> units</span>
+          <span><b id="currentUnitCount">1</b>/<b id="currentFood">5</b> units / food</span>
         </div>
       </div>
     </div>
@@ -1226,6 +1235,7 @@ button{font:inherit}
     </div>
     <div id="actions">
       <button class="action" id="attackInspected" type="button" hidden>Attack</button>
+      <button class="action" id="buildFarm" type="button" hidden>Build Farm</button>
       <button class="action" id="saveGame" type="button">Save Game</button>
       <button class="action" id="newGame" type="button">Menu</button>
     </div>
@@ -1234,7 +1244,7 @@ button{font:inherit}
 
 <script>
 (async () => {
-  // Dynasties Build v57 — Villager house colours, adjacency chopping, biome-aware stumps.
+  // Dynasties Build v58 — reliable mobile villager palettes, manual forestry, farms and food caps.
   // Dynasties Build v52 — full-map terrain-aware AI route planning.
   // Dynasties v46: houses assigned in Create Map; New Game configures colours and controllers.
   // Dynasties v47: bridge tap-to-rotate while preserving the existing map/save formats.
@@ -1301,7 +1311,7 @@ button{font:inherit}
   const allOtherUnits=side=>Object.values(units).filter(u=>u.alive&&u.team!==side&&activeSides().includes(u.team));
   const aliveSides=()=>activeSides().filter(side=>!!barracks[side]?.alive && barracks[side].hp>0);
   const state={
-    forestStumps:{},inspectedHq:null,turn:1,activeTeam:'player',skipAiView:false,watchingAi:false,gameOver:false,selectedUnitId:'blue-1',inspectedUnitId:null,selectedBarracks:null,busy:false,nextRecruitId:2,gameActive:false,currentSaveSlot:null,
+    forestStumps:{},farms:[],buildFarmMode:false,inspectedHq:null,turn:1,activeTeam:'player',skipAiView:false,watchingAi:false,gameOver:false,selectedUnitId:'blue-1',inspectedUnitId:null,selectedBarracks:null,busy:false,nextRecruitId:2,gameActive:false,currentSaveSlot:null,
     mapZoom:.52,mapX:0,mapY:0,dragging:false,dragMoved:false,dragStartX:0,dragStartY:0,
     mapStartX:0,mapStartY:0,pointers:new Map(),pinching:false,pinchStartDist:0,pinchStartZoom:.52,
     pinchMapX:0,pinchMapY:0
@@ -1542,7 +1552,8 @@ button{font:inherit}
       else editingSecondary=btn.dataset.palette;
       renderHouseEditControls();
     }));
-    document.getElementById('houseUnitPreviews').innerHTML=Object.keys(UNIT_DEFS).filter(kind=>allowsKind(editingHouse,kind)).map(kind=>`<div><img src="${paletteSprite(editingHouse,kind,editingPrimary,editingSecondary)}" alt="${kind}">${UNIT_DEFS[kind].label}</div>`).join('');
+    document.getElementById('houseUnitPreviews').innerHTML=Object.keys(UNIT_DEFS).filter(kind=>allowsKind(editingHouse,kind)).map(kind=>`<div><img data-preview-kind="${kind}" src="${paletteSprite(editingHouse,kind,editingPrimary,editingSecondary)}" alt="${kind}">${UNIT_DEFS[kind].label}</div>`).join('');
+    document.querySelectorAll('#houseUnitPreviews [data-preview-kind="villager"]').forEach(img=>applyVillagerAtlas(img,editingPrimary,editingSecondary));
   }
   function saveHouseEdits(){
     if(!editingHouse)return;
@@ -1637,33 +1648,7 @@ button{font:inherit}
 
   function paletteSprite(faction,kind,colour,secondary='gold'){
     if(kind==='dragon')return DRAGON_SPRITES[faction]||DRAGON_SPRITES.targaryen;
-    if(kind==='villager'){
-      const key=`villager|${colour}|${secondary}`;
-      if(paletteSpriteCache.has(key))return paletteSpriteCache.get(key);
-      const master=MASTER_IMAGES.get(VILLAGER_MASTER);
-      if(!master)return VILLAGER_MASTER;
-      const canvas=document.createElement('canvas');canvas.width=64;canvas.height=64;
-      const ctx=canvas.getContext('2d',{willReadFrequently:true});if(!ctx)return VILLAGER_MASTER;
-      ctx.imageSmoothingEnabled=false;ctx.drawImage(master,0,0,64,64);
-      const data=ctx.getImageData(0,0,64,64);
-      const primary=TEAM_COLOUR_PALETTES[colour]||TEAM_COLOUR_PALETTES.red;
-      const secondaryRamp=TEAM_COLOUR_PALETTES[secondary]||TEAM_COLOUR_PALETTES.gold;
-      const exact=new Map([
-        ['71,32,46',{channel:'primary',step:0}],['92,17,30',{channel:'primary',step:1}],
-        ['131,6,51',{channel:'primary',step:2}],['170,0,63',{channel:'primary',step:3}],
-        ['224,0,49',{channel:'primary',step:4}],
-        ['187,117,71',{channel:'secondary',step:3}],['142,87,61',{channel:'secondary',step:2}]
-      ]);
-      for(let i=0;i<data.data.length;i+=4){
-        if(!data.data[i+3])continue;
-        const spec=exact.get(`${data.data[i]},${data.data[i+1]},${data.data[i+2]}`);
-        if(!spec)continue;
-        const ramp=spec.channel==='secondary'?secondaryRamp:primary;
-        const rgb=hexRgb(ramp[spec.step]);data.data[i]=rgb[0];data.data[i+1]=rgb[1];data.data[i+2]=rgb[2];
-      }
-      ctx.putImageData(data,0,0);
-      const src=canvas.toDataURL('image/png');paletteSpriteCache.set(key,src);return src;
-    }
+    if(kind==='villager')return VILLAGER_MASTER; // use pre-generated atlas via applyVillagerAtlas
     const key=paletteSpriteKey(faction,kind,colour,secondary);
     if(paletteSpriteCache.has(key))return paletteSpriteCache.get(key);
     const src=masterSpriteForFaction(faction,kind);
@@ -1702,6 +1687,29 @@ button{font:inherit}
     if(paletteSpriteCache.size>420)paletteSpriteCache.clear();
     paletteSpriteCache.set(key,result);
     return result;
+  }
+
+  // v58: Villager artwork is pre-coloured and packed into one static PNG.
+  // CSS crops the atlas without any canvas reads (reliable on iPhone Safari).
+  const VILLAGER_ATLAS_URL='./assets/villager_palette_atlas_v58.png';
+  const EMPTY_IMAGE='data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+  function applyVillagerAtlas(img,primary,secondary='gold'){
+    if(!img)return;
+    const x=Math.max(0,HQ_ATLAS_COLOURS.indexOf(primary));
+    const y=Math.max(0,HQ_ATLAS_COLOURS.indexOf(secondary));
+    if(img.getAttribute('src')!==EMPTY_IMAGE)img.src=EMPTY_IMAGE;
+    img.style.backgroundImage=`url('${VILLAGER_ATLAS_URL}')`;
+    img.style.backgroundSize='1700% 1700%';
+    img.style.backgroundPosition=`${x*100/16}% ${y*100/16}%`;
+    img.style.backgroundRepeat='no-repeat';
+    img.style.imageRendering='pixelated';
+    img.style.objectFit='fill';
+  }
+  function clearVillagerAtlas(img){
+    if(img && img.style.backgroundImage.includes('villager_palette_atlas')){
+      img.style.backgroundImage='none';img.style.backgroundSize='';
+      img.style.backgroundPosition='';img.style.objectFit='';
+    }
   }
 
   // Generic two-channel palette swap for HQs and future buildings.
@@ -1780,7 +1788,7 @@ button{font:inherit}
     if(archer)archer.src=teamSprite(state.activeTeam,'archer');
     if(cavalry)cavalry.src=teamSprite(state.activeTeam,'cavalry');
     const villager=document.querySelector('#popupRecruitVillager .recruitSprite');
-    if(villager)villager.src=teamSprite(state.activeTeam,'villager');
+    if(villager)applyVillagerAtlas(villager,teamColour(state.activeTeam),secondaryColour(state.activeTeam));
     const dragon=document.querySelector('#popupRecruitDragon .recruitSprite');
     if(dragon)dragon.src=teamSprite(state.activeTeam,'dragon');
 
@@ -2164,7 +2172,7 @@ button{font:inherit}
 
   function resetGameState(){
     state.turn=1;
-    state.forestStumps={};
+    state.forestStumps={};state.farms=[];state.buildFarmMode=false;
     state.activeTeam=activeSides()[0];state.gameOver=false;state.skipAiView=false;state.watchingAi=false;
     state.inspectedHq=null;
     for(const side of TEAM_IDS){
@@ -2231,6 +2239,7 @@ button{font:inherit}
       state:{
         turn:state.turn,
         forestStumps:state.forestStumps,
+        farms:state.farms,
         activeTeam:state.activeTeam,
         teamCount,
         activeSideIds:[...activeSides()],
@@ -2784,6 +2793,7 @@ button{font:inherit}
       img.className='editorPlacedUnit '+u.kind;img.src=editorUnitSprite(u);
       img.style.left=`${u.x*EDITOR_CELL}px`;img.style.top=`${u.y*EDITOR_CELL}px`;
       img.style.width=`${EDITOR_CELL}px`;img.style.height=`${EDITOR_CELL*1.22}px`;
+      if(u.kind==='villager')applyVillagerAtlas(img,editorStyle(u.team).colour,editorStyle(u.team).secondary);
       unitLayerEl.appendChild(img);
     });
   }
@@ -2947,6 +2957,11 @@ button{font:inherit}
     if(editorTool==='buildings'){
       const p=styleForHouse(editorPickerFaction);
       applyHqAtlas(palette.querySelector('.hqPreviewAtlas'),p.primary,p.secondary,36,40);
+    }
+    if(editorTool==='units'){
+      const p=styleForHouse(editorPickerFaction);
+      const villagerChoice=palette.querySelector('[data-picker-choice="kind:villager"] img');
+      if(villagerChoice)applyVillagerAtlas(villagerChoice,p.primary,p.secondary);
     }
     document.getElementById('editorHint').textContent=hint;
     palette.querySelector('#editorPaletteClose').addEventListener('click',closeEditorPalette);
@@ -3272,6 +3287,48 @@ button{font:inherit}
   const living=team=>Object.values(units).filter(u=>u.team===team&&u.alive);
   const unitAt=(x,y)=>Object.values(units).find(u=>u.alive&&u.x===x&&u.y===y)||null;
   const barracksAt=(x,y)=>activeSides().map(id=>barracks[id]).find(b=>b.alive&&x>=b.x&&x<b.x+(b.w||1)&&y>=b.y&&y<b.y+(b.h||1))||null;
+  const FARM_GOLD=200,FARM_WOOD=300,FARM_FOOD=3,HQ_FOOD=5;
+  const farmAt=(x,y)=>state.farms.find(f=>f.x===x&&f.y===y)||null;
+  const buildingAt=(x,y)=>barracksAt(x,y)||farmAt(x,y);
+  const teamFood=side=>(barracks[side]?.alive?HQ_FOOD:0)+state.farms.filter(f=>f.team===side).length*FARM_FOOD;
+  const teamSlotsLeft=side=>Math.max(0,teamFood(side)-living(side).length);
+  function canBuildFarm(u){
+    return !!u?.alive && u.kind==='villager' && !isWwTeam(u.team) &&
+      teams[u.team]?.gold>=FARM_GOLD && teams[u.team]?.wood>=FARM_WOOD &&
+      u.lastBuildRound!==state.turn;
+  }
+  function canPlaceFarm(u,x,y){
+    return inside(x,y) && manhattan(u,{x,y})===1 &&
+      BIOME_BASES.has(terrainAt(x,y)) && !buildingAt(x,y) && !unitAt(x,y) &&
+      !state.forestStumps[`${x},${y}`];
+  }
+  function constructFarm(u,x,y,aiOrder=false){
+    if((!humanTurn()&&!aiOrder)||u?.team!==state.activeTeam||u?.kind!=='villager')return false;
+    if(!canBuildFarm(u)){setStatus('Need 200 gold and 300 wood, and an unused Villager construction this round.');return true;}
+    if(!canPlaceFarm(u,x,y)){setStatus('Choose a free grass, snow or desert tile directly beside the Villager.');return true;}
+    teams[u.team].gold-=FARM_GOLD;teams[u.team].wood-=FARM_WOOD;
+    state.farms.push({x,y,team:u.team});u.lastBuildRound=state.turn;
+    state.buildFarmMode=false;
+    aiRouteCache.clear();renderFarms();
+    setStatus(`${teams[u.team].name} builds a farm. -200 gold, -300 wood, +3 food capacity.`);
+    updateAll();return true;
+  }
+  function renderFarms(){
+    const layer=document.getElementById('objectLayer');if(!layer)return;
+    layer.querySelectorAll('.farm').forEach(el=>el.remove());
+    for(const farm of state.farms){
+      const el=document.createElement('div');el.className='farm';
+      el.style.left=`${farm.x*CELL}px`;el.style.top=`${farm.y*CELL}px`;
+      const p=TEAM_COLOUR_PALETTES[teamColour(farm.team)]||TEAM_COLOUR_PALETTES.red;
+      const s=TEAM_COLOUR_PALETTES[secondaryColour(farm.team)]||TEAM_COLOUR_PALETTES.gold;
+      el.style.setProperty('--farm-primary',p[3]);el.style.setProperty('--farm-secondary',s[4]);
+      el.innerHTML=`<img class="farmArt" src="./assets/farm_tile_v58.png" alt="Farm"><img class="farmCrest" alt="House crest">`;
+      el.querySelector('.farmCrest').src=factionInfo(teamFaction(farm.team)).crest;
+      el.title=`${teams[farm.team].name} Farm (+3 food)`;
+      layer.appendChild(el);
+    }
+  }
+
   const selectedUnit=()=>state.selectedUnitId?units[state.selectedUnitId]:null;
   const inspectedUnit=()=>state.inspectedUnitId?units[state.inspectedUnitId]:null;
   const canDamageTarget=(attacker,target)=>attacker?.kind!=='villager' && (target.kind!=='dragon'||attacker.kind==='archer'||!!UNIT_DEFS[attacker.kind]?.missile);
@@ -3332,7 +3389,8 @@ button{font:inherit}
     el.setAttribute('aria-label',u.name);
     el.innerHTML='<img class="unitArt" alt=""><img class="unitHouseCrest" alt="House crest"><span class="hpNumber" hidden></span>';
     el.querySelector('.unitHouseCrest').src=factionInfo(teamFaction(u.team)).crest;
-    el.querySelector('img').src=spriteFor(u);
+    if(u.kind==='villager')applyVillagerAtlas(el.querySelector('.unitArt'),teamColour(u.team),secondaryColour(u.team));
+    else el.querySelector('.unitArt').src=spriteFor(u);
     el.querySelector('img').alt=u.name;
     el.addEventListener('click',e=>{
       e.stopPropagation();
@@ -3395,7 +3453,7 @@ button{font:inherit}
       if(cur.c!==best.get(ck))continue;
       for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
         const nx=cur.x+dx, ny=cur.y+dy;
-        if(!inside(nx,ny)||(u.kind!=='dragon'&&barracksAt(nx,ny)))continue;
+        if(!inside(nx,ny)||(u.kind!=='dragon'&&buildingAt(nx,ny)))continue;
         const stepCost=terrainMoveCost(u,nx,ny);
         if(!Number.isFinite(stepCost))continue;
         const occ=unitAt(nx,ny);
@@ -3411,7 +3469,7 @@ button{font:inherit}
 
   function legalLanding(u,x,y){
     if(!inside(x,y)||!terrainPassable(x,y,u.kind))return false;
-    if(barracksAt(x,y))return false;
+    if(buildingAt(x,y))return false;
     const occ=unitAt(x,y);return !occ||occ.id===u.id;
   }
 
@@ -3447,6 +3505,13 @@ button{font:inherit}
     }
     const u=selectedUnit();
     if(!u||!u.alive||u.team!==state.activeTeam||state.selectedBarracks)return;
+    if(state.buildFarmMode && u.kind==='villager'){
+      if(canBuildFarm(u))for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+        const x=u.x+dx,y=u.y+dy;
+        if(canPlaceFarm(u,x,y))addOverlayCell(x,y,'farmCell',()=>constructFarm(u,x,y));
+      }
+      return;
+    }
     const data=dijkstra(u,availableMove(u));
     for(const [k,cost] of data.best.entries()){
       if(cost===0)continue;
@@ -3455,7 +3520,7 @@ button{font:inherit}
       addOverlayCell(x,y,'moveCell',()=>moveSelectedTo(x,y));
     }
     if(u.kind==='villager'){
-      availableForestNear(u).forEach(p=>addOverlayCell(p.x,p.y,'woodCell',()=>commandVillager(u,p.x,p.y)));
+      availableForestNear(u).filter(p=>p.d===1).forEach(p=>addOverlayCell(p.x,p.y,'woodCell',()=>commandVillager(u,p.x,p.y)));
     }
     if(!u.attacked){
       hostileTargets(u.team).forEach(e=>{
@@ -3487,7 +3552,7 @@ button{font:inherit}
     if(!data.best.has(key(x,y))||!legalLanding(u,x,y))return;
     const path=reconstruct(data.prev,u,{x,y});
     if(!path||!path.length)return;
-    if(u.kind==='villager')u.workTarget=null;
+    if(u.kind==='villager'){u.workTarget=null;state.buildFarmMode=false;}
     state.busy=true; clearOverlay();
     for(const step of path){
       faceTowardStep(u,step);
@@ -3520,36 +3585,6 @@ button{font:inherit}
     return manhattan(u,{x,y})===1;
   }
 
-  function villagerAdjacentSpots(u,x,y){
-    const data=dijkstra(u,availableMove(u));
-    const spots=[];
-    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
-      const nx=x+dx,ny=y+dy;
-      if(!inside(nx,ny))continue;
-      if(!legalLanding(u,nx,ny))continue;
-      const dist=data.best.get(key(nx,ny));
-      if(dist===undefined)continue;
-      spots.push({x:nx,y:ny,cost:dist});
-    }
-    spots.sort((a,b)=>a.cost-b.cost||manhattan(u,a)-manhattan(u,b)||a.y-b.y||a.x-b.x);
-    return {data,spots};
-  }
-
-  function autoMoveVillagerToWork(u,x,y){
-    const {data,spots}=villagerAdjacentSpots(u,x,y);
-    const dest=spots[0];
-    if(!dest)return false;
-    const path=reconstruct(data.prev,u,dest);
-    if(!path||!path.length)return false;
-    for(const step of path){
-      faceTowardStep(u,step);
-      u.move=Math.max(0,u.move-terrainMoveCost(u,step.x,step.y));
-      u.x=step.x;u.y=step.y;
-    }
-    setUnitPos(u);
-    return true;
-  }
-
   // Villagers remain in their working area and take one chop per faction turn.
   // Forest tiles are removed temporarily (exposing their original biome).
   function chopForest(u,x,y){
@@ -3559,7 +3594,7 @@ button{font:inherit}
     state.forestStumps[`${x},${y}`]={original:tile,regrowAt:state.turn+FOREST_REGROW_TURNS};
     activeMap.tiles[y*COLS+x]=terrainBase(tile);
     teams[u.team].wood=(teams[u.team].wood||0)+100;
-    u.lastChopRound=state.turn;u.workTarget={x,y};
+    u.lastChopRound=state.turn;u.workTarget=null;
     refreshActiveTerrainCell(x,y);
     aiRouteCache.clear();
     setStatus(`${u.name} chopped a forest. +100 wood for ${teams[u.team].name}; regrows in 5 rounds.`);
@@ -3569,30 +3604,13 @@ button{font:inherit}
   function commandVillager(u,x,y){
     if(!u||u.kind!=='villager'||!canHumanControl(u.team))return false;
     if(terrainFeature(terrainAt(x,y))!=='forest')return false;
-    if(manhattan(u,{x,y})>VILLAGER_WORK_RADIUS){
-      setStatus('That forest is outside this villager’s 3-tile working radius. Move closer first.');
+    if(!villagerCanChopFrom(u,x,y)){
+      setStatus('Move the Villager next to that forest, then tap it to chop.');
       return true;
     }
-    u.workTarget={x,y};
-    if(villagerCanChopFrom(u,x,y) && u.lastChopRound!==state.turn)chopForest(u,x,y);
-    else setStatus(`${u.name} assigned to this forest. It must stand next to the forest to chop, and will auto-move next turn.`);
+    if(u.lastChopRound===state.turn)setStatus('This Villager has already chopped this round.');
+    else chopForest(u,x,y);
     updateAll();return true;
-  }
-
-  function processVillagers(side){
-    for(const u of living(side)){
-      if(u.kind!=='villager'||u.lastChopRound===state.turn)continue;
-      const targets=availableForestNear(u);
-      if(!targets.length){u.workTarget=null;continue;}
-      const preferred=u.workTarget && targets.find(p=>p.x===u.workTarget.x&&p.y===u.workTarget.y);
-      const target=preferred||targets[0];
-      u.workTarget={x:target.x,y:target.y};
-      if(villagerCanChopFrom(u,target.x,target.y)){
-        chopForest(u,target.x,target.y);
-      }else{
-        autoMoveVillagerToWork(u,target.x,target.y);
-      }
-    }
   }
 
   function regrowForests(){
@@ -3611,6 +3629,9 @@ button{font:inherit}
   function onTileClick(x,y){
     if(!humanTurn())return;
     const chosen=selectedUnit();
+    if(state.buildFarmMode && chosen?.kind==='villager' && chosen.team===state.activeTeam){
+      constructFarm(chosen,x,y);return;
+    }
     if(chosen?.kind==='villager'&&chosen.team===state.activeTeam&&commandVillager(chosen,x,y))return;
     const u=unitAt(x,y);
     if(u){ if(u.team===state.activeTeam)selectUnit(u.id);else inspectUnit(u.id);return; }
@@ -3693,11 +3714,14 @@ button{font:inherit}
         else price.innerHTML=`<img class="goldIcon" src="./assets/gold_icon.png" alt="gold">${UNIT_DEFS[kind].cost}`;
       }
       if(kind==='dragon')btn.hidden=!dragonAllowed;
-      btn.disabled=!available||t.recruited||!spawn||(ww?credits[kind]<=0:t.gold<UNIT_DEFS[kind].cost);
+      btn.disabled=!available||t.recruited||!spawn||teamSlotsLeft(team)<=0||(ww?credits[kind]<=0:t.gold<UNIT_DEFS[kind].cost);
       anySpace ||= !!spawn;
     }
     const note=document.getElementById('recruitNote');
-    if(t.recruited)note.textContent='One unit may be raised or recruited per turn.';
+    if(teamSlotsLeft(team)<=0)note.textContent=ww
+      ?`Population full: ${living(team).length}/${teamFood(team)} food. White Walkers cannot purchase farms.`
+      :`Population full: ${living(team).length}/${teamFood(team)} food. Build farms for +3 each.`;
+    else if(t.recruited)note.textContent='One unit may be raised or recruited per turn.';
     else if(!anySpace)note.textContent='No suitable free tile beside this HQ.';
     else if(ww)note.textContent='Raise the dead: each enemy kill or own casualty grants 1 credit of that unit type. No gold.';
     else note.textContent=`${t.name} gold: ${t.gold}`;
@@ -3716,10 +3740,11 @@ button{font:inherit}
     if(!u||!u.alive||!canHumanControl(u.team))return;
     hideRecruitPopup();
     state.selectedUnitId=id;
+    state.buildFarmMode=false;
     state.inspectedUnitId=null;
     state.selectedBarracks=null;state.inspectedHq=null;
     if(archerEngaged(u)) setStatus(`${u.name} is engaged by enemy infantry/cavalry — it can attack, but cannot move away this turn.`);
-    else setStatus(u.kind==='villager'?`${u.name} selected. Tap a forest within 3 tiles to assign it; villagers must stand next to a forest to chop it.`:`${u.name} selected.`);
+    else setStatus(u.kind==='villager'?`${u.name} selected. Move beside a forest and tap it to chop once per round; use Build Farm for farms.`:`${u.name} selected.`);
     updateAll();
   }
 
@@ -3750,13 +3775,14 @@ button{font:inherit}
   }
 
   function nextSpawn(team,kind='soldier'){
-    return barracks[team].spawn.find(p=>inside(p.x,p.y)&&terrainPassable(p.x,p.y,kind)&&!unitAt(p.x,p.y)&&!barracksAt(p.x,p.y))||null;
+    return barracks[team].spawn.find(p=>inside(p.x,p.y)&&terrainPassable(p.x,p.y,kind)&&!unitAt(p.x,p.y)&&!buildingAt(p.x,p.y))||null;
   }
 
   function recruit(team,kind='soldier',announce=true){
     const t=teams[team],def=UNIT_DEFS[kind];
     if(!def||!allowsKind(t?.faction,kind)||t.recruited||!barracks[team]?.alive)return null;
     const ww=isWwTeam(team);
+    if(teamSlotsLeft(team)<=0){if(announce)setStatus(`${t.name} needs more food. Capacity: ${teamFood(team)} units.`);return null;}
     if(ww){if(ensureWwCredits(team)[kind]<=0)return null;}
     else if(t.gold<def.cost)return null;
     const spawn=nextSpawn(team,kind);
@@ -4000,6 +4026,7 @@ button{font:inherit}
         if(inside(x,y)&&unit.kind!=='dragon')costs[y*COLS+x]=0;
       }
     }
+    if(unit.kind!=='dragon')for(const farm of state.farms)if(inside(farm.x,farm.y))costs[farm.y*COLS+farm.x]=0;
     const dist=new Float64Array(length);
     dist.fill(Infinity);
     // Binary min-heap avoids sorting large arrays on 200x200 maps.
@@ -4154,8 +4181,9 @@ button{font:inherit}
     const enemyMelee=enemySoldiers+enemyCavalry;
     const playerMelee=playerSoldiers+playerCavalry;
 
-    if(!living(aiSide).some(u=>u.kind==='villager')&&teams[aiSide].gold>=100&&state.turn>=2&&
-      living(aiSide).some(u=>availableForestNear(u).length>0))return 'villager';
+    if(!living(aiSide).some(u=>u.kind==='villager') && living(aiSide).length>=2 &&
+       teams[aiSide].gold>=100 && !isWwTeam(aiSide) &&
+       activeMap.tiles.some(tile=>terrainFeature(tile)==='forest'))return 'villager';
     if(enemyMelee===0)return 'soldier';
 
     // Clear answer to archer-heavy White Walker armies: bring in cavalry if none/too few exist.
@@ -4217,16 +4245,51 @@ button{font:inherit}
     board.style.transition='none';
   }
 
+  async function aiVillagerOrders(side){
+    const workers=living(side).filter(u=>u.kind==='villager');
+    for(const worker of workers){
+      if(!worker.alive)continue;
+      // One deliberate AI construction order, never a persistent auto-work order.
+      if(canBuildFarm(worker)&&teamSlotsLeft(side)<=1){
+        const site=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:worker.x+dx,y:worker.y+dy}))
+          .find(p=>canPlaceFarm(worker,p.x,p.y));
+        if(site){constructFarm(worker,site.x,site.y,true);continue;}
+      }
+      if(worker.lastChopRound===state.turn)continue;
+      const forests=availableForestNear(worker).filter(f=>f.d===1);
+      if(forests.length){chopForest(worker,forests[0].x,forests[0].y);continue;}
+      if(worker.move<=0)continue;
+      // Choose a short, legal step toward nearby woods; no persistent workTarget.
+      const candidateForests=[];
+      for(let dy=-8;dy<=8;dy++)for(let dx=-8;dx<=8;dx++){
+        if(Math.abs(dx)+Math.abs(dy)>8)continue;
+        const x=worker.x+dx,y=worker.y+dy;
+        if(inside(x,y)&&terrainFeature(terrainAt(x,y))==='forest')candidateForests.push({x,y});
+      }
+      if(!candidateForests.length)continue;
+      const data=dijkstra(worker,availableMove(worker));
+      let best=null,bestScore=Infinity;
+      for(const [k,cost] of data.best){
+        const [x,y]=k.split(',').map(Number);
+        if(cost===0||!legalLanding(worker,x,y))continue;
+        const d=Math.min(...candidateForests.map(f=>Math.abs(f.x-x)+Math.abs(f.y-y)));
+        const score=d*10+cost;
+        if(score<bestScore){bestScore=score;best={x,y,cost};}
+      }
+      if(best && bestScore<Math.min(...candidateForests.map(f=>manhattan(worker,f)))*10){
+        const path=reconstruct(data.prev,worker,best);
+        for(const tile of path||[]){faceTowardStep(worker,tile);worker.move=Math.max(0,worker.move-terrainMoveCost(worker,tile.x,tile.y));worker.x=tile.x;worker.y=tile.y;}
+        setUnitPos(worker);
+      }
+    }
+  }
+
   async function aiPhase(side){
     aiRouteCache.clear();
     aiSide=side;state.busy=true;state.watchingAi=true;state.skipAiView=false;
     hideRecruitPopup();updateAll();setStatus(`${teams[side].name} (AI) is thinking…`);
-    for(const worker of living(side).filter(u=>u.kind==='villager'&&!u.workTarget)){
-      const forest=availableForestNear(worker)[0];
-      if(forest){worker.workTarget={x:forest.x,y:forest.y};}
-    }
-    processVillagers(side);
-    if(!teams[side].recruited && shouldEnemyRecruit()){
+    await aiVillagerOrders(side);
+    if(!teams[side].recruited && teamSlotsLeft(side)>0 && shouldEnemyRecruit()){
       const plan=enemyRecruitPlan();
       if(plan.canAfford){
         await centerCameraOnTile(barracks[side].x+.5,barracks[side].y+.5,200);
@@ -4329,8 +4392,7 @@ button{font:inherit}
         living(side).forEach(u=>{u.move=u.maxMove;u.attacked=false;});
       }
     }
-    state.activeTeam=next;
-    processVillagers(next);
+    state.activeTeam=next;state.buildFarmMode=false;
     state.selectedBarracks=null;state.inspectedUnitId=null;state.inspectedHq=null;
     const first=living(next)[0]||null;
     state.selectedUnitId=(teams[next].control==='human'&&first)?first.id:null;
@@ -4378,7 +4440,10 @@ button{font:inherit}
     }else{
       portrait.style.backgroundImage='none';
       portrait.style.width='';portrait.style.height='';
-      portrait.src=spriteFor(u);
+      if(u.kind==='villager'){
+        portrait.style.width='50px';portrait.style.height='60px';
+        applyVillagerAtlas(portrait,teamColour(u.team),secondaryColour(u.team));
+      }else {clearVillagerAtlas(portrait);portrait.src=spriteFor(u);}
     }
     document.getElementById('selectedName').textContent=isHQ?`${teams[u.team].name} HQ`:u.name;
     document.getElementById('selectedSub').textContent=(isHQ?'Headquarters':u.title)+(u.team!==state.activeTeam?' · Opponent':'');
@@ -4388,6 +4453,11 @@ button{font:inherit}
     document.getElementById('statMov').textContent=isHQ?'—':(archerEngaged(u)?`0/${u.maxMove} ENGAGED`:`${u.move}/${u.maxMove}`);
     document.getElementById('statRng').textContent=isHQ?'—':rangeLabel(u);
     document.getElementById('statAttack').textContent=isHQ?'—':(u.kind==='villager'?'Cannot attack':(u.attacked?'Yes':'No'));
+    const farmButton=document.getElementById('buildFarm');
+    const villagerSelected=selected?.alive&&selected.kind==='villager'&&selected.team===state.activeTeam&&humanTurn()&&!isHQ&&u.id===selected.id;
+    farmButton.hidden=!villagerSelected;
+    if(villagerSelected){farmButton.disabled=!canBuildFarm(selected);farmButton.textContent=state.buildFarmMode?'Cancel Farm':'Build Farm';}
+
 
     const attackBtn=document.getElementById('attackInspected');
     const canAttack=!!(
@@ -4425,6 +4495,8 @@ button{font:inherit}
 
       state.turn=s.state?.turn||1;
       state.forestStumps=s.state?.forestStumps && typeof s.state.forestStumps==='object'?{...s.state.forestStumps}:{};
+      state.farms=Array.isArray(s.state?.farms)?s.state.farms.filter(f=>f&&inside(f.x,f.y)&&activeSides().includes(f.team)).map(f=>({...f})):[];
+      state.buildFarmMode=false;
       state.activeTeam=activeSides().includes(s.state?.activeTeam)?s.state.activeTeam:'player';
       state.gameOver=!!s.state?.gameOver;state.watchingAi=false;state.skipAiView=false;
       state.selectedUnitId=s.state?.selectedUnitId||null;
@@ -4485,10 +4557,8 @@ button{font:inherit}
       const team=teams[side];
       const info=factionInfo(team.faction);
       const warriors=living(side).length;
-      // Currently the only building type is the HQ. Count placed HQs
-      // for active teams; building types can be added here later.
       const hq=barracks[side];
-      const buildings=hq?.alive?1:0;
+      const buildings=(hq?.alive?1:0)+state.farms.filter(f=>f.team===side).length;
       const swatch=teamColourDisplay(team.colour);
       return `<tr class="${side===state.activeTeam?'active':''} ${!hq?.alive?'eliminated':''}">
         <td><div class="performanceFaction">
@@ -4497,7 +4567,7 @@ button{font:inherit}
           <span class="factionInfo"><span class="factionName">${escapeHtml(info.label)}</span>
           <span class="factionNumber" style="display:block">Team ${i+1}${!hq?.alive?' · Eliminated':''}</span></span>
         </div></td>
-        <td>${isWwTeam(side)?'— (no gold)':team.gold}</td><td>${team.wood||0}</td><td>${buildings}</td><td>${warriors}</td>
+        <td>${isWwTeam(side)?'— (no gold)':team.gold}</td><td>${team.wood||0}</td><td>${teamFood(side)}</td><td>${buildings}</td><td>${warriors}</td>
       </tr>`;
     }).join('');
   }
@@ -4532,7 +4602,8 @@ button{font:inherit}
       const hp=el.querySelector('.hpNumber');
       hp.hidden=!u.alive||u.hp>=u.maxHp;
       hp.textContent=u.hp;
-      el.querySelector('img').src=spriteFor(u);
+      if(u.kind==='villager')applyVillagerAtlas(el.querySelector('.unitArt'),teamColour(u.team),secondaryColour(u.team));
+      else {clearVillagerAtlas(el.querySelector('.unitArt'));el.querySelector('.unitArt').src=spriteFor(u);}
       el.querySelector('.unitHouseCrest').src=factionInfo(teamFaction(u.team)).crest;
     });
     document.querySelectorAll('.barracks').forEach(el=>el.classList.toggle('selected',el.id==='barracks-'+state.selectedBarracks));
@@ -4544,9 +4615,10 @@ button{font:inherit}
     amount.textContent=ww?`✦ ${Object.values(ensureWwCredits(state.activeTeam)).reduce((a,b)=>a+b,0)} souls`:active.gold;
     document.getElementById('currentIncome').textContent=ww?'Raised from fallen units':`+${active.income}/turn`;
     document.getElementById('currentUnitCount').textContent=living(state.activeTeam).length;
+    document.getElementById('currentFood').textContent=teamFood(state.activeTeam);
     document.getElementById('currentWood').textContent=active.wood||0;
     document.getElementById('turnNo').textContent=state.turn;
-    positionStaticObjects();
+    positionStaticObjects();renderFarms();
     document.getElementById('endTurn').disabled=!humanTurn();
     document.getElementById('turnLabel').textContent=teams[state.activeTeam].name+(teams[state.activeTeam].control==='ai'?' · AI':' · Human');
     document.querySelectorAll('.barracks').forEach(el=>el.classList.toggle('selected',el.id==='barracks-'+state.selectedBarracks));
@@ -4701,6 +4773,13 @@ button{font:inherit}
   document.getElementById('popupRecruitCavalry').addEventListener('click',()=>{ const u=recruit(state.activeTeam,'cavalry',true); if(u){hideRecruitPopup(); updateAll();} });
   document.getElementById('popupRecruitDragon').addEventListener('click',()=>{ const u=recruit(state.activeTeam,'dragon',true); if(u){hideRecruitPopup(); updateAll();} });
   document.getElementById('popupRecruitVillager').addEventListener('click',()=>{const u=recruit(state.activeTeam,'villager',true);if(u){hideRecruitPopup();updateAll();}});
+  document.getElementById('buildFarm').addEventListener('click',()=>{
+    const u=selectedUnit();if(!u||u.kind!=='villager'||!canHumanControl(u.team))return;
+    if(!state.buildFarmMode&&!canBuildFarm(u))return;
+    state.buildFarmMode=!state.buildFarmMode;
+    setStatus(state.buildFarmMode?'Tap an empty grass/snow/desert tile immediately beside this Villager to build a Farm (200 gold + 300 wood).':'Farm placement cancelled.');
+    updateAll();
+  });
   document.getElementById('attackInspected').addEventListener('click',()=>{
     const attacker=selectedUnit();
     const target=state.inspectedHq?barracks[state.inspectedHq]:inspectedUnit();
@@ -4774,7 +4853,11 @@ button{font:inherit}
   });
 
   if('serviceWorker' in navigator){
-    window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));
+    window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js',{updateViaCache:'none'})
+      .then(reg=>{
+        reg.update().catch(()=>{});
+        document.addEventListener('visibilitychange',()=>{if(!document.hidden)reg.update().catch(()=>{});});
+      }).catch(()=>{}));
   }
 
   function updateVisibleViewportHeight(){

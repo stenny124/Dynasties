@@ -1,35 +1,19 @@
-Dynasties — Build v57
+Dynasties — Build v58
 
-New Villager unit
-- Costs 100 gold; HP 10; ATK 0 (cannot attack); DEF 0; MOV 2.
-- Available in New Game HQ recruitment and Create Map unit placement.
-- A villager can be assigned to forest within a 3-tile Manhattan work radius: select villager, tap a highlighted Forest tile.
-- Chops one forest per faction turn for 100 wood added to faction reserves.
-- Chopped forest becomes a stump and preserves the underlying grass/snow/desert; automatically regrows after five full rounds.
-- Villagers with an active work order continue harvesting another eligible forest within their work radius each turn. Moving the Villager cancels the order. When no forest remains, they stop.
-- Human and AI villagers use the same work/regen logic; AI Villagers assigned near forests work automatically.
-- Wood appears in active-team HUD and Faction Performance.
-- Save slots preserve current wood, forest stumps, regrowth timers and work orders.
-- White Walkers do not purchase villagers with gold; a Villager resurrection credit is required (only from deaths of Villagers), consistent with the undead recruiting system.
+CHANGES
+- Villager unit sprite palettes render from a pre-generated 17 x 17 colour atlas (all primary/secondary pairs), removing reliance on Safari canvas recolouring. Supports house-edited colours in battle, recruitment, map editor and Houses previews.
+- Service worker cache upgraded to v58; browser requests an update on launch/return from background. v58 assets have unique filenames to avoid stale mobile images.
+- Villager harvesting is entirely manual: a Villager must stand directly next to a Forest; tap that tile to chop it once per round for +100 wood. No automatic movement, reassignment or chopping.
+- Dragons are restricted to House Targaryen and White Walkers (including editor placement and HQ recruitment).
+- Farm construction: select a Villager, choose Build Farm, then tap an empty adjacent grass/snow/desert tile. One farm construction per Villager per round. AI Villagers can also issue individual chop/build orders during AI turns; no passive auto-work remains. Costs 200 gold and 300 wood. The Villager cannot construct if the faction has no gold (including White Walkers).
+- Food capacity: each surviving HQ supplies 5 food, and each Farm gives +3. One food supports one living unit of any kind, including Villagers. Human and AI recruitment (and White Walker raising) respect the limit. Existing scenario/map units are never deleted if already above the limit.
+- Farms appear on the battle map, block unit landing/pathfinding, are included in Faction Performance, and persist in three save slots. Farm artwork preserves the underlying biome.
 
-Files in this patch (replace/update at repo root):
-index.html
-service-worker.js
-README.txt
-assets/villager_master.png (new)
-assets/forest_stump.png (new)
+FILES TO UPLOAD (from this patch ZIP; overwrite at the repo root)
+- index.html
+- service-worker.js
+- README.txt
+- assets/villager_palette_atlas_v58.png (new)
+- assets/farm_tile_v58.png (new)
 
-
-v57 changes
-- Villagers now recolour with their house palette.
-- Villagers must stand on a tile adjacent to a forest to chop it.
-- If assigned a forest within three tiles but not adjacent, they keep the work order and auto-move on their next turn to an adjacent chopping position when possible.
-- The chopped-forest sprite now uses the supplied art style, with biome-aware grass/snow/desert variants so the background matches the underlying terrain.
-
-Files in this patch (replace/update at repo root):
-index.html
-service-worker.js
-README.txt
-assets/forest_stump_grass.png (new)
-assets/forest_stump_snow.png (new)
-assets/forest_stump_desert.png (new)
+Keep all other existing assets in GitHub. Do not delete old files.
