@@ -973,6 +973,49 @@ button{font:inherit}
 .dualColourSwatches{display:flex;flex-direction:column;gap:4px;justify-content:center}
 .dualColourSwatches i{display:block;width:18px;height:17px;border:1px solid #dfd2ae;border-radius:3px;box-shadow:inset 0 0 0 1px #0007}
 @media(max-width:450px){#newGameTeamRows .teamSetupRow{gap:4px;grid-template-columns:40px 30px minmax(0,1fr) 18px}.dualColourSelects{gap:3px}.dualColourSelects select{font-size:10px}}
+
+/* v60: original dynasty viewer. Broad on desktop, scrollable on iPhone. */
+#menuLayer.familyMode .menuPanel{width:min(96vw,860px)}
+.familyIntro{display:flex;align-items:center;gap:12px;border:1px solid #987347;background:#211811;border-radius:6px;padding:10px;margin:8px 0}
+.familyIntro img{width:48px;height:56px;object-fit:contain;image-rendering:pixelated;flex:none}
+.familyIntro strong{display:block;font-size:18px;color:#f1d79a}
+.familyIntro p{margin:4px 0 0;color:#d0bd99;font-size:12px;line-height:1.45}
+.houseViewFamily{background:linear-gradient(#766041,#453322);color:#fff0d0;border:1px solid #c8a36a;border-radius:5px;padding:8px;min-height:38px;font-weight:700;font-size:12px;white-space:nowrap}
+.familyActions{display:flex;flex-direction:column;gap:5px;margin-left:auto}
+.familyActions .houseEditButton{margin:0}
+#familyTreeScroll{overflow-x:auto;overflow-y:hidden;max-width:100%;padding:10px 6px 12px;border:1px solid #74562f;background:radial-gradient(ellipse at 50% 5%,#3d3020,#18140f 72%);border-radius:8px;-webkit-overflow-scrolling:touch}
+.familyTree{min-width:570px;display:flex;flex-direction:column;align-items:center;gap:0;padding:8px}
+.familyNodeRow{display:flex;justify-content:center;align-items:flex-start;gap:12px;width:100%}
+.familyNodeRow.childRow{justify-content:space-around;gap:8px}
+.familyNode{width:160px;min-height:118px;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;padding:9px 5px 7px;border:1px solid #907040;border-radius:6px;background:linear-gradient(#423021,#20170f);color:#f5dfb3;cursor:pointer;position:relative}
+.familyNode:hover,.familyNode.chosen{outline:2px solid #e1bf76;background:linear-gradient(#5b442d,#2a1c10)}
+.familyNode .familyFace{width:46px;height:48px;background:#0c1017;border:1px solid #bda16e;border-radius:3px;display:grid;place-items:center;position:relative;overflow:hidden}
+.familyNode .familyFace img{position:absolute;inset:3px;width:calc(100% - 6px);height:calc(100% - 6px);object-fit:contain;image-rendering:pixelated;opacity:.85}
+.familyNode .familyFace .familyInitial{position:absolute;bottom:-3px;right:0;color:#fff8e2;font:bold 18px Georgia,serif;text-shadow:1px 1px #111, -1px -1px #111}
+.familyNode .familyName{font-size:12px;font-weight:700;line-height:1.1}
+.familyNode .familyRole{font:10px Georgia,serif;color:#cab27e}
+.familyNode .familyAge{font-size:10px;color:#bcae98}
+.familyJoin{height:26px;width:1px;background:#a38958;position:relative;margin:auto}
+.familyJoin::before{content:'';position:absolute;top:0;width:34px;height:1px;background:#a38958;left:-17px}
+.familyConnector{width:70%;height:20px;border-top:1px solid #a38958;position:relative;margin:auto}
+.familyConnector::before{content:'';position:absolute;left:50%;top:-20px;height:20px;border-left:1px solid #a38958}
+.familyConnector::after{content:'';position:absolute;left:16.66%;right:16.66%;bottom:0;border-bottom:1px solid #a38958}
+.familyGeneration{font:bold 10px Georgia,serif;letter-spacing:1px;color:#bca374;margin:8px 0}
+.familyGrand{margin-top:10px;display:flex;flex-direction:column;align-items:center}
+.familyGrand::before{content:'';display:block;height:18px;border-left:1px solid #a38958}
+.familyProfile{margin-top:12px;background:linear-gradient(#332718,#19130d);border:1px solid #937344;border-radius:8px;padding:13px;color:#e8d3a8}
+.familyProfileHeader{display:flex;align-items:center;gap:10px}
+.familyProfileHeader img{width:48px;height:54px;object-fit:contain;image-rendering:pixelated}
+.familyProfileHeader strong{color:#f8dfab;font-size:18px}
+.familyProfileHeader small{display:block;color:#b9a884;margin-top:2px}
+.familyStats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin:11px 0}
+.familyStat{text-align:center;padding:7px 2px;border:1px solid #6c5637;background:#241b13;border-radius:4px;font-size:10px;color:#d0bc94}
+.familyStat b{display:block;font:bold 18px Georgia,serif;color:#f9d68e}
+.familyFacts{font-size:12px;line-height:1.6}
+.familyFacts b{color:#e6cc97}
+.familyDisclaimer{margin-top:10px;font-size:11px;color:#c9b58a;line-height:1.5}
+@media(max-width:520px){.familyActions button{font-size:10px;padding:6px}.familyIntro strong{font-size:15px}.familyStats{grid-template-columns:repeat(3,1fr)}.familyNode{width:154px}}
+
 </style>
 </head>
 <body>
@@ -1000,9 +1043,18 @@ button{font:inherit}
 
     <section class="menuScreen" id="housesScreen" hidden>
       <div class="menuBackRow"><button class="menuBack" data-menu-back type="button">← Back</button><div class="menuSectionTitle">Houses</div><span></span></div>
-      <div class="menuSectionSub">Set each house's permanent colours. They will be used in every map and future battle until you edit the house again.</div>
+      <div class="menuSectionSub">Explore each house's family tree or edit its permanent unit colours. These are original characters created for Dynasties.</div>
       <div id="houseLibrary"></div>
     </section>
+
+    <section class="menuScreen" id="familyTreeScreen" hidden>
+      <div class="menuBackRow"><button class="menuBack" id="familyTreeBack" type="button">← Houses</button><div class="menuSectionTitle">Family Tree</div><span></span></div>
+      <div class="familyIntro"><img id="familyHouseCrest" alt="House crest"><div><strong id="familyHouseName"></strong><p id="familyHouseDescription"></p></div></div>
+      <div id="familyTreeScroll"><div id="familyTree" class="familyTree"></div></div>
+      <div id="characterProfile" class="familyProfile" aria-live="polite"></div>
+      <div class="familyDisclaimer">Starting family trees are fictional and currently static. Characters do not age or die during tactical battles; succession, marriages and generals will come later.</div>
+    </section>
+
     <section class="menuScreen" id="editHouseScreen" hidden>
       <div class="menuBackRow"><button class="menuBack" id="houseEditBack" type="button">← Houses</button><div class="menuSectionTitle">Edit House</div><span></span></div>
       <div class="houseEditHeading"><img id="houseEditCrest" alt="House crest"><span id="houseEditName"></span></div>
@@ -1065,15 +1117,12 @@ button{font:inherit}
           <thead><tr>
             <th scope="col">Faction</th>
             <th scope="col"><span class="performanceHeading"><img src="./assets/gold_icon.png" alt="">Gold</span></th>
-            <th scope="col"><span class="performanceHeading">🪵 Wood</span></th>
-            <th scope="col">🌾 Food</th>
             <th scope="col"><span class="performanceHeading"><img src="./assets/toolbar_buildings.png" alt="">Buildings</span></th>
             <th scope="col"><span class="performanceHeading"><img src="./assets/toolbar_units.png" alt="">Warriors</span></th>
           </tr></thead>
           <tbody id="performanceRows"></tbody>
         </table>
       </div>
-      <div class="performanceNote">Food = 5 from HQ + 3 per Farm. Food limits all living units, including Villagers.</div>
     </section>
 
     <section class="menuScreen" id="newGameScreen" hidden>
@@ -1159,8 +1208,8 @@ button{font:inherit}
         <div class="econ">
           <span class="goldAmount"><img class="goldIcon" src="./assets/gold_icon.png" alt="gold"><b id="currentGold">300</b></span>
           <span class="income" id="currentIncome">+100/turn</span>
-          <span>🪵 <b id="currentWood">0</b> wood</span>
-          <span><b id="currentUnitCount">1</b>/<b id="currentFood">5</b> units / food</span>
+          <span>Units <b id="currentUnitCount">1</b></span>
+
         </div>
       </div>
     </div>
@@ -1195,11 +1244,7 @@ button{font:inherit}
         <span class="recruitName">Cavalry</span>
         <span class="recruitPrice"><img class="goldIcon" src="./assets/gold_icon.png" alt="gold">600</span>
       </button>
-      <button class="recruitOption" id="popupRecruitVillager" type="button">
-        <img class="recruitSprite" src="./assets/villager_master.png" alt="">
-        <span class="recruitName">Villager</span>
-        <span class="recruitPrice"><img class="goldIcon" src="./assets/gold_icon.png" alt="gold">100</span>
-      </button>
+
       <button class="recruitOption" id="popupRecruitDragon" type="button" hidden>
         <img class="recruitSprite" src="./assets/dragon_targaryen_64.png" alt="">
         <span class="recruitName">Dragon</span>
@@ -1237,7 +1282,6 @@ button{font:inherit}
     </div>
     <div id="actions">
       <button class="action" id="attackInspected" type="button" hidden>Attack</button>
-      <button class="action" id="buildFarm" type="button" hidden>Build Farm</button>
       <button class="action" id="saveGame" type="button">Save Game</button>
       <button class="action" id="newGame" type="button">Menu</button>
     </div>
@@ -1246,7 +1290,7 @@ button{font:inherit}
 
 <script>
 (async () => {
-  // Dynasties Build v59 — White Walkers cannot recruit Villagers; HQ sprite shortened slightly.
+  // Dynasties Build v60 — original family trees and streamlined tactical economy.
   // Dynasties Build v52 — full-map terrain-aware AI route planning.
   // Dynasties v46: houses assigned in Create Map; New Game configures colours and controllers.
   // Dynasties v47: bridge tap-to-rotate while preserving the existing map/save formats.
@@ -1285,12 +1329,11 @@ button{font:inherit}
     soldier:{label:'Soldier',cost:300,hp:10,atk:4,def:1,maxMove:2,minRange:1,maxRange:1},
     archer:{label:'Archer',cost:400,hp:10,atk:4,def:0,maxMove:2,minRange:1,maxRange:3},
     cavalry:{label:'Cavalry',cost:600,hp:10,atk:6,def:1,maxMove:4,minRange:1,maxRange:1},
-    dragon:{label:'Dragon',cost:1500,hp:10,atk:10,def:3,maxMove:7,minRange:1,maxRange:1,missile:true,flying:true},
-    villager:{label:'Villager',cost:100,hp:10,atk:0,def:0,maxMove:2,minRange:0,maxRange:0,worker:true}
+    dragon:{label:'Dragon',cost:1500,hp:10,atk:10,def:3,maxMove:7,minRange:1,maxRange:1,missile:true,flying:true}
   };
 
   const DRAGON_FACTIONS=new Set(['targaryen','white_walkers']);
-  const RECRUIT_KINDS=['soldier','archer','cavalry','dragon','villager'];
+  const RECRUIT_KINDS=['soldier','archer','cavalry','dragon'];
   const WW_KINDS=['soldier','archer','cavalry','dragon'];
   const isWwTeam=side=>teams[side]?.faction==='white_walkers';
   const allowsKind=(faction,kind)=>!!UNIT_DEFS[kind] && (kind!=='dragon'||DRAGON_FACTIONS.has(faction));
@@ -1529,11 +1572,82 @@ button{font:inherit}
     if(state.gameActive&&typeof updateAll==='function')updateAll();
   }
   let editingHouse=null,editingPrimary=null,editingSecondary=null;
+
+  // v60 original, fictional starting families. No TV/book character roster is used.
+  // Each seed: head, partner, heir, two younger children, and a grandchild.
+  const DYNASTY_SEEDS={
+    arryn:{names:['Alaric Arryn','Lynesse Waynwood','Corren Arryn','Meredyn Arryn','Harwin Arryn','Elric Arryn'],ages:[52,47,26,22,17,3],seat:'The Eyrie',motto:'The high valleys watch every oath.',traits:['Patient','Cautious','Ambitious','Diplomatic','Bold','Curious']},
+    baratheon:{names:['Durren Baratheon','Selene Estermont','Royce Baratheon','Alyra Baratheon','Rostan Baratheon','Moryn Baratheon'],ages:[49,45,25,21,17,2],seat:'Storm’s End',motto:'A storm may break the walls, never the will.',traits:['Fearless','Pragmatic','Stubborn','Charismatic','Reckless','Spirited']},
+    greyjoy:{names:['Varrik Greyjoy','Ellys Farwynd','Serren Greyjoy','Iona Greyjoy','Torvald Greyjoy','Rikka Greyjoy'],ages:[50,44,24,19,16,4],seat:'Pyke',motto:'No tide returns without a reckoning.',traits:['Sea-Wise','Unyielding','Daring','Shrewd','Restless','Watchful']},
+    lannister:{names:['Leomar Lannister','Helena Marbrand','Lucen Lannister','Ceryse Lannister','Damion Lannister','Tayra Lannister'],ages:[54,49,28,24,18,5],seat:'Casterly Rock',motto:'Fortune favours those who remember their debts.',traits:['Calculating','Proud','Measured','Diplomatic','Competitive','Bright']},
+    martell:{names:['Andros Martell','Nyra Uller','Dareth Martell','Myria Martell','Orren Martell','Sarena Martell'],ages:[48,46,25,20,15,3],seat:'Sunspear',motto:'Even the longest shadow ends at dawn.',traits:['Independent','Steadfast','Cunning','Persuasive','Fiery','Observant']},
+    stark:{names:['Harrion Stark','Lyessa Mormont','Roderic Stark','Ellyn Stark','Varron Stark','Darra Stark'],ages:[51,46,25,21,16,2],seat:'Winterfell',motto:'When the winds change, honour stands.',traits:['Honourable','Patient','Resolute','Kind','Stubborn','Curious']},
+    targaryen:{names:['Rhaemond Targaryen','Alysara Velaryon','Vaeryn Targaryen','Saelys Targaryen','Daevon Targaryen','Maerya Targaryen'],ages:[47,42,23,19,15,2],seat:'Dragonstone',motto:'From ember to flame, from flame to dominion.',traits:['Visionary','Proud','Commanding','Intuitive','Impulsive','Fierce']},
+    tully:{names:['Osmund Tully','Marella Mallister','Bryen Tully','Loryn Tully','Ronnel Tully','Elva Tully'],ages:[53,48,26,22,17,4],seat:'Riverrun',motto:'The rivers remember their kin.',traits:['Loyal','Warm','Dependable','Diligent','Headstrong','Gentle']},
+    tyrell:{names:['Perwyn Tyrell','Jessa Fossoway','Olyvar Tyrell','Melara Tyrell','Arian Tyrell','Selyne Tyrell'],ages:[50,46,27,22,18,3],seat:'Highgarden',motto:'The garden grows by patience and design.',traits:['Charming','Astute','Ambitious','Witty','Diplomatic','Curious']},
+    white_walkers:{names:['Vael the Pale Regent','Seris of the Rime','Nethar the Firstborn','Iskyn the Seer','Mourn of the Deep Cold','Riven the Icebound'],ages:[264,231,113,86,59,12],seat:'The Far Winter',motto:'The frozen court is bound by ancient rites rather than human blood.',traits:['Ancient','Relentless','Silent','Prophetic','Merciless','Awakening']}
+  };
+  const DYNASTY_STATS=['Command','Stewardship','Diplomacy','Intrigue','Authority'];
+  function dynastyPeople(house){
+    const seed=DYNASTY_SEEDS[house]||DYNASTY_SEEDS.stark;
+    return seed.names.map((name,i)=>{
+      const id=`${house}-${i}`;
+      let role=['House Head','Consort','Heir','Child','Child','Grandchild'][i];
+      if(house==='white_walkers')role=['Pale Regent','Bound Consort','Firstborn','Rime Seer','Icebound','Young Risen'][i];
+      const parents=i>=2&&i<=4?[`${house}-0`,`${house}-1`]:i===5?[`${house}-2`]:[];
+      const spouse=i===0?`${house}-1`:i===1?`${house}-0`:null;
+      const scores=Object.fromEntries(DYNASTY_STATS.map((stat,j)=>[stat,2+((house.length*3+i*11+j*7+seed.names[i].length*2)%9)]));
+      return {id,name,age:seed.ages[i],role,spouse,parents,trait:seed.traits[i],scores};
+    });
+  }
+  let familyHouse='stark';
+  let familyPersonId=null;
+  function familyNodeMarkup(person,crest){
+    const first=person.name.replace(/^House /,'').trim().charAt(0).toUpperCase();
+    return `<button type="button" class="familyNode ${person.id===familyPersonId?'chosen':''}" data-family-person="${person.id}" aria-label="Show ${escapeHtml(person.name)}"><span class="familyFace"><img src="${crest}" alt=""><span class="familyInitial">${first}</span></span><span class="familyName">${escapeHtml(person.name)}</span><span class="familyRole">${escapeHtml(person.role)}</span><span class="familyAge">Age ${person.age}</span></button>`;
+  }
+  function renderFamilyProfile(){
+    const people=dynastyPeople(familyHouse),p=people.find(p=>p.id===familyPersonId)||people[0];
+    const parents=p.parents.map(id=>people.find(q=>q.id===id)?.name).filter(Boolean);
+    const spouse=p.spouse?people.find(q=>q.id===p.spouse)?.name:null;
+    const children=people.filter(q=>q.parents.includes(p.id)).map(q=>q.name);
+    const crest=factionInfo(familyHouse).crest;
+    document.getElementById('characterProfile').innerHTML=`
+      <div class="familyProfileHeader"><img src="${crest}" alt=""><div><strong>${escapeHtml(p.name)}</strong><small>${escapeHtml(p.role)} · Age ${p.age} · ${escapeHtml(p.trait)}</small></div></div>
+      <div class="familyStats">${DYNASTY_STATS.map(s=>`<div class="familyStat"><b>${p.scores[s]}</b>${s}</div>`).join('')}</div>
+      <div class="familyFacts"><div><b>House:</b> ${escapeHtml(factionInfo(familyHouse).label)}</div>
+        <div><b>Parents:</b> ${parents.length?escapeHtml(parents.join(' & ')):'Not recorded'}</div>
+        <div><b>Spouse:</b> ${spouse?escapeHtml(spouse):'None recorded'}</div>
+        <div><b>Children:</b> ${children.length?escapeHtml(children.join(', ')):'None recorded'}</div>
+        <div><b>Status:</b> Alive · Not yet assigned to a battle</div></div>`;
+    document.querySelectorAll('[data-family-person]').forEach(el=>el.classList.toggle('chosen',el.dataset.familyPerson===p.id));
+  }
+  function openFamilyTree(house){
+    if(!DYNASTY_SEEDS[house])return;
+    familyHouse=house;familyPersonId=`${house}-0`;
+    const info=factionInfo(house),seed=DYNASTY_SEEDS[house],p=dynastyPeople(house);
+    document.getElementById('familyHouseCrest').src=info.crest;
+    document.getElementById('familyHouseName').textContent=info.label;
+    document.getElementById('familyHouseDescription').textContent=`${seed.seat} · ${seed.motto}`;
+    const crest=info.crest;
+    document.getElementById('familyTree').innerHTML=`
+       <div class="familyGeneration">FOUNDING COUPLE</div>
+       <div class="familyNodeRow">${familyNodeMarkup(p[0],crest)}${familyNodeMarkup(p[1],crest)}</div>
+       <div class="familyJoin"></div><div class="familyConnector"></div>
+       <div class="familyGeneration">NEXT GENERATION</div>
+       <div class="familyNodeRow childRow">${p.slice(2,5).map(q=>familyNodeMarkup(q,crest)).join('')}</div>
+       <div class="familyGrand"><div class="familyGeneration">THIRD GENERATION</div>${familyNodeMarkup(p[5],crest)}</div>`;
+    document.querySelectorAll('#familyTree [data-family-person]').forEach(btn=>btn.addEventListener('click',()=>{familyPersonId=btn.dataset.familyPerson;renderFamilyProfile();}));
+    renderFamilyProfile();
+    showMenuScreen('familyTreeScreen');
+  }
+
   function renderHouseLibrary(){
     document.getElementById('houseLibrary').innerHTML=Object.entries(FACTION_CONFIG).map(([id,info])=>{
       const p=styleForHouse(id);
-      return `<div class="houseListRow"><img src="${info.crest}" alt="${escapeHtml(info.label)} crest"><div class="houseListText">${escapeHtml(info.label)}<div class="houseListColours"><i style="background:${teamColourDisplay(p.primary)}"></i>${isHumanFaction(id)?`<i style="background:${teamColourDisplay(p.secondary)}"></i>`:''}</div></div><button type="button" class="houseEditButton" data-edit-house="${id}">Edit House</button></div>`;
+      return `<div class="houseListRow"><img src="${info.crest}" alt="${escapeHtml(info.label)} crest"><div class="houseListText">${escapeHtml(info.label)}<div class="houseListColours"><i style="background:${teamColourDisplay(p.primary)}"></i>${isHumanFaction(id)?`<i style="background:${teamColourDisplay(p.secondary)}"></i>`:''}</div></div><div class="familyActions"><button type="button" class="houseViewFamily" data-view-family="${id}">Family Tree</button><button type="button" class="houseEditButton" data-edit-house="${id}">Edit Colours</button></div></div>`;
     }).join('');
+    document.querySelectorAll('[data-view-family]').forEach(btn=>btn.addEventListener('click',()=>openFamilyTree(btn.dataset.viewFamily)));
     document.querySelectorAll('[data-edit-house]').forEach(btn=>btn.addEventListener('click',()=>openHouseEditor(btn.dataset.editHouse)));
   }
   function openHousesMenu(){renderHouseLibrary();showMenuScreen('housesScreen')}
@@ -1916,7 +2030,7 @@ button{font:inherit}
       imported:!!map?.imported,
       width,height,tiles,
       teamStyles:Object.fromEntries(Object.entries(map?.teamStyles||{}).filter(([id,v])=>TEAM_IDS.includes(id)&&v&&FACTION_CONFIG[v.faction]&&TEAM_COLOUR_PALETTES[v.colour]).map(([id,v])=>[id,{faction:v.faction,colour:v.colour,secondary:normalSecondary(v.secondary)}])),
-      units:Array.isArray(map?.units)?map.units.map(u=>({...u})):fallbackUnits,
+      units:Array.isArray(map?.units)?map.units.filter(u=>!!UNIT_DEFS[u?.kind]).map(u=>({...u})):fallbackUnits,
       castles:Object.fromEntries(Object.entries(map?.castles===undefined?defaults:map.castles)
         .filter(([id,pos])=>TEAM_IDS.includes(id)&&pos)
         .map(([id,pos])=>[id,{x:pos.x,y:pos.y}]))
@@ -2170,13 +2284,12 @@ button{font:inherit}
     for(const side of activeSides()){
       teams[side].gold=isWwTeam(side)?0:300;teams[side].income=isWwTeam(side)?0:100;teams[side].recruited=false;
       teams[side].wwCredits=isWwTeam(side)?freshWwCredits():null;
-      teams[side].wood=0;
     }
   }
 
   function resetGameState(){
     state.turn=1;
-    state.forestStumps={};state.farms=[];state.buildFarmMode=false;
+    state.forestStumps={};state.farms=[];state.buildFarmMode=false; // Retired v60 resource state
     state.activeTeam=activeSides()[0];state.gameOver=false;state.skipAiView=false;state.watchingAi=false;
     state.inspectedHq=null;
     for(const side of TEAM_IDS){
@@ -2242,8 +2355,6 @@ button{font:inherit}
       savedAt:new Date().toISOString(),
       state:{
         turn:state.turn,
-        forestStumps:state.forestStumps,
-        farms:state.farms,
         activeTeam:state.activeTeam,
         teamCount,
         activeSideIds:[...activeSides()],
@@ -2353,6 +2464,7 @@ button{font:inherit}
     document.querySelectorAll('.menuScreen').forEach(s=>s.hidden=s.id!==id);
     const menuLayer=document.getElementById('menuLayer');
     menuLayer.classList.toggle('landingMode', id==='mainMenuScreen');
+    menuLayer.classList.toggle('familyMode',id==='familyTreeScreen');
   }
 
   function refreshMainMenu(){
@@ -3292,11 +3404,12 @@ button{font:inherit}
   const unitAt=(x,y)=>Object.values(units).find(u=>u.alive&&u.x===x&&u.y===y)||null;
   const barracksAt=(x,y)=>activeSides().map(id=>barracks[id]).find(b=>b.alive&&x>=b.x&&x<b.x+(b.w||1)&&y>=b.y&&y<b.y+(b.h||1))||null;
   const FARM_GOLD=200,FARM_WOOD=300,FARM_FOOD=3,HQ_FOOD=5;
-  const farmAt=(x,y)=>state.farms.find(f=>f.x===x&&f.y===y)||null;
+  const farmAt=(x,y)=>null; // Farming mechanic retired in v60
   const buildingAt=(x,y)=>barracksAt(x,y)||farmAt(x,y);
   const teamFood=side=>(barracks[side]?.alive?HQ_FOOD:0)+state.farms.filter(f=>f.team===side).length*FARM_FOOD;
-  const teamSlotsLeft=side=>Math.max(0,teamFood(side)-living(side).length);
+  const teamSlotsLeft=side=>Infinity; // No food-based army cap in v60
   function canBuildFarm(u){
+    return false; // Building farms is disabled pending a future economy redesign.
     return !!u?.alive && u.kind==='villager' && !isWwTeam(u.team) &&
       teams[u.team]?.gold>=FARM_GOLD && teams[u.team]?.wood>=FARM_WOOD &&
       u.lastBuildRound!==state.turn;
@@ -3509,7 +3622,7 @@ button{font:inherit}
     }
     const u=selectedUnit();
     if(!u||!u.alive||u.team!==state.activeTeam||state.selectedBarracks)return;
-    if(state.buildFarmMode && u.kind==='villager'){
+    if(false && state.buildFarmMode && u.kind==='villager'){
       if(canBuildFarm(u))for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
         const x=u.x+dx,y=u.y+dy;
         if(canPlaceFarm(u,x,y))addOverlayCell(x,y,'farmCell',()=>constructFarm(u,x,y));
@@ -3726,10 +3839,7 @@ button{font:inherit}
       anySpace ||= !!spawn;
     }
     const note=document.getElementById('recruitNote');
-    if(teamSlotsLeft(team)<=0)note.textContent=ww
-      ?`Population full: ${living(team).length}/${teamFood(team)} food. White Walkers cannot purchase farms.`
-      :`Population full: ${living(team).length}/${teamFood(team)} food. Build farms for +3 each.`;
-    else if(t.recruited)note.textContent='One unit may be raised or recruited per turn.';
+    if(t.recruited)note.textContent='One unit may be raised or recruited per turn.';
     else if(!anySpace)note.textContent='No suitable free tile beside this HQ.';
     else if(ww)note.textContent='Raise the dead: each enemy kill or own casualty grants 1 credit of that unit type. No gold.';
     else note.textContent=`${t.name} gold: ${t.gold}`;
@@ -4297,7 +4407,6 @@ button{font:inherit}
     aiRouteCache.clear();
     aiSide=side;state.busy=true;state.watchingAi=true;state.skipAiView=false;
     hideRecruitPopup();updateAll();setStatus(`${teams[side].name} (AI) is thinking…`);
-    await aiVillagerOrders(side);
     if(!teams[side].recruited && teamSlotsLeft(side)>0 && shouldEnemyRecruit()){
       const plan=enemyRecruitPlan();
       if(plan.canAfford){
@@ -4394,14 +4503,13 @@ button{font:inherit}
     let next=order.find(id=>TEAM_IDS.indexOf(id)>currentIndex);
     if(!next){
       next=order[0];state.turn++;
-      regrowForests();
       for(const side of aliveSides()){
         if(!isWwTeam(side))teams[side].gold+=teams[side].income;
         teams[side].recruited=false;
         living(side).forEach(u=>{u.move=u.maxMove;u.attacked=false;});
       }
     }
-    state.activeTeam=next;state.buildFarmMode=false;
+    state.activeTeam=next;
     state.selectedBarracks=null;state.inspectedUnitId=null;state.inspectedHq=null;
     const first=living(next)[0]||null;
     state.selectedUnitId=(teams[next].control==='human'&&first)?first.id:null;
@@ -4462,10 +4570,6 @@ button{font:inherit}
     document.getElementById('statMov').textContent=isHQ?'—':(archerEngaged(u)?`0/${u.maxMove} ENGAGED`:`${u.move}/${u.maxMove}`);
     document.getElementById('statRng').textContent=isHQ?'—':rangeLabel(u);
     document.getElementById('statAttack').textContent=isHQ?'—':(u.kind==='villager'?'Cannot attack':(u.attacked?'Yes':'No'));
-    const farmButton=document.getElementById('buildFarm');
-    const villagerSelected=selected?.alive&&selected.kind==='villager'&&selected.team===state.activeTeam&&humanTurn()&&!isHQ&&u.id===selected.id;
-    farmButton.hidden=!villagerSelected;
-    if(villagerSelected){farmButton.disabled=!canBuildFarm(selected);farmButton.textContent=state.buildFarmMode?'Cancel Farm':'Build Farm';}
 
 
     const attackBtn=document.getElementById('attackInspected');
@@ -4503,8 +4607,8 @@ button{font:inherit}
       }
 
       state.turn=s.state?.turn||1;
-      state.forestStumps=s.state?.forestStumps && typeof s.state.forestStumps==='object'?{...s.state.forestStumps}:{};
-      state.farms=Array.isArray(s.state?.farms)?s.state.farms.filter(f=>f&&inside(f.x,f.y)&&activeSides().includes(f.team)).map(f=>({...f})):[];
+      state.forestStumps={}; // Legacy forestry no longer active
+      state.farms=[]; // Legacy farms no longer active
       state.buildFarmMode=false;
       state.activeTeam=activeSides().includes(s.state?.activeTeam)?s.state.activeTeam:'player';
       state.gameOver=!!s.state?.gameOver;state.watchingAi=false;state.skipAiView=false;
@@ -4519,7 +4623,6 @@ button{font:inherit}
       for(const k of activeSides()){
         if(s.teams?.[k]){
           teams[k].gold=s.teams[k].gold;
-          teams[k].wood=Math.max(0,Number(s.teams[k].wood)||0);
           teams[k].income=100;
           teams[k].recruited=!!s.teams[k].recruited;
           teams[k].control=s.teams[k].control==='human'?'human':(s.teams[k].control==='ai'?'ai':(k==='enemy'?'ai':'human'));
@@ -4539,7 +4642,7 @@ button{font:inherit}
       unitLayer.innerHTML='';
       units={};
       s.units.forEach(u=>{
-        if(!u||!u.id)return;
+        if(!u||!u.id||!UNIT_DEFS[u.kind])return;
         const oldMax=Number(u.maxHp)||8, oldHp=Number(u.hp)||0;
         if(oldMax!==10){u.maxHp=10;u.hp=Math.max(0,10-(oldMax-oldHp));}
         if(u.kind==='villager')u.maxMove=2;
@@ -4567,7 +4670,7 @@ button{font:inherit}
       const info=factionInfo(team.faction);
       const warriors=living(side).length;
       const hq=barracks[side];
-      const buildings=(hq?.alive?1:0)+state.farms.filter(f=>f.team===side).length;
+      const buildings=hq?.alive?1:0;
       const swatch=teamColourDisplay(team.colour);
       return `<tr class="${side===state.activeTeam?'active':''} ${!hq?.alive?'eliminated':''}">
         <td><div class="performanceFaction">
@@ -4576,7 +4679,7 @@ button{font:inherit}
           <span class="factionInfo"><span class="factionName">${escapeHtml(info.label)}</span>
           <span class="factionNumber" style="display:block">Team ${i+1}${!hq?.alive?' · Eliminated':''}</span></span>
         </div></td>
-        <td>${isWwTeam(side)?'— (no gold)':team.gold}</td><td>${team.wood||0}</td><td>${teamFood(side)}</td><td>${buildings}</td><td>${warriors}</td>
+        <td>${isWwTeam(side)?'— (no gold)':team.gold}</td><td>${buildings}</td><td>${warriors}</td>
       </tr>`;
     }).join('');
   }
@@ -4624,10 +4727,8 @@ button{font:inherit}
     amount.textContent=ww?`✦ ${Object.values(ensureWwCredits(state.activeTeam)).reduce((a,b)=>a+b,0)} souls`:active.gold;
     document.getElementById('currentIncome').textContent=ww?'Raised from fallen units':`+${active.income}/turn`;
     document.getElementById('currentUnitCount').textContent=living(state.activeTeam).length;
-    document.getElementById('currentFood').textContent=teamFood(state.activeTeam);
-    document.getElementById('currentWood').textContent=active.wood||0;
     document.getElementById('turnNo').textContent=state.turn;
-    positionStaticObjects();renderFarms();
+    positionStaticObjects();
     document.getElementById('endTurn').disabled=!humanTurn();
     document.getElementById('turnLabel').textContent=teams[state.activeTeam].name+(teams[state.activeTeam].control==='ai'?' · AI':' · Human');
     document.querySelectorAll('.barracks').forEach(el=>el.classList.toggle('selected',el.id==='barracks-'+state.selectedBarracks));
@@ -4781,14 +4882,6 @@ button{font:inherit}
   document.getElementById('popupRecruitArcher').addEventListener('click',()=>{ const u=recruit(state.activeTeam,'archer',true); if(u){hideRecruitPopup(); updateAll();} });
   document.getElementById('popupRecruitCavalry').addEventListener('click',()=>{ const u=recruit(state.activeTeam,'cavalry',true); if(u){hideRecruitPopup(); updateAll();} });
   document.getElementById('popupRecruitDragon').addEventListener('click',()=>{ const u=recruit(state.activeTeam,'dragon',true); if(u){hideRecruitPopup(); updateAll();} });
-  document.getElementById('popupRecruitVillager').addEventListener('click',()=>{const u=recruit(state.activeTeam,'villager',true);if(u){hideRecruitPopup();updateAll();}});
-  document.getElementById('buildFarm').addEventListener('click',()=>{
-    const u=selectedUnit();if(!u||u.kind!=='villager'||!canHumanControl(u.team))return;
-    if(!state.buildFarmMode&&!canBuildFarm(u))return;
-    state.buildFarmMode=!state.buildFarmMode;
-    setStatus(state.buildFarmMode?'Tap an empty grass/snow/desert tile immediately beside this Villager to build a Farm (200 gold + 300 wood).':'Farm placement cancelled.');
-    updateAll();
-  });
   document.getElementById('attackInspected').addEventListener('click',()=>{
     const attacker=selectedUnit();
     const target=state.inspectedHq?barracks[state.inspectedHq]:inspectedUnit();
@@ -4831,6 +4924,7 @@ button{font:inherit}
   document.getElementById('menuNewGame').addEventListener('click',openNewGameScreen);
   document.getElementById('menuCreateMap').addEventListener('click',openMapManagerScreen);
   document.getElementById('menuHouses').addEventListener('click',openHousesMenu);
+  document.getElementById('familyTreeBack').addEventListener('click',openHousesMenu);
   document.getElementById('houseEditBack').addEventListener('click',openHousesMenu);
   document.getElementById('saveHouseStyle').addEventListener('click',saveHouseEdits);
   document.getElementById('mapCreateNew').addEventListener('click',()=>openCreateMapScreen(null));
