@@ -1,23 +1,17 @@
-Dynasties — Build v60
+Dynasties — Build v62
 
-ORIGINAL DYNASTIES (PHASE 1)
-- Main Menu → Houses → Family Tree: 10 original fictional starting dynasties, one per established faction.
-- Each household has a head, consort, three children and a grandchild (including fictional undead court roles for White Walkers).
-- Click a character to see their name, age, relationship, family members, original trait, and five character attributes (Command, Stewardship, Diplomacy, Intrigue, Authority; values 0–10).
-- Family information is stable; it does not reshuffle on every visit. The family trees are static in this first release. Character portraits currently use heraldic placeholders until portrait art is provided.
-- No character deaths, ageing, marriage, inheritance or general recruitment have been enabled yet.
+CHANGES
+- Adds character portraits to the in-battle Family Trees screen. All 20 heads and all 20 outfits from the user's source artwork are independently usable, allowing 400 head/outfit pairings.
+- Source sheets were cleaned by connected-component extraction, not naive 5x4 cropping. Transparent head/outfit layers have standardised frames and outfit-specific neck offsets to preserve the approved natural fit.
+- The parts are packaged in one lossless PNG atlas for minimal GitHub uploads. CSS renders both layers directly (works even without canvas on mobile); optional canvas recolouring targets the original red primary and gold secondary outfit colours using house palette settings, preserving neutral gear where possible.
+- New games assign head/outfit combinations to each generated character, saved along with the battle family. Old saves without portrait choices are assigned repeatable portraits from character IDs without changing their names or relationships.
+- Infants/young children under 12 retain a crest display because the supplied 20 heads are adults. White Walker portraits are currently cold-tinted human commander art until dedicated undead portraits are available.
+- No births, deaths, ageing, succession or tactical rule changes in v62.
 
-RETIRE RESOURCES
-- Villagers, wood harvesting, forest stump regrowth, farms, food supply and population capacity are disabled/removed from the playable and map-editor interface.
-- Only Soldier, Archer, Cavalry and faction-eligible Dragon can be placed/recruited.
-- Gold recruitment remains for human houses, and the White Walker resurrection credit system remains.
-- No unit-cap restrictions remain. Existing maps and save slots are accepted, but old Villagers, Farms, wood and stump states are discarded when loading.
-- New Game, Create Map, Faction Performance and active-team HUD are streamlined accordingly.
-
-CHANGED FILES — UPLOAD TO EXISTING GITHUB REPO ROOT
+FILES TO UPLOAD (overwrite at repository root):
 - index.html
 - service-worker.js
 - README.txt
+- assets/commander_parts_v62.png (new)
 
-Keep existing art in assets/. No existing art files need replacing or deleting.
-This patch builds on v59; retain all prior assets and maps.
+Keep all other existing GitHub files unchanged. Do not delete your save slots.

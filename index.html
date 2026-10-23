@@ -270,6 +270,7 @@ button{font:inherit}
   border-radius:4px;
   text-align:left;
 }
+.recruitOption[hidden]{display:none!important}
 .recruitOption:disabled{opacity:.43}
 .recruitSprite{
   width:36px;height:40px;object-fit:contain;image-rendering:pixelated;
@@ -974,7 +975,7 @@ button{font:inherit}
 .dualColourSwatches i{display:block;width:18px;height:17px;border:1px solid #dfd2ae;border-radius:3px;box-shadow:inset 0 0 0 1px #0007}
 @media(max-width:450px){#newGameTeamRows .teamSetupRow{gap:4px;grid-template-columns:40px 30px minmax(0,1fr) 18px}.dualColourSelects{gap:3px}.dualColourSelects select{font-size:10px}}
 
-/* v60: original dynasty viewer. Broad on desktop, scrollable on iPhone. */
+/* v61: battle-specific dynasty viewer. Broad on desktop, scrollable on iPhone. */
 #menuLayer.familyMode .menuPanel{width:min(96vw,860px)}
 .familyIntro{display:flex;align-items:center;gap:12px;border:1px solid #987347;background:#211811;border-radius:6px;padding:10px;margin:8px 0}
 .familyIntro img{width:48px;height:56px;object-fit:contain;image-rendering:pixelated;flex:none}
@@ -1014,8 +1015,31 @@ button{font:inherit}
 .familyFacts{font-size:12px;line-height:1.6}
 .familyFacts b{color:#e6cc97}
 .familyDisclaimer{margin-top:10px;font-size:11px;color:#c9b58a;line-height:1.5}
-@media(max-width:520px){.familyActions button{font-size:10px;padding:6px}.familyIntro strong{font-size:15px}.familyStats{grid-template-columns:repeat(3,1fr)}.familyNode{width:154px}}
+.battleFamilyList{display:grid;gap:9px;max-height:60vh;overflow-y:auto}
+.battleFamilyRow{display:flex;align-items:center;gap:10px;width:100%;min-height:68px;padding:9px;border:1px solid #87683f;border-radius:6px;background:linear-gradient(#3d3023,#21180f);color:#f6dfaf;text-align:left}
+.battleFamilyRow img{width:44px;height:50px;object-fit:contain;image-rendering:pixelated}
+.battleFamilyRow span{display:block;font-size:14px;font-weight:bold}
+.battleFamilyRow small{display:block;margin-top:4px;font-size:11px;font-weight:normal;color:#c6b18b}
+.familyNodeRow.childRow{justify-content:center}
+.familyGrand .familyNodeRow{justify-content:center}
+@media(max-width:520px){.familyActions button{font-size:10px;padding:6px}.familyIntro strong{font-size:15px}.familyStats{grid-template-columns:repeat(3,1fr)}.familyNode{width:142px}}
 
+
+/* v62: Separate, precisely anchored head and outfit layers from the character atlas. */
+.commanderPortrait{position:relative;width:100%;height:100%;overflow:hidden;display:block;background:radial-gradient(circle at 50% 32%,#47505e,#262931 75%);isolation:isolate}
+.commanderPortrait .commanderPart{position:absolute;inset:0;background-image:url('./assets/commander_parts_v62.png');background-size:500% 800%;background-repeat:no-repeat;image-rendering:auto;pointer-events:none}
+.commanderPortrait .commanderHead{z-index:1}
+.commanderPortrait .commanderBody{z-index:2}
+.familyNode .familyFace{width:88px;height:110px;background:#252833;border-radius:5px;overflow:hidden}
+.familyNode .familyFace img{opacity:1}
+.familyNode{min-height:188px}
+.familyNode .familyFace .familyInitial{display:none}
+.familyProfileHeader .commanderPortrait{width:108px;height:145px;border:2px solid #b39152;border-radius:5px;flex:0 0 108px}
+.familyProfileHeader{align-items:flex-start}
+.commanderPortrait.isWinter{filter:grayscale(.83) sepia(.20) hue-rotate(157deg) saturate(.9)}
+.familyFace .familyYouth{position:absolute;z-index:4;inset:0;display:grid;place-items:center;background:linear-gradient(#202633,#111a28)}
+.familyFace .familyYouth img{width:65%;height:70%;object-fit:contain;position:static;opacity:.9}
+@media(max-width:520px){.familyNode .familyFace{width:72px;height:94px}.familyNode{min-height:173px}.familyProfileHeader .commanderPortrait{width:82px;height:112px;flex-basis:82px}}
 </style>
 </head>
 <body>
@@ -1043,16 +1067,22 @@ button{font:inherit}
 
     <section class="menuScreen" id="housesScreen" hidden>
       <div class="menuBackRow"><button class="menuBack" data-menu-back type="button">← Back</button><div class="menuSectionTitle">Houses</div><span></span></div>
-      <div class="menuSectionSub">Explore each house's family tree or edit its permanent unit colours. These are original characters created for Dynasties.</div>
+      <div class="menuSectionSub">Edit each house’s permanent unit colours. Every battle generates its own family tree, accessible through that battle’s menu.</div>
       <div id="houseLibrary"></div>
     </section>
 
+    <section class="menuScreen" id="battleFamiliesScreen" hidden>
+      <div class="menuBackRow"><button class="menuBack" id="battleFamiliesBack" type="button">← Battle Menu</button><div class="menuSectionTitle">Families of the Realm</div><span></span></div>
+      <div class="menuSectionSub" id="battleFamiliesSubtitle">Families belonging to this battle.</div>
+      <div id="battleFamilyList" class="battleFamilyList"></div>
+    </section>
+
     <section class="menuScreen" id="familyTreeScreen" hidden>
-      <div class="menuBackRow"><button class="menuBack" id="familyTreeBack" type="button">← Houses</button><div class="menuSectionTitle">Family Tree</div><span></span></div>
+      <div class="menuBackRow"><button class="menuBack" id="familyTreeBack" type="button">← Families</button><div class="menuSectionTitle">Family Tree</div><span></span></div>
       <div class="familyIntro"><img id="familyHouseCrest" alt="House crest"><div><strong id="familyHouseName"></strong><p id="familyHouseDescription"></p></div></div>
       <div id="familyTreeScroll"><div id="familyTree" class="familyTree"></div></div>
       <div id="characterProfile" class="familyProfile" aria-live="polite"></div>
-      <div class="familyDisclaimer">Starting family trees are fictional and currently static. Characters do not age or die during tactical battles; succession, marriages and generals will come later.</div>
+      <div class="familyDisclaimer">This family belongs only to the current battle and persists in its save file. Characters do not yet age or die during combat; inheritance and family events will be introduced later.</div>
     </section>
 
     <section class="menuScreen" id="editHouseScreen" hidden>
@@ -1101,6 +1131,7 @@ button{font:inherit}
       <div class="menuButtons">
         <button class="menuButton primary" id="battleResume" type="button">Resume Battle</button>
         <button class="menuButton" id="battlePerformance" type="button">Faction Performance</button>
+        <button class="menuButton" id="battleFamilies" type="button">Family Trees</button>
         <button class="menuButton" id="battleHome" type="button">Main Menu</button>
       </div>
     </section>
@@ -1290,7 +1321,7 @@ button{font:inherit}
 
 <script>
 (async () => {
-  // Dynasties Build v60 — original family trees and streamlined tactical economy.
+  // Dynasties Build v62 — interchangeable commander portraits in battle family trees.
   // Dynasties Build v52 — full-map terrain-aware AI route planning.
   // Dynasties v46: houses assigned in Create Map; New Game configures colours and controllers.
   // Dynasties v47: bridge tap-to-rotate while preserving the existing map/save formats.
@@ -1588,66 +1619,249 @@ button{font:inherit}
     white_walkers:{names:['Vael the Pale Regent','Seris of the Rime','Nethar the Firstborn','Iskyn the Seer','Mourn of the Deep Cold','Riven the Icebound'],ages:[264,231,113,86,59,12],seat:'The Far Winter',motto:'The frozen court is bound by ancient rites rather than human blood.',traits:['Ancient','Relentless','Silent','Prophetic','Merciless','Awakening']}
   };
   const DYNASTY_STATS=['Command','Stewardship','Diplomacy','Intrigue','Authority'];
-  function dynastyPeople(house){
-    const seed=DYNASTY_SEEDS[house]||DYNASTY_SEEDS.stark;
-    return seed.names.map((name,i)=>{
-      const id=`${house}-${i}`;
-      let role=['House Head','Consort','Heir','Child','Child','Grandchild'][i];
-      if(house==='white_walkers')role=['Pale Regent','Bound Consort','Firstborn','Rime Seer','Icebound','Young Risen'][i];
-      const parents=i>=2&&i<=4?[`${house}-0`,`${house}-1`]:i===5?[`${house}-2`]:[];
-      const spouse=i===0?`${house}-1`:i===1?`${house}-0`:null;
-      const scores=Object.fromEntries(DYNASTY_STATS.map((stat,j)=>[stat,2+((house.length*3+i*11+j*7+seed.names[i].length*2)%9)]));
-      return {id,name,age:seed.ages[i],role,spouse,parents,trait:seed.traits[i],scores};
-    });
+  // A family is generated ONCE at the beginning of each battle, then saved in that battle's slot.
+  // Repeated teams of the same house share that house's family inside that one battle.
+  let gameDynasties={};
+  const DYNASTY_FIRST_NAMES={
+    arryn:['Alaric','Jasper','Corren','Merrick','Lynesse','Meredyn','Harwin','Alerie','Elric','Rowena','Jeyne','Taryn','Ronnel','Ysella'],
+    baratheon:['Durren','Royce','Rostan','Boremund','Alyra','Selene','Moryn','Edrick','Cassana','Harrion','Arys','Lysa','Davos','Marya'],
+    greyjoy:['Varrik','Torvald','Serren','Iona','Rikka','Ellys','Goren','Maerys','Harlon','Euronis','Ashaen','Gwyn','Urron','Helya'],
+    lannister:['Leomar','Lucen','Ceryse','Damion','Tayra','Helena','Tommenar','Jocelyn','Tybalt','Lorent','Ellaria','Alysen','Garrick','Mina'],
+    martell:['Andros','Dareth','Myria','Orren','Sarena','Nyra','Quorin','Arianne','Loreza','Trysten','Ysara','Doranis','Elia','Vaeron'],
+    stark:['Harrion','Roderic','Ellyn','Varron','Darra','Lyessa','Jonric','Brandon','Mara','Torrhen','Aryelle','Edwyn','Cregan','Alys'],
+    targaryen:['Rhaemond','Vaeryn','Saelys','Daevon','Maerya','Alysara','Vaelor','Rhaenys','Aemonar','Baelys','Naeryn','Visara','Aeryon','Rhaela'],
+    tully:['Osmund','Bryen','Loryn','Ronnel','Elva','Marella','Kermyn','Orrys','Roslyn','Bryndis','Marra','Edmyn','Trisa','Hosten'],
+    tyrell:['Perwyn','Olyvar','Melara','Arian','Selyne','Jessa','Garwyn','Margaen','Luthor','Cerys','Raymond','Olenna','Harlen','Elara'],
+    white_walkers:['Vael','Seris','Nethar','Iskyn','Mourn','Riven','Vhaelor','Arctis','Seryn','Elyth','Nivar','Orven','Vyr','Khalis']
+  };
+  const DYNASTY_ORIGINS=[
+    'A disputed succession has left the household determined to protect its inheritance.',
+    'A recent marriage has brought new allies, along with old rivalries.',
+    'The eldest generation still holds power while younger heirs seek their place.',
+    'After years of uneasy peace, rival branches have begun whispering about the succession.',
+    'A bold new ruler has inherited both a proud name and unfinished family business.',
+    'The family has reunited after a long separation, though not everyone trusts the peace.'
+  ];
+  const DYNASTY_ASPIRATIONS=[
+    'The heir hopes to prove worthy of the house name.',
+    'The younger children may yet take the family down unexpected paths.',
+    'A marriage alliance could change the balance of power.',
+    'Rumours of an old claim haunt the family court.',
+    'The coming years may test their loyalty to one another.'
+  ];
+  const dynastyChoose=a=>a[Math.floor(Math.random()*a.length)];
+  const dynastyRandom=(min,max)=>min+Math.floor(Math.random()*(max-min+1));
+  // Artwork: 20 interchangeable heads + 20 interchangeable outfits. The 5x8
+  // atlas stores heads in rows 0-3 and outfits in rows 4-7 (320x430 frames).
+  // CSS layers work on iPhone even if canvas recolouring is unavailable.
+  const COMMANDER_ATLAS='./assets/commander_parts_v62.png';
+  const COMMANDER_BODY_OFFSETS=[0,30,4,8,14,14,13,23,18,18,9,14,9,14,4,11,17,7,36,5];
+  const COMMANDER_FEMALE_HEADS=[1,4,6,8,10,12,15,17,19];
+  const COMMANDER_MALE_HEADS=[0,2,3,5,7,9,11,13,14,16,18];
+  const COMMANDER_YOUNG_HEADS=[5,9,16,19];
+  const COMMANDER_FEMALE_NAMES=new Set([
+    'Lynesse','Meredyn','Alerie','Rowena','Jeyne','Taryn','Ysella','Selene','Alyra','Cassana','Lysa','Marya',
+    'Ellys','Iona','Rikka','Maerys','Gwyn','Helya','Helena','Ceryse','Tayra','Jocelyn','Ellaria','Alysen','Mina',
+    'Nyra','Myria','Sarena','Arianne','Loreza','Ysara','Elia','Ellyn','Darra','Lyessa','Mara','Aryelle','Alys',
+    'Alysara','Saelys','Maerya','Rhaenys','Baelys','Naeryn','Visara','Rhaela','Marella','Loryn','Elva','Roslyn',
+    'Bryndis','Marra','Trisa','Jessa','Melara','Selyne','Margaen','Cerys','Olenna','Elara','Seris','Seryn','Elyth'
+  ]);
+  function chooseCommanderHead(index,age,name=''){
+    const first=name.split(' ')[0];
+    const pool=age<20?COMMANDER_YOUNG_HEADS:
+      (index===1||COMMANDER_FEMALE_NAMES.has(first)?COMMANDER_FEMALE_HEADS:COMMANDER_MALE_HEADS);
+    return dynastyChoose(pool);
   }
+  function validCommanderIndex(x){return Number.isInteger(x)&&x>=0&&x<20;}
+  function legacyCommanderNumber(person){
+    const s=String(person.id||'')+'|'+String(person.name||'');
+    let n=2166136261;
+    for(let i=0;i<s.length;i++)n=Math.imul(n^s.charCodeAt(i),16777619);
+    return n>>>0;
+  }
+  function ensureCommanderPortrait(person){
+    if(!person.portrait||!validCommanderIndex(person.portrait.head)||!validCommanderIndex(person.portrait.body)){
+      const n=legacyCommanderNumber(person);
+      person.portrait={head:person.age<20?COMMANDER_YOUNG_HEADS[n%COMMANDER_YOUNG_HEADS.length]:n%20,
+        body:Math.floor(n/37)%20};
+    }
+    return person.portrait;
+  }
+  const commanderPercent=(index,rowOffset=0)=>`${(index%5)*25}% ${(Math.floor(index/5)+rowOffset)*100/7}%`;
+  function commanderPortraitMarkup(person,house){
+    const part=ensureCommanderPortrait(person);
+    const offset=COMMANDER_BODY_OFFSETS[part.body]||0;
+    return `<span class="commanderPortrait ${house==='white_walkers'?'isWinter':''}" data-commander-body="${part.body}" data-commander-house="${house}">
+      <span class="commanderPart commanderHead" style="background-position:${commanderPercent(part.head)};transform:translateY(${(offset/430)*100}%)"></span>
+      <span class="commanderPart commanderBody" style="background-position:${commanderPercent(part.body,4)}"></span>
+    </span>`;
+  }
+  let commanderAtlasImage=null;
+  const commanderColouredBodies=new Map();
+  async function initialiseCommanderPortraits(){
+    try{
+      commanderAtlasImage=await loadPaletteImage(COMMANDER_ATLAS);
+      updateCommanderPortraitColours();
+    }catch(e){console.warn('Commander portrait atlas unavailable:',e);}
+  }
+  // Changes only the red/gold tunic and piping on an outfit frame. Neutral
+  // metal, leather and gloves keep their source art colours.
+  function commanderBodyColour(bodyIndex,house){
+    if(!commanderAtlasImage)return null;
+    const style=styleForHouse(house);
+    const cacheKey=`${bodyIndex}/${style.primary}/${style.secondary}`;
+    if(commanderColouredBodies.has(cacheKey))return commanderColouredBodies.get(cacheKey);
+    try{
+      const canvas=document.createElement('canvas');canvas.width=320;canvas.height=430;
+      const ctx=canvas.getContext('2d',{willReadFrequently:true});if(!ctx)return null;
+      ctx.drawImage(commanderAtlasImage,(bodyIndex%5)*320,(Math.floor(bodyIndex/5)+4)*430,320,430,0,0,320,430);
+      const d=ctx.getImageData(0,0,320,430);
+      const main=TEAM_COLOUR_PALETTES[style.primary]||TEAM_COLOUR_PALETTES.red;
+      const trim=TEAM_COLOUR_PALETTES[style.secondary]||TEAM_COLOUR_PALETTES.gold;
+      for(let i=0;i<d.data.length;i+=4){
+        if(d.data[i+3]<16)continue;
+        const r=d.data[i],g=d.data[i+1],b=d.data[i+2];
+        let ramp=null,level=0;
+        if(r>78 && r>g*1.62 && r>b*1.48 && g<88 && b<90){
+          ramp=main;level=Math.min(5,Math.max(0,Math.round((r-57)/32)));
+        }else if(r>151 && g>96 && g<r*.89 && b<g*.49 && r>g*1.14){
+          ramp=trim;level=Math.min(5,Math.max(0,Math.round((g-65)/28)));
+        }
+        if(ramp){const rgb=hexRgb(ramp[level]);d.data[i]=rgb[0];d.data[i+1]=rgb[1];d.data[i+2]=rgb[2];}
+      }
+      ctx.putImageData(d,0,0);
+      const url=canvas.toDataURL('image/png');
+      if(commanderColouredBodies.size>90)commanderColouredBodies.clear();
+      commanderColouredBodies.set(cacheKey,url);
+      return url;
+    }catch(err){console.warn('Commander palette swap unavailable:',err);return null;}
+  }
+  function updateCommanderPortraitColours(){
+    for(const node of document.querySelectorAll('.commanderPortrait[data-commander-body]')){
+      const house=node.dataset.commanderHouse;
+      const url=commanderBodyColour(Number(node.dataset.commanderBody),house);
+      const layer=node.querySelector('.commanderBody');
+      if(!layer||!url)continue;
+      layer.style.backgroundImage=`url("${url}")`;
+      layer.style.backgroundPosition='center';layer.style.backgroundSize='100% 100%';
+    }
+  }
+
+  function makeDynasty(house){
+    const seed=DYNASTY_SEEDS[house]||DYNASTY_SEEDS.stark;
+    const names=[...(DYNASTY_FIRST_NAMES[house]||DYNASTY_FIRST_NAMES.stark)];
+    // Shuffle once, guaranteeing a varied but distinct set of first names within the house.
+    for(let i=names.length-1;i>0;i--){const j=dynastyRandom(0,i);[names[i],names[j]]=[names[j],names[i]];}
+    const ages=[dynastyRandom(43,59),dynastyRandom(39,55)];
+    const oldest=dynastyRandom(20,Math.min(30,ages[1]-15));
+    const childCount=dynastyRandom(2,4),grandCount=dynastyRandom(0,2);
+    const houseSurname=house==='white_walkers'?'':` ${factionInfo(house).label.replace(/^House /,'')}`;
+    const spouseSurname=seed.names[1]?.split(' ').slice(1).join(' ')||factionInfo(house).label.replace(/^House /,'');
+    const labels=house==='white_walkers'?
+      ['Pale Regent','Bound Consort','Firstborn','Rime Scion','Rime Scion']:
+      ['House Head','Consort','Heir','Child','Child'];
+    const namesFor=i=>house==='white_walkers' ? `${names[i]} ${['the Winterbound','of the Pale Court','the Unfrozen','the Silent','the Iceborn','of the Rime','the Pale'][i%7]}`
+      : `${names[i]}${i===1?' '+spouseSurname:houseSurname}`;
+    const people=[];
+    const n=2+childCount+grandCount;
+    for(let i=0;i<n;i++){
+      let age,role,parents=[],spouse=null;
+      if(i<2){age=ages[i];role=labels[i];spouse=`${house}-${1-i}`;}
+      else if(i<2+childCount){age=Math.max(12,oldest-(i-2)*dynastyRandom(2,5));role=i===2?labels[2]:labels[3];parents=[`${house}-0`,`${house}-1`];}
+      else{age=dynastyRandom(1,Math.min(8,Math.max(1,oldest-15)));role=house==='white_walkers'?'Young Risen':'Grandchild';parents=[`${house}-2`];}
+      const scores=Object.fromEntries(DYNASTY_STATS.map(stat=>[stat,dynastyRandom(1,10)]));
+      people.push({id:`${house}-${i}`,name:namesFor(i),age,role,spouse,parents,trait:dynastyChoose(seed.traits),scores,
+        portrait:{head:chooseCommanderHead(i,age,namesFor(i)),body:dynastyRandom(0,19)}});
+    }
+    const story=`${dynastyChoose(DYNASTY_ORIGINS)} ${dynastyChoose(DYNASTY_ASPIRATIONS)}`;
+    return {house,seat:seed.seat,motto:seed.motto,story,people,createdAt:new Date().toISOString()};
+  }
+  function initialiseBattleDynasties(saved=null){
+    gameDynasties={};
+    // Accept stored family trees from saves; never regenerate valid saved characters.
+    if(saved&&typeof saved==='object'&&!Array.isArray(saved)){
+      for(const [house,dynasty] of Object.entries(saved)){
+        if(DYNASTY_SEEDS[house]&&Array.isArray(dynasty?.people)&&dynasty.people.length>=4)
+          gameDynasties[house]=JSON.parse(JSON.stringify(dynasty));
+      }
+    }
+    for(const house of new Set(activeSides().map(side=>teamFaction(side)))){
+      if(!gameDynasties[house])gameDynasties[house]=makeDynasty(house);
+    }
+  }
+  function dynastyPeople(house){return gameDynasties[house]?.people||[];}
   let familyHouse='stark';
   let familyPersonId=null;
   function familyNodeMarkup(person,crest){
-    const first=person.name.replace(/^House /,'').trim().charAt(0).toUpperCase();
-    return `<button type="button" class="familyNode ${person.id===familyPersonId?'chosen':''}" data-family-person="${person.id}" aria-label="Show ${escapeHtml(person.name)}"><span class="familyFace"><img src="${crest}" alt=""><span class="familyInitial">${first}</span></span><span class="familyName">${escapeHtml(person.name)}</span><span class="familyRole">${escapeHtml(person.role)}</span><span class="familyAge">Age ${person.age}</span></button>`;
+    const artwork=person.age<12 && familyHouse!=='white_walkers'
+      ?`<span class="familyYouth"><img src="${crest}" alt="Young child"></span>`
+      :commanderPortraitMarkup(person,familyHouse);
+    return `<button type="button" class="familyNode ${person.id===familyPersonId?'chosen':''}" data-family-person="${person.id}" aria-label="Show ${escapeHtml(person.name)}"><span class="familyFace">${artwork}</span><span class="familyName">${escapeHtml(person.name)}</span><span class="familyRole">${escapeHtml(person.role)}</span><span class="familyAge">Age ${person.age}</span></button>`;
   }
   function renderFamilyProfile(){
-    const people=dynastyPeople(familyHouse),p=people.find(p=>p.id===familyPersonId)||people[0];
-    const parents=p.parents.map(id=>people.find(q=>q.id===id)?.name).filter(Boolean);
+    const people=dynastyPeople(familyHouse);
+    if(!people.length)return;
+    const p=people.find(p=>p.id===familyPersonId)||people[0];
+    const parents=(p.parents||[]).map(id=>people.find(q=>q.id===id)?.name).filter(Boolean);
     const spouse=p.spouse?people.find(q=>q.id===p.spouse)?.name:null;
-    const children=people.filter(q=>q.parents.includes(p.id)).map(q=>q.name);
+    const children=people.filter(q=>(q.parents||[]).includes(p.id)).map(q=>q.name);
     const crest=factionInfo(familyHouse).crest;
     document.getElementById('characterProfile').innerHTML=`
-      <div class="familyProfileHeader"><img src="${crest}" alt=""><div><strong>${escapeHtml(p.name)}</strong><small>${escapeHtml(p.role)} · Age ${p.age} · ${escapeHtml(p.trait)}</small></div></div>
-      <div class="familyStats">${DYNASTY_STATS.map(s=>`<div class="familyStat"><b>${p.scores[s]}</b>${s}</div>`).join('')}</div>
+      <div class="familyProfileHeader">${p.age<12&&familyHouse!=='white_walkers'?`<img src="${crest}" alt="Young family member">`:commanderPortraitMarkup(p,familyHouse)}<div><strong>${escapeHtml(p.name)}</strong><small>${escapeHtml(p.role)} · Age ${p.age} · ${escapeHtml(p.trait)}</small></div></div>
+      <div class="familyStats">${DYNASTY_STATS.map(st=>`<div class="familyStat"><b>${p.scores[st]}</b>${st}</div>`).join('')}</div>
       <div class="familyFacts"><div><b>House:</b> ${escapeHtml(factionInfo(familyHouse).label)}</div>
         <div><b>Parents:</b> ${parents.length?escapeHtml(parents.join(' & ')):'Not recorded'}</div>
         <div><b>Spouse:</b> ${spouse?escapeHtml(spouse):'None recorded'}</div>
         <div><b>Children:</b> ${children.length?escapeHtml(children.join(', ')):'None recorded'}</div>
-        <div><b>Status:</b> Alive · Not yet assigned to a battle</div></div>`;
+        <div><b>Status:</b> Alive · Member of this battle's dynasty</div></div>`;
     document.querySelectorAll('[data-family-person]').forEach(el=>el.classList.toggle('chosen',el.dataset.familyPerson===p.id));
+    updateCommanderPortraitColours();
+  }
+  function openBattleFamilies(){
+    if(!state.gameActive)return;
+    const houseIds=[...new Set(activeSides().map(side=>teamFaction(side)))];
+    document.getElementById('battleFamiliesSubtitle').textContent=
+      `${activeMap.name||'Current battle'} · ${houseIds.length} house${houseIds.length===1?'':'s'} · Round ${state.turn}`;
+    document.getElementById('battleFamilyList').innerHTML=houseIds.map(house=>{
+      const family=gameDynasties[house],info=factionInfo(house);
+      if(!family)return '';
+      const head=family.people.find(p=>p.role==='House Head'||p.role==='Pale Regent')||family.people[0];
+      return `<button type="button" class="battleFamilyRow" data-open-battle-family="${house}"><img src="${info.crest}" alt=""><span>${escapeHtml(info.label)}<small>${escapeHtml(head?.name||'Unknown')} · ${family.people.length} members · ${escapeHtml(family.seat||'')}</small></span></button>`;
+    }).join('');
+    document.querySelectorAll('[data-open-battle-family]').forEach(btn=>btn.addEventListener('click',()=>openFamilyTree(btn.dataset.openBattleFamily)));
+    showMenuScreen('battleFamiliesScreen');
   }
   function openFamilyTree(house){
-    if(!DYNASTY_SEEDS[house])return;
-    familyHouse=house;familyPersonId=`${house}-0`;
-    const info=factionInfo(house),seed=DYNASTY_SEEDS[house],p=dynastyPeople(house);
+    if(!state.gameActive||!gameDynasties[house])return;
+    const family=gameDynasties[house];
+    familyHouse=house;
+    const p=dynastyPeople(house);
+    familyPersonId=p[0]?.id||null;
+    const info=factionInfo(house);
     document.getElementById('familyHouseCrest').src=info.crest;
     document.getElementById('familyHouseName').textContent=info.label;
-    document.getElementById('familyHouseDescription').textContent=`${seed.seat} · ${seed.motto}`;
+    document.getElementById('familyHouseDescription').textContent=`${family.seat} · ${family.story}`;
     const crest=info.crest;
+    const children=p.filter(person=>person.role==='Heir'||person.role==='Child'||person.role==='Firstborn'||person.role==='Rime Scion');
+    const grandchildren=p.filter(person=>person.role==='Grandchild'||person.role==='Young Risen');
     document.getElementById('familyTree').innerHTML=`
        <div class="familyGeneration">FOUNDING COUPLE</div>
-       <div class="familyNodeRow">${familyNodeMarkup(p[0],crest)}${familyNodeMarkup(p[1],crest)}</div>
+       <div class="familyNodeRow">${p.slice(0,2).map(person=>familyNodeMarkup(person,crest)).join('')}</div>
        <div class="familyJoin"></div><div class="familyConnector"></div>
        <div class="familyGeneration">NEXT GENERATION</div>
-       <div class="familyNodeRow childRow">${p.slice(2,5).map(q=>familyNodeMarkup(q,crest)).join('')}</div>
-       <div class="familyGrand"><div class="familyGeneration">THIRD GENERATION</div>${familyNodeMarkup(p[5],crest)}</div>`;
+       <div class="familyNodeRow childRow">${children.map(person=>familyNodeMarkup(person,crest)).join('')}</div>
+       ${grandchildren.length?`<div class="familyGrand"><div class="familyGeneration">THIRD GENERATION</div><div class="familyNodeRow">${grandchildren.map(person=>familyNodeMarkup(person,crest)).join('')}</div></div>`:''}`;
     document.querySelectorAll('#familyTree [data-family-person]').forEach(btn=>btn.addEventListener('click',()=>{familyPersonId=btn.dataset.familyPerson;renderFamilyProfile();}));
     renderFamilyProfile();
+    updateCommanderPortraitColours();
     showMenuScreen('familyTreeScreen');
   }
 
   function renderHouseLibrary(){
     document.getElementById('houseLibrary').innerHTML=Object.entries(FACTION_CONFIG).map(([id,info])=>{
       const p=styleForHouse(id);
-      return `<div class="houseListRow"><img src="${info.crest}" alt="${escapeHtml(info.label)} crest"><div class="houseListText">${escapeHtml(info.label)}<div class="houseListColours"><i style="background:${teamColourDisplay(p.primary)}"></i>${isHumanFaction(id)?`<i style="background:${teamColourDisplay(p.secondary)}"></i>`:''}</div></div><div class="familyActions"><button type="button" class="houseViewFamily" data-view-family="${id}">Family Tree</button><button type="button" class="houseEditButton" data-edit-house="${id}">Edit Colours</button></div></div>`;
+      return `<div class="houseListRow"><img src="${info.crest}" alt="${escapeHtml(info.label)} crest"><div class="houseListText">${escapeHtml(info.label)}<div class="houseListColours"><i style="background:${teamColourDisplay(p.primary)}"></i>${isHumanFaction(id)?`<i style="background:${teamColourDisplay(p.secondary)}"></i>`:''}</div></div><div class="familyActions"><button type="button" class="houseEditButton" data-edit-house="${id}">Edit Colours</button></div></div>`;
     }).join('');
-    document.querySelectorAll('[data-view-family]').forEach(btn=>btn.addEventListener('click',()=>openFamilyTree(btn.dataset.viewFamily)));
     document.querySelectorAll('[data-edit-house]').forEach(btn=>btn.addEventListener('click',()=>openHouseEditor(btn.dataset.editHouse)));
   }
   function openHousesMenu(){renderHouseLibrary();showMenuScreen('housesScreen')}
@@ -2379,6 +2593,7 @@ button{font:inherit}
         castles:activeMap.castles
       },
       teams:teams,
+      dynasties:gameDynasties,
       hqs:Object.fromEntries(activeSides().map(side=>[side,{hp:barracks[side].hp,alive:barracks[side].alive}])),
       units:Object.values(units)
     };
@@ -3276,6 +3491,7 @@ button{font:inherit}
     // Preserve the colours and controllers selected immediately before starting.
     try{applyMap(map,true);}catch(e){alert(e.message);return;}
     resetGameState();
+    initialiseBattleDynasties();
     state.gameActive=true;
     hideMainMenu();
     refreshPaletteDependentUI();
@@ -3832,7 +4048,7 @@ button{font:inherit}
         else if(ww && !available)price.textContent='—';
         else price.innerHTML=`<img class="goldIcon" src="./assets/gold_icon.png" alt="gold">${UNIT_DEFS[kind].cost}`;
       }
-      if(kind==='dragon')btn.hidden=!dragonAllowed;
+      if(kind==='dragon')btn.hidden=!dragonAllowed || !DRAGON_FACTIONS.has(teamFaction(team));
       else if(kind==='villager' && ww)btn.hidden=true;
       else btn.hidden=false;
       btn.disabled=btn.hidden||!available||t.recruited||!spawn||teamSlotsLeft(team)<=0||(ww?((credits[kind]||0)<=0):t.gold<UNIT_DEFS[kind].cost);
@@ -4639,6 +4855,7 @@ button{font:inherit}
         }
       }
 
+      initialiseBattleDynasties(s.dynasties);
       unitLayer.innerHTML='';
       units={};
       s.units.forEach(u=>{
@@ -4901,6 +5118,8 @@ button{font:inherit}
   document.getElementById('battleResume').addEventListener('click',resumeBattle);
   document.getElementById('battleHome').addEventListener('click',showMainMenu);
   document.getElementById('battlePerformance').addEventListener('click',()=>openPerformance('battleMenu'));
+  document.getElementById('battleFamilies').addEventListener('click',openBattleFamilies);
+  document.getElementById('battleFamiliesBack').addEventListener('click',()=>showMenuScreen('battleMenuScreen'));
   document.getElementById('performanceBack').addEventListener('click',closePerformance);
   document.getElementById('menuLoadGame').addEventListener('click',()=>openSaveSlots('load','main'));
   document.getElementById('saveGame').addEventListener('click',()=>openSaveSlots('save','game'));
@@ -4924,7 +5143,7 @@ button{font:inherit}
   document.getElementById('menuNewGame').addEventListener('click',openNewGameScreen);
   document.getElementById('menuCreateMap').addEventListener('click',openMapManagerScreen);
   document.getElementById('menuHouses').addEventListener('click',openHousesMenu);
-  document.getElementById('familyTreeBack').addEventListener('click',openHousesMenu);
+  document.getElementById('familyTreeBack').addEventListener('click',openBattleFamilies);
   document.getElementById('houseEditBack').addEventListener('click',openHousesMenu);
   document.getElementById('saveHouseStyle').addEventListener('click',saveHouseEdits);
   document.getElementById('mapCreateNew').addEventListener('click',()=>openCreateMapScreen(null));
@@ -4985,6 +5204,7 @@ button{font:inherit}
   migrateLegacySave();
   state.gameActive=false;
   await initialiseFactionCrests();
+  initialiseCommanderPortraits(); // non-blocking; the atlas itself always renders via CSS.
   await initialisePaletteSprites();
   syncAllHouseStyles();
   refreshPaletteDependentUI();
