@@ -1,9 +1,9 @@
-const CACHE='dynasties-mechanics-v62';
+const CACHE='dynasties-mechanics-v63';
 const STATIC=[
   './assets/dragon_targaryen_64.png',
   './assets/dragon_white_walker_64.png',
   './index.html',
-  './assets/commander_parts_v62.png',
+  './assets/commander_parts_v63.png',
   './assets/human_units_dual_colour.png',
   './assets/faction_crests_atlas.png',
   './assets/dynasties_throne_of_twilight.png',
