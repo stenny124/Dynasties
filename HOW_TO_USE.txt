@@ -1,0 +1,8 @@
+DYNASTIES V64
+
+1. Extract this ZIP.
+2. Open DYNASTIES_V64_BUILDER.html in Chrome.
+3. Select your existing dynasties_mechanics_v63_patch.zip.
+4. Download the generated dynasties_mechanics_v64_patch.zip.
+
+The builder needs your v63 ZIP to preserve the existing game.
