@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#182014">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dynasties — Build v63</title>
+<title>Dynasties — Build v64</title>
 <style>
 :root{
   --blue:#315f9b; --red:#93433d; --gold:#d7b96e; --cream:#f3e4bd;
@@ -1081,6 +1081,27 @@ html.homeScreenApp #menuLayer.landingMode .landingMenu{
 }
 html.homeScreenApp body{background:#070a11 url('./assets/dynasties_throne_of_twilight.png') center center / cover no-repeat}
 
+/* v64 — original complete Lannister character portraits (no head/body compositing). */
+#familyTreeScroll{overflow-x:auto;overflow-y:auto;max-height:57vh}
+#familyTree{min-width:0;width:100%}
+.familyNodeRow{flex-wrap:wrap;gap:8px;max-width:100%}
+.familyNode{width:145px;min-width:118px;max-width:46%;padding:8px 6px}
+.familyNode .familyFace{width:105px;height:132px;max-width:100%;aspect-ratio:auto;background:#1d242e}
+.familyFace img.familyFullPortrait{position:static;inset:auto;width:100%;height:100%;opacity:1;object-fit:contain;image-rendering:auto;display:block}
+.familyNode.familyDead{opacity:.57;filter:grayscale(.7)}
+.familyNode .familyAge{font-size:10px}
+.familyProfileHeader .familyProfilePortrait{width:113px;height:146px;max-width:35%;object-fit:contain;image-rendering:auto;flex:0 0 113px;border:1px solid #a88751;background:#19202b}
+.familyProfileHeader .nightKingProfile{width:113px;height:120px;object-fit:contain;flex:0 0 113px}
+.familyChronicle{align-self:stretch;margin:8px 0 5px;max-height:140px;overflow:auto;font:11px/1.5 Georgia,serif;color:#e4cd9d;border:1px solid #80643f;background:#1d160f;padding:8px;border-radius:5px}
+.familyChronicle div+div{border-top:1px solid #9d805336;margin-top:6px;padding-top:6px}
+@media(max-width:600px){
+ #familyTreeScroll{overflow-x:hidden;max-height:50vh}
+ .familyNodeRow,.familyNodeRow.childRow{display:flex;justify-content:center;flex-wrap:wrap}
+ .familyNode{width:calc(50% - 6px);max-width:calc(50% - 6px);min-width:0}
+ .familyNode .familyFace{width:100px;height:123px}
+ .familyProfileHeader .familyProfilePortrait,.familyProfileHeader .nightKingProfile{width:91px;height:118px;flex:0 0 91px}
+}
+
 </style>
 </head>
 <body>
@@ -1108,7 +1129,7 @@ html.homeScreenApp body{background:#070a11 url('./assets/dynasties_throne_of_twi
 
     <section class="menuScreen" id="housesScreen" hidden>
       <div class="menuBackRow"><button class="menuBack" data-menu-back type="button">← Back</button><div class="menuSectionTitle">Houses</div><span></span></div>
-      <div class="menuSectionSub">Edit each house’s permanent unit colours. Every battle generates its own family tree, accessible through that battle’s menu.</div>
+      <div class="menuSectionSub">Edit each house’s permanent unit colours. v64 tracks the Lannister family and the Night King within each battle.</div>
       <div id="houseLibrary"></div>
     </section>
 
@@ -1123,7 +1144,7 @@ html.homeScreenApp body{background:#070a11 url('./assets/dynasties_throne_of_twi
       <div class="familyIntro"><img id="familyHouseCrest" alt="House crest"><div><strong id="familyHouseName"></strong><p id="familyHouseDescription"></p></div></div>
       <div id="familyTreeScroll"><div id="familyTree" class="familyTree"></div></div>
       <div id="characterProfile" class="familyProfile" aria-live="polite"></div>
-      <div class="familyDisclaimer">This family belongs only to the current battle and persists in its save file. Characters do not yet age or die during combat; inheritance and family events will be introduced later.</div>
+      <div class="familyDisclaimer">Lannister characters age 3 months each round. Married adults have a 1-in-50 chance of a child per round; everyone aged 41+ has a 1-in-20 chance of dying of old age. Family records are saved with the battle. White Walkers have only the Night King.</div>
     </section>
 
     <section class="menuScreen" id="editHouseScreen" hidden>
@@ -1362,7 +1383,7 @@ html.homeScreenApp body{background:#070a11 url('./assets/dynasties_throne_of_twi
 
 <script>
 (async () => {
-  // Dynasties Build v63 — normalized portrait seams, the Night King, and iPhone Home Screen layout.
+  // Dynasties Build v64 — Lannister life cycle and complete original character portraits.
   // Dynasties Build v52 — full-map terrain-aware AI route planning.
   // Dynasties v46: houses assigned in Create Map; New Game configures colours and controllers.
   // Dynasties v47: bridge tap-to-rotate while preserving the existing map/save formats.
@@ -1795,99 +1816,205 @@ html.homeScreenApp body{background:#070a11 url('./assets/dynasties_throne_of_twi
       createdAt:new Date().toISOString()
     };
   }
+// v64: Lannister is the only living, multi-character dynasty in this build.
+  // Every other human house retains its combat mechanics, without family records.
+  const LANNISTER_MALE_NAMES=['Leomar','Lucen','Damion','Tommenar','Tybalt','Lorent','Garrick','Martyn','Gerion','Roland','Steffon','Lancel','Orren','Alaric'];
+  const LANNISTER_FEMALE_NAMES=['Helena','Ceryse','Tayra','Jocelyn','Ellaria','Alysen','Mina','Rosamund','Leona','Tyshara','Janei','Lanna','Damella','Alysanne'];
+  const LANNISTER_PORTRAIT_ROOT='./assets/family_v64/';
+  const familySex=person=>person.sex==='female'?'female':'male';
+  const familyYears=person=>Math.floor(Math.max(0,Number(person.ageMonths)||0)/12);
+  const familyStage=person=>familyYears(person)<=9?'toddler':familyYears(person)<=20?'teen':'adult';
+  const familyPortrait=person=>{
+    const stage=familyStage(person),n=stage==='adult'?7:stage==='teen'?3:1;
+    const seed=Number.isInteger(person.appearance)?person.appearance:legacyCommanderNumber(person);
+    return `${LANNISTER_PORTRAIT_ROOT}lannister_${stage}_${familySex(person)}_${String(seed%n+1).padStart(2,'0')}.png`;
+  };
+  const familyDescriptionAge=person=>`${familyYears(person)} years, ${Math.max(0,Number(person.ageMonths)||0)%12} months`;
+  function familyRandName(sex,people){
+    const pool=sex==='female'?LANNISTER_FEMALE_NAMES:LANNISTER_MALE_NAMES;
+    const used=new Set(people.map(p=>p.name.split(' ')[0]));
+    return dynastyChoose(pool.filter(s=>!used.has(s)).length?pool.filter(s=>!used.has(s)):pool);
+  }
+  function familyNewPerson(family,{sex,years,parents=[],spouse=null,surname='Lannister',role='Child',turn=1}){
+    const seq=family.nextId++;
+    const person={
+      id:`lannister-${seq}`,name:`${familyRandName(sex,family.people)} ${surname}`,sex,
+      ageMonths:Math.max(0,Math.round(Number(years)||0)*12),age:Math.floor(Math.max(0,Number(years)||0)),
+      role,spouse,parents:[...parents],alive:true,bornTurn:turn,
+      trait:dynastyChoose(DYNASTY_SEEDS.lannister.traits),
+      scores:Object.fromEntries(DYNASTY_STATS.map(stat=>[stat,dynastyRandom(1,10)])),
+      appearance:dynastyRandom(0,999999),deathTurn:null,deathAge:null
+    };
+    family.people.push(person);
+    return person;
+  }
+  function makeLannisterDynasty(){
+    const seed=DYNASTY_SEEDS.lannister;
+    const family={house:'lannister',seat:seed.seat,motto:seed.motto,
+      story:'The fortunes of Casterly Rock rest on a single young household.',
+      people:[],nextId:1,headId:null,lastProcessedTurn:state.turn,events:[],createdAt:new Date().toISOString(),version:64};
+    const headSex=Math.random()<.5?'female':'male';
+    const spouseSex=headSex==='female'?'male':'female';
+    const head=familyNewPerson(family,{sex:headSex,years:dynastyRandom(24,38),role:'House Head',turn:state.turn});
+    const spouse=familyNewPerson(family,{sex:spouseSex,years:dynastyRandom(23,38),role:'Consort',turn:state.turn,surname:'Marbrand'});
+    head.spouse=spouse.id;spouse.spouse=head.id;
+    const child=familyNewPerson(family,{sex:Math.random()<.5?'male':'female',years:dynastyRandom(0,9),
+      parents:[head.id,spouse.id],role:'Heir',turn:state.turn});
+    family.headId=head.id;
+    family.events.push(`Round ${state.turn}: ${head.name} and ${spouse.name} begin their dynasty with ${child.name}.`);
+    return family;
+  }
+  function normaliseLannisterDynasty(family){
+    if(!family||!Array.isArray(family.people)||!family.people.length)return makeLannisterDynasty();
+    // Preserve v63 saved characters instead of throwing away existing family records.
+    family.version=64;family.house='lannister';
+    family.events=Array.isArray(family.events)?family.events:[];
+    family.lastProcessedTurn=Number.isInteger(family.lastProcessedTurn)?family.lastProcessedTurn:state.turn;
+    for(let i=0;i<family.people.length;i++){
+      const p=family.people[i];
+      if(!p||typeof p.id!=='string')continue;
+      if(p.sex!=='male'&&p.sex!=='female'){
+        const first=String(p.name||'').split(' ')[0];
+        p.sex=LANNISTER_FEMALE_NAMES.includes(first)||COMMANDER_FEMALE_NAMES.has(first)||i===1?'female':'male';
+      }
+      if(!Number.isFinite(p.ageMonths))p.ageMonths=(Number(p.age)||0)*12;
+      p.ageMonths=Math.max(0,Math.round(p.ageMonths));p.age=familyYears(p);
+      if(p.alive!==false)p.alive=true;
+      if(!Array.isArray(p.parents))p.parents=[];
+      if(!p.scores)p.scores=Object.fromEntries(DYNASTY_STATS.map(k=>[k,dynastyRandom(1,10)]));
+      if(!Number.isInteger(p.appearance))p.appearance=legacyCommanderNumber(p);
+    }
+    if(!family.headId||!family.people.some(p=>p.id===family.headId))
+      family.headId=(family.people.find(p=>p.role==='House Head')||family.people[0]).id;
+    const ids=family.people.map(p=>/^lannister-(\d+)$/.exec(p.id)).filter(Boolean).map(m=>Number(m[1]));
+    family.nextId=Math.max(Number(family.nextId)||1,...ids.map(id=>id+1),1);
+    return family;
+  }
+  function livingLannister(family){return family.people.filter(p=>p.alive!==false);}
+  function advanceLannisterDynasty(round){
+    const family=gameDynasties.lannister;
+    if(!family||!Number.isInteger(round))return;
+    // Saved matches cannot retroactively gain extra birth/death rolls.
+    if(!Number.isInteger(family.lastProcessedTurn))family.lastProcessedTurn=round-1;
+    if(family.lastProcessedTurn>=round)return;
+    const pById=id=>family.people.find(p=>p.id===id);
+    for(let turn=family.lastProcessedTurn+1;turn<=round;turn++){
+      for(const person of family.people){
+        if(person.alive===false)continue;
+        person.ageMonths=(Number(person.ageMonths)||Number(person.age)*12||0)+3;
+        person.age=familyYears(person);
+        if(person.age>=41&&dynastyRandom(1,20)===1){
+          person.alive=false;person.deathTurn=turn;person.deathAge=person.age;
+          family.events.unshift(`Round ${turn}: ${person.name} died of old age, aged ${person.age}.`);
+        }
+      }
+      const seen=new Set();
+      for(const person of [...family.people]){
+        if(seen.has(person.id)||!person.spouse)continue;
+        const spouse=pById(person.spouse);
+        if(!spouse||spouse.spouse!==person.id)continue;
+        seen.add(person.id);seen.add(spouse.id);
+        if(person.alive===false||spouse.alive===false||person.age<21||spouse.age<21)continue;
+        if(dynastyRandom(1,50)!==1)continue;
+        const baby=familyNewPerson(family,{sex:Math.random()<.5?'male':'female',years:0,
+          parents:[person.id,spouse.id],role:'Child',turn});
+        family.events.unshift(`Round ${turn}: ${baby.name} was born to ${person.name} and ${spouse.name}.`);
+      }
+      const head=pById(family.headId);
+      if(!livingLannister(family).length && family.headId!==null){
+        family.headId=null;
+        family.events.unshift(`Round ${turn}: House Lannister's family line has ended.`);
+      }else if((!head||head.alive===false)&&livingLannister(family).length){
+        const descendants=family.people.filter(p=>p.alive!==false && p.parents?.includes(family.headId));
+        const descendantsOfDescendants=family.people.filter(p=>p.alive!==false && p.parents?.some(pid=>descendants.some(d=>d.id===pid)));
+        const bloodline=family.people.filter(p=>p.alive!==false&&p.name.endsWith(' Lannister'));
+        const byAge=(a,b)=>b.ageMonths-a.ageMonths;
+        const successor=descendants.sort(byAge)[0]||descendantsOfDescendants.sort(byAge)[0]||bloodline.sort(byAge)[0]||livingLannister(family).sort(byAge)[0];
+        if(successor){
+          family.headId=successor.id;
+          family.events.unshift(`Round ${turn}: ${successor.name} became the new head of House Lannister.`);
+        }else{
+          family.headId=null;
+          family.events.unshift(`Round ${turn}: House Lannister's family line has ended.`);
+        }
+      }
+      family.lastProcessedTurn=turn;
+    }
+    family.events=family.events.slice(0,100);
+  }
   function makeDynasty(house){
     if(house==='white_walkers')return nightKingDynasty();
-    const seed=DYNASTY_SEEDS[house]||DYNASTY_SEEDS.stark;
-    const names=[...(DYNASTY_FIRST_NAMES[house]||DYNASTY_FIRST_NAMES.stark)];
-    // Shuffle once, guaranteeing a varied but distinct set of first names within the house.
-    for(let i=names.length-1;i>0;i--){const j=dynastyRandom(0,i);[names[i],names[j]]=[names[j],names[i]];}
-    const ages=[dynastyRandom(43,59),dynastyRandom(39,55)];
-    const oldest=dynastyRandom(20,Math.min(30,ages[1]-15));
-    const childCount=dynastyRandom(2,4),grandCount=dynastyRandom(0,2);
-    const houseSurname=house==='white_walkers'?'':` ${factionInfo(house).label.replace(/^House /,'')}`;
-    const spouseSurname=seed.names[1]?.split(' ').slice(1).join(' ')||factionInfo(house).label.replace(/^House /,'');
-    const labels=house==='white_walkers'?
-      ['Pale Regent','Bound Consort','Firstborn','Rime Scion','Rime Scion']:
-      ['House Head','Consort','Heir','Child','Child'];
-    const namesFor=i=>house==='white_walkers' ? `${names[i]} ${['the Winterbound','of the Pale Court','the Unfrozen','the Silent','the Iceborn','of the Rime','the Pale'][i%7]}`
-      : `${names[i]}${i===1?' '+spouseSurname:houseSurname}`;
-    const people=[];
-    const n=2+childCount+grandCount;
-    for(let i=0;i<n;i++){
-      let age,role,parents=[],spouse=null;
-      if(i<2){age=ages[i];role=labels[i];spouse=`${house}-${1-i}`;}
-      else if(i<2+childCount){age=Math.max(12,oldest-(i-2)*dynastyRandom(2,5));role=i===2?labels[2]:labels[3];parents=[`${house}-0`,`${house}-1`];}
-      else{age=dynastyRandom(1,Math.min(8,Math.max(1,oldest-15)));role=house==='white_walkers'?'Young Risen':'Grandchild';parents=[`${house}-2`];}
-      const scores=Object.fromEntries(DYNASTY_STATS.map(stat=>[stat,dynastyRandom(1,10)]));
-      people.push({id:`${house}-${i}`,name:namesFor(i),age,role,spouse,parents,trait:dynastyChoose(seed.traits),scores,
-        portrait:{head:chooseCommanderHead(i,age,namesFor(i)),body:dynastyRandom(0,19)}});
-    }
-    const story=`${dynastyChoose(DYNASTY_ORIGINS)} ${dynastyChoose(DYNASTY_ASPIRATIONS)}`;
-    return {house,seat:seed.seat,motto:seed.motto,story,people,createdAt:new Date().toISOString()};
+    return house==='lannister'?makeLannisterDynasty():null;
   }
   function initialiseBattleDynasties(saved=null){
     gameDynasties={};
-    // Accept stored family trees from saves; never regenerate valid saved characters.
-    if(saved&&typeof saved==='object'&&!Array.isArray(saved)){
-      for(const [house,dynasty] of Object.entries(saved)){
-        if(DYNASTY_SEEDS[house]&&Array.isArray(dynasty?.people)&&dynasty.people.length>=4)
-          gameDynasties[house]=JSON.parse(JSON.stringify(dynasty));
-      }
-    }
-    for(const house of new Set(activeSides().map(side=>teamFaction(side)))){
-      if(house==='white_walkers')gameDynasties[house]=nightKingDynasty();
-      else if(!gameDynasties[house])gameDynasties[house]=makeDynasty(house);
+    const houses=new Set(activeSides().map(side=>teamFaction(side)));
+    if(houses.has('white_walkers'))gameDynasties.white_walkers=nightKingDynasty();
+    if(houses.has('lannister')){
+      const prior=saved?.lannister;
+      gameDynasties.lannister=prior?.people?.length
+        ?normaliseLannisterDynasty(JSON.parse(JSON.stringify(prior)))
+        :makeLannisterDynasty();
     }
   }
+
   function dynastyPeople(house){return gameDynasties[house]?.people||[];}
-  let familyHouse='stark';
+  let familyHouse='lannister';
   let familyPersonId=null;
+  function familyPersonRole(person,family){
+    if(person.alive===false)return person.id===family.headId?'Former Head · Deceased':'Deceased';
+    if(person.id===family.headId)return 'House Head';
+    if(person.spouse===family.headId)return 'Consort';
+    if(person.parents?.includes(family.headId))return 'Child of the House Head';
+    return person.role||'Family Member';
+  }
   function familyNodeMarkup(person,crest){
-    const artwork=familyHouse==='white_walkers'
-      ?`<span class="familyYouth"><img src="${crest}" alt="Night King crest"></span>`
-      :person.age<12
-      ?`<span class="familyYouth"><img src="${crest}" alt="Young child"></span>`
-      :commanderPortraitMarkup(person,familyHouse);
-    const age=Number.isFinite(person.age)?`<span class="familyAge">Age ${person.age}</span>`:'';
-    return `<button type="button" class="familyNode ${person.id===familyPersonId?'chosen':''}" data-family-person="${person.id}" aria-label="Show ${escapeHtml(person.name)}"><span class="familyFace">${artwork}</span><span class="familyName">${escapeHtml(person.name)}</span><span class="familyRole">${escapeHtml(person.role)}</span>${age}</button>`;
+    const isWw=familyHouse==='white_walkers';
+    const artwork=isWw
+      ?`<img class="familyFullPortrait nightKingPortrait" src="${LANNISTER_PORTRAIT_ROOT}white_walkers_night_king.png" alt="Night King">`
+      :`<img class="familyFullPortrait" src="${familyPortrait(person)}" alt="${escapeHtml(person.name)}">`;
+    const age=isWw?'Immortal':familyDescriptionAge(person);
+    const dynasty=gameDynasties[familyHouse];
+    return `<button type="button" class="familyNode ${person.id===familyPersonId?'chosen':''} ${person.alive===false?'familyDead':''}" data-family-person="${escapeHtml(person.id)}" aria-label="Show ${escapeHtml(person.name)}"><span class="familyFace">${artwork}</span><span class="familyName">${escapeHtml(person.name)}</span><span class="familyRole">${escapeHtml(familyPersonRole(person,dynasty))}</span><span class="familyAge">${person.alive===false?'Died at '+person.deathAge:age}</span></button>`;
   }
   function renderFamilyProfile(){
     const people=dynastyPeople(familyHouse);
     if(!people.length)return;
     const p=people.find(p=>p.id===familyPersonId)||people[0];
+    const family=gameDynasties[familyHouse];
     const parents=(p.parents||[]).map(id=>people.find(q=>q.id===id)?.name).filter(Boolean);
     const spouse=p.spouse?people.find(q=>q.id===p.spouse)?.name:null;
     const children=people.filter(q=>(q.parents||[]).includes(p.id)).map(q=>q.name);
-    const crest=factionInfo(familyHouse).crest;
     if(familyHouse==='white_walkers'){
       document.getElementById('characterProfile').innerHTML=`
-        <div class="familyProfileHeader"><img src="${crest}" alt="Night King crest"><div><strong>Night King</strong><small>Supreme Leader · Ancient · Undead</small></div></div>
+        <div class="familyProfileHeader"><img class="nightKingProfile" src="${LANNISTER_PORTRAIT_ROOT}white_walkers_night_king.png" alt="Night King"><div><strong>Night King</strong><small>Supreme Leader · Ancient · Undead</small></div></div>
         <div class="familyStats">${DYNASTY_STATS.map(st=>`<div class="familyStat"><b>${p.scores[st]}</b>${st}</div>`).join('')}</div>
         <div class="familyFacts"><b>Status:</b> Eternal sovereign of the White Walkers.<p>The Night King has no spouse, descendants, heirs or family tree.</p></div>`;
       return;
     }
+    const status=p.alive===false?`Died of old age in Round ${p.deathTurn||'unknown'}, aged ${p.deathAge||p.age}`:'Alive';
     document.getElementById('characterProfile').innerHTML=`
-      <div class="familyProfileHeader">${p.age<12&&familyHouse!=='white_walkers'?`<img src="${crest}" alt="Young family member">`:commanderPortraitMarkup(p,familyHouse)}<div><strong>${escapeHtml(p.name)}</strong><small>${escapeHtml(p.role)} · Age ${p.age} · ${escapeHtml(p.trait)}</small></div></div>
-      <div class="familyStats">${DYNASTY_STATS.map(st=>`<div class="familyStat"><b>${p.scores[st]}</b>${st}</div>`).join('')}</div>
-      <div class="familyFacts"><div><b>House:</b> ${escapeHtml(factionInfo(familyHouse).label)}</div>
+      <div class="familyProfileHeader"><img class="familyProfilePortrait" src="${familyPortrait(p)}" alt="${escapeHtml(p.name)}"><div><strong>${escapeHtml(p.name)}</strong><small>${escapeHtml(familyPersonRole(p,family))} · ${familyDescriptionAge(p)} · ${escapeHtml(p.trait||'')}</small></div></div>
+      <div class="familyStats">${DYNASTY_STATS.map(st=>`<div class="familyStat"><b>${p.scores?.[st]??0}</b>${st}</div>`).join('')}</div>
+      <div class="familyFacts"><div><b>House:</b> House Lannister</div>
         <div><b>Parents:</b> ${parents.length?escapeHtml(parents.join(' & ')):'Not recorded'}</div>
         <div><b>Spouse:</b> ${spouse?escapeHtml(spouse):'None recorded'}</div>
         <div><b>Children:</b> ${children.length?escapeHtml(children.join(', ')):'None recorded'}</div>
-        <div><b>Status:</b> Alive · Member of this battle's dynasty</div></div>`;
+        <div><b>Status:</b> ${escapeHtml(status)}</div></div>`;
     document.querySelectorAll('[data-family-person]').forEach(el=>el.classList.toggle('chosen',el.dataset.familyPerson===p.id));
-    updateCommanderPortraitColours();
   }
   function openBattleFamilies(){
     if(!state.gameActive)return;
-    const houseIds=[...new Set(activeSides().map(side=>teamFaction(side)))];
+    const houses=[...new Set(activeSides().map(side=>teamFaction(side)))]
+      .filter(house=>house==='lannister'||house==='white_walkers').filter(house=>!!gameDynasties[house]);
     document.getElementById('battleFamiliesSubtitle').textContent=
-      `${activeMap.name||'Current battle'} · ${houseIds.length} house${houseIds.length===1?'':'s'} · Round ${state.turn}`;
-    document.getElementById('battleFamilyList').innerHTML=houseIds.map(house=>{
+      `${activeMap.name||'Current battle'} · Round ${state.turn} · Lannister and Night King records only`;
+    document.getElementById('battleFamilyList').innerHTML=houses.length?houses.map(house=>{
       const family=gameDynasties[house],info=factionInfo(house);
-      if(!family)return '';
-      const head=family.people.find(p=>p.role==='House Head'||p.role==='Supreme Leader')||family.people[0];
-      return `<button type="button" class="battleFamilyRow" data-open-battle-family="${house}"><img src="${info.crest}" alt=""><span>${escapeHtml(info.label)}<small>${escapeHtml(head?.name||'Unknown')} · ${house==='white_walkers'?'Sole leader':`${family.people.length} members`} · ${escapeHtml(family.seat||'')}</small></span></button>`;
-    }).join('');
+      const head=family.people.find(p=>p.id===family.headId)||(house==='white_walkers'?family.people[0]:null);
+      const living=house==='white_walkers'?1:family.people.filter(p=>p.alive!==false).length;
+      return `<button type="button" class="battleFamilyRow" data-open-battle-family="${house}"><img src="${info.crest}" alt=""><span>${escapeHtml(info.label)}<small>${escapeHtml(head?.name||'Line extinct')} · ${house==='white_walkers'?'Sole leader':`${living} living, ${family.people.length} recorded`} · ${escapeHtml(family.seat||'')}</small></span></button>`;
+    }).join(''):'<div class="emptyMaps">No Lannister dynasty or White Walker leader in this battle.</div>';
     document.querySelectorAll('[data-open-battle-family]').forEach(btn=>btn.addEventListener('click',()=>openFamilyTree(btn.dataset.openBattleFamily)));
     showMenuScreen('battleFamiliesScreen');
   }
@@ -1895,32 +2022,39 @@ html.homeScreenApp body{background:#070a11 url('./assets/dynasties_throne_of_twi
     if(!state.gameActive||!gameDynasties[house])return;
     const family=gameDynasties[house];
     familyHouse=house;
-    document.querySelector('#familyTreeScreen .menuSectionTitle').textContent=house==='white_walkers'?'The Night King':'Family Tree';
-    const p=dynastyPeople(house);
-    familyPersonId=p[0]?.id||null;
+    document.querySelector('#familyTreeScreen .menuSectionTitle').textContent=house==='white_walkers'?'The Night King':'Lannister Family Tree';
+    const people=dynastyPeople(house);
+    familyPersonId=(people.find(p=>p.id===family.headId)||people[0])?.id||null;
     const info=factionInfo(house);
     document.getElementById('familyHouseCrest').src=info.crest;
     document.getElementById('familyHouseName').textContent=info.label;
     document.getElementById('familyHouseDescription').textContent=`${family.seat} · ${family.story}`;
-    const crest=info.crest;
-    const children=p.filter(person=>person.role==='Heir'||person.role==='Child'||person.role==='Firstborn'||person.role==='Rime Scion');
-    const grandchildren=p.filter(person=>person.role==='Grandchild'||person.role==='Young Risen');
-    document.getElementById('familyTree').innerHTML=house==='white_walkers'
-      ?`<div class="familyGeneration">THE NIGHT KING</div><div class="familyNodeRow nightKingRow">${p.slice(0,1).map(person=>familyNodeMarkup(person,crest)).join('')}</div>`
-      :`
-       <div class="familyGeneration">FOUNDING COUPLE</div>
-       <div class="familyNodeRow">${p.slice(0,2).map(person=>familyNodeMarkup(person,crest)).join('')}</div>
-       <div class="familyJoin"></div><div class="familyConnector"></div>
-       <div class="familyGeneration">NEXT GENERATION</div>
-       <div class="familyNodeRow childRow">${children.map(person=>familyNodeMarkup(person,crest)).join('')}</div>
-       ${grandchildren.length?`<div class="familyGrand"><div class="familyGeneration">THIRD GENERATION</div><div class="familyNodeRow">${grandchildren.map(person=>familyNodeMarkup(person,crest)).join('')}</div></div>`:''}`;
+    let markup='';
+    if(house==='white_walkers'){
+      markup=`<div class="familyGeneration">THE NIGHT KING</div><div class="familyNodeRow nightKingRow">${people.slice(0,1).map(p=>familyNodeMarkup(p,info.crest)).join('')}</div>`;
+    }else{
+      const byId=new Map(people.map(p=>[p.id,p]));
+      const founders=people.filter(p=>!(p.parents||[]).some(id=>byId.has(id)));
+      const groups=[founders];
+      const assigned=new Set(founders.map(p=>p.id));
+      for(let depth=1;depth<Math.min(people.length,20)&&assigned.size<people.length;depth++){
+        const generation=people.filter(p=>!assigned.has(p.id)&&(p.parents||[]).some(id=>assigned.has(id)));
+        if(!generation.length)break;
+        groups.push(generation);generation.forEach(p=>assigned.add(p.id));
+      }
+      const remaining=people.filter(p=>!assigned.has(p.id));if(remaining.length)groups.push(remaining);
+      markup=groups.map((group,i)=>`${i?'<div class="familyJoin"></div><div class="familyConnector"></div>':''}<div class="familyGeneration">${i===0?'FOUNDING COUPLE':i===1?'CHILDREN':`GENERATION ${i+1}`}</div><div class="familyNodeRow ${i?'childRow':''}">${group.map(p=>familyNodeMarkup(p,info.crest)).join('')}</div>`).join('');
+      if(family.events?.length){
+        markup+=`<div class="familyGeneration" style="margin-top:20px">FAMILY CHRONICLE</div><div class="familyChronicle">${family.events.slice(0,12).map(e=>`<div>${escapeHtml(e)}</div>`).join('')}</div>`;
+      }
+    }
+    document.getElementById('familyTree').innerHTML=markup;
     document.querySelectorAll('#familyTree [data-family-person]').forEach(btn=>btn.addEventListener('click',()=>{familyPersonId=btn.dataset.familyPerson;renderFamilyProfile();}));
     renderFamilyProfile();
-    updateCommanderPortraitColours();
     showMenuScreen('familyTreeScreen');
   }
 
-  function renderHouseLibrary(){
+    function renderHouseLibrary(){
     document.getElementById('houseLibrary').innerHTML=Object.entries(FACTION_CONFIG).map(([id,info])=>{
       const p=styleForHouse(id);
       return `<div class="houseListRow"><img src="${info.crest}" alt="${escapeHtml(info.label)} crest"><div class="houseListText">${escapeHtml(info.label)}<div class="houseListColours"><i style="background:${teamColourDisplay(p.primary)}"></i>${isHumanFaction(id)?`<i style="background:${teamColourDisplay(p.secondary)}"></i>`:''}</div></div><div class="familyActions"><button type="button" class="houseEditButton" data-edit-house="${id}">Edit Colours</button></div></div>`;
@@ -4782,6 +4916,7 @@ html.homeScreenApp body{background:#070a11 url('./assets/dynasties_throne_of_twi
     let next=order.find(id=>TEAM_IDS.indexOf(id)>currentIndex);
     if(!next){
       next=order[0];state.turn++;
+      advanceLannisterDynasty(state.turn);
       for(const side of aliveSides()){
         if(!isWwTeam(side))teams[side].gold+=teams[side].income;
         teams[side].recruited=false;
