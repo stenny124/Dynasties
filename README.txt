@@ -1,24 +1,23 @@
-Dynasties — Build v64 (revised with aligned map-unit sprites)
+Dynasties — Build v65 | Family Battlefield Units
+
+PATCH FILES (upload over the existing GitHub Pages repository):
+- index.html
+- service-worker.js
+- README.txt
+- portrait_mapping.json
+- assets/family_v64/ (the exact unmodified 23 v64 full-size portraits)
+- assets/map_units/ (23 corresponding 64×64 sprite PNGs)
 
 CHANGES
-1. House Lannister keeps the v64 living family tree system: new battles begin with exactly three characters (house head, spouse and one toddler), all ageing three months per round with births, old-age deaths, succession and save/load persistence.
-2. The 23 supplied full-size family portrait PNGs remain in assets/family_v64 and still drive the family tree/profile artwork.
-3. A matching 23-file 64x64 sprite set has been added in assets/map_units. Filenames mirror the portrait filenames exactly.
-4. The family tree now shows a small aligned map-unit sprite badge on each character card, and the character profile panel shows both the portrait art and the corresponding 64x64 map sprite.
-5. No combat mechanics, unit balance, or other houses’ dynasty systems were changed. White Walkers still only use the Night King and do not get a family tree.
-
-FILES TO UPLOAD
-- index.html (replacement)
-- service-worker.js (replacement; updated cache name)
-- README.txt (replacement)
-- portrait_mapping.json (new helper file)
-- assets/family_v64/*.png (23 portrait files; unchanged set from the previous v64 patch)
-- assets/map_units/*.png (23 NEW aligned 64x64 map unit sprites)
-
-INSTALL
-Extract the ZIP and upload the files/folders into your existing Dynasties repository, replacing files where prompted. Keep all other existing assets in place.
+1. Original v64 family-tree artwork is preserved, without map-sprite badges or portrait replacement.
+2. House Lannister head, spouse and toddler each spawn as individually named soldier-type battlefield units near their HQ. Each living baby born in future rounds is also placed near that HQ when space is available. The Night King appears beside a White Walker HQ as a unique battlefield unit.
+3. Every Lannister individual rolls permanent adult potential of ATK 1–6 and DEF 0–5 at creation (stored in family save data). Toddlers: ATK 0, DEF 0; teens: rounded half of their adult potential; adults: full potential. MOV always 4. HP 10, melee range 1.
+4. Movement, attacks, terrain, enemy AI targeting and save/load use the existing combat code. Zero-ATK toddlers inflict zero damage; old-age or battlefield deaths remove the associated unit; battle deaths are reflected in succession and the chronicle. Portrait and battlefield sprites change stages when age crosses 10 or 21.
+5. Existing v63/v64 saves are supported; living Lannister family members absent from the older unit list spawn upon load (subject to free passable tiles). Dead members do not respawn.
+6. Other human houses do not get family trees or family units. White Walkers have their lone, ageless Night King (ATK 6, DEF 5, MOV 4).
 
 NOTES
-- The new 64x64 sprites are kept in their own asset directory and do not replace the portrait images.
-- This revision uses the supplied preview sheet and portrait-to-sprite filename mapping.
-- Existing v63/v64 saves should continue to load; new battles still start with the three-person Lannister household.
+- This is a patch, not a standalone game. Keep all other game assets already in the repository.
+- Space is allocated to family units from nearest walkable, unoccupied tiles to their HQ. If there are no open tiles, new family members will wait for space to free up.
+- The 64×64 maps sprites are static idle frames (facing right, flipped to face left in play).
+- No new marriage system; only existing adult married couple has children.
