@@ -1,4 +1,4 @@
-const CACHE='dynasties-mechanics-v65-toddlerfix';
+const CACHE='dynasties-mechanics-v66-exit-autosave';
 const STATIC=[
   './assets/map_units/lannister_adult_female_01.png',
   './assets/map_units/lannister_adult_female_02.png',

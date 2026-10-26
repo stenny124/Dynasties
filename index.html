@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#182014">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dynasties — Build v65</title>
+<title>Dynasties — Build v66</title>
 <style>
 :root{
   --blue:#315f9b; --red:#93433d; --gold:#d7b96e; --cream:#f3e4bd;
@@ -2778,12 +2778,16 @@ html.homeScreenApp body{background:#070a11 url('./assets/dynasties_throne_of_twi
     }catch(e){ return null; }
   }
 
+  // Keep the automatic exit-save separate from manual slots 1, 2 and 3.
+  const AUTO_SAVE_SLOT='auto';
+  const readAutoSave=()=>readSaveSlot(AUTO_SAVE_SLOT);
+
   function usedSaveSlots(){
     return [1,2,3].filter(slot=>!!readSaveSlot(slot));
   }
 
   function hasSavedGame(){
-    return usedSaveSlots().length>0;
+    return usedSaveSlots().length>0 || !!readAutoSave();
   }
 
   function migrateLegacySave(){
@@ -2851,6 +2855,18 @@ html.homeScreenApp body{background:#070a11 url('./assets/dynasties_throne_of_twi
     }
   }
 
+  function writeAutoSave(){
+    if(!state.gameActive)return false;
+    try{
+      // This deliberately does NOT alter currentSaveSlot or any manual save.
+      localStorage.setItem(slotKey(AUTO_SAVE_SLOT),JSON.stringify(makeSaveSnapshot(AUTO_SAVE_SLOT)));
+      return true;
+    }catch(e){
+      console.warn('Dynasties exit autosave failed:',e);
+      return false;
+    }
+  }
+
   let saveSlotMode='load';
   let saveSlotReturn='main';
 
@@ -2861,7 +2877,23 @@ html.homeScreenApp body{background:#070a11 url('./assets/dynasties_throne_of_twi
     document.getElementById('saveSlotsTitle').textContent=mode==='save'?'Save Game':'Load Game';
     document.getElementById('saveSlotsSubtitle').textContent=mode==='save'
       ? 'Choose a slot. Saving over an occupied slot replaces it.'
-      : 'Choose one of your saved battles.';
+      : 'Choose your autosave or one of three manual save slots.';
+
+    if(mode==='load'){
+      const autosaved=readAutoSave();
+      if(autosaved){
+        const btn=document.createElement('button');
+        btn.type='button';
+        btn.className='saveSlotCard autoSaveCard';
+        const mapName=escapeHtml(autosaved.map?.name||'Unknown Map');
+        const turn=autosaved.state?.turn||1;
+        let when='Previous exit';
+        try{if(autosaved.savedAt)when=new Date(autosaved.savedAt).toLocaleString();}catch(e){}
+        btn.innerHTML=`<div class="saveSlotNumber" aria-hidden="true">↻</div><div><div class="saveSlotTitle">Autosave · ${mapName}</div><div class="saveSlotMeta">Turn ${turn} · ${escapeHtml(when)} · Saved on exit to Main Menu</div></div>`;
+        btn.addEventListener('click',()=>loadSavedGameFromSlot(AUTO_SAVE_SLOT));
+        list.appendChild(btn);
+      }
+    }
 
     [1,2,3].forEach(slot=>{
       const saved=readSaveSlot(slot);
@@ -2923,11 +2955,13 @@ html.homeScreenApp body{background:#070a11 url('./assets/dynasties_throne_of_twi
 
   function refreshMainMenu(){
     const used=usedSaveSlots();
+    const autosaved=readAutoSave();
     const loadBtn=document.getElementById('menuLoadGame');
-    loadBtn.disabled=used.length===0;
-    document.getElementById('saveStatus').textContent=used.length
-      ? `${used.length}/3 save slot${used.length===1?'':'s'} used on this device.`
-      : 'No saved battles yet — start a new game.';
+    loadBtn.disabled=used.length===0&&!autosaved;
+    const manualInfo=`${used.length}/3 manual save slot${used.length===1?'':'s'} used`;
+    document.getElementById('saveStatus').textContent=autosaved
+      ? `Autosave available · ${manualInfo}.`
+      : used.length ? `${manualInfo}.` : 'No saved battles yet — start a new game.';
   }
 
   function showMainMenu(){
@@ -5254,7 +5288,7 @@ html.homeScreenApp body{background:#070a11 url('./assets/dynasties_throne_of_twi
       const el=ensureUnitEl(u);
       setUnitPos(u);
       const familyPerson=familyMemberForUnit(u);
-      const familyUnitStage=familyPerson?familyStage(familyPerson):null;
+      const familyUnitStage=(familyPerson&&u.familyHouse==='lannister')?familyStage(familyPerson):null;
       el.classList.toggle('selected',u.id===state.selectedUnitId&&!state.selectedBarracks&&u.alive);
       el.classList.toggle('inspected',u.id===state.inspectedUnitId&&u.team!==state.activeTeam&&u.alive);
       el.classList.toggle('done',u.alive&&u.move===0&&u.attacked);
@@ -5448,7 +5482,15 @@ html.homeScreenApp body{background:#070a11 url('./assets/dynasties_throne_of_twi
   });
   document.getElementById('battleMenuBack').addEventListener('click',resumeBattle);
   document.getElementById('battleResume').addEventListener('click',resumeBattle);
-  document.getElementById('battleHome').addEventListener('click',showMainMenu);
+  document.getElementById('battleHome').addEventListener('click',()=>{
+    if(state.busy)return;
+    // Save the complete current battle, including family records, before leaving.
+    if(state.gameActive&&!writeAutoSave()){
+      alert('Could not autosave this battle. You are still in the battle menu. Please save to a manual slot before leaving.');
+      return;
+    }
+    showMainMenu();
+  });
   document.getElementById('battlePerformance').addEventListener('click',()=>openPerformance('battleMenu'));
   document.getElementById('battleFamilies').addEventListener('click',openBattleFamilies);
   document.getElementById('battleFamiliesBack').addEventListener('click',()=>showMenuScreen('battleMenuScreen'));

@@ -1,27 +1,20 @@
-Dynasties — Build v65 | Family Battlefield Units
-
-PATCH FILES (upload over the existing GitHub Pages repository):
-- index.html
-- service-worker.js
-- README.txt
-- portrait_mapping.json
-- assets/family_v64/ (the exact unmodified 23 v64 full-size portraits)
-- assets/map_units/ (23 corresponding 64×64 sprite PNGs)
+Dynasties — Build v66 | Night King scale + Exit Autosave
 
 CHANGES
-1. Original v64 family-tree artwork is preserved, without map-sprite badges or portrait replacement.
-2. House Lannister head, spouse and toddler each spawn as individually named soldier-type battlefield units near their HQ. Each living baby born in future rounds is also placed near that HQ when space is available. The Night King appears beside a White Walker HQ as a unique battlefield unit.
-3. Every Lannister individual rolls permanent adult potential of ATK 1–6 and DEF 0–5 at creation (stored in family save data). Toddlers: ATK 0, DEF 0; teens: rounded half of their adult potential; adults: full potential. MOV always 4. HP 10, melee range 1.
-4. Movement, attacks, terrain, enemy AI targeting and save/load use the existing combat code. Zero-ATK toddlers inflict zero damage; old-age or battlefield deaths remove the associated unit; battle deaths are reflected in succession and the chronicle. Portrait and battlefield sprites change stages when age crosses 10 or 21.
-5. Existing v63/v64 saves are supported; living Lannister family members absent from the older unit list spawn upon load (subject to free passable tiles). Dead members do not respawn.
-6. Other human houses do not get family trees or family units. White Walkers have their lone, ageless Night King (ATK 6, DEF 5, MOV 4).
+1. Night King is no longer styled as a toddler. Only Lannister characters aged 0–9 use the smaller on-map toddler sizing. The Night King returns to normal battlefield size.
+2. Selecting Battle Menu > Main Menu triggers an autosave BEFORE returning to the home screen.
+3. The autosave is stored under its own named save key (dynasties-save-slot-v1-auto); none of manual Slots 1, 2 or 3 is overwritten.
+4. The main menu's Load Game button now shows an Autosave entry above manual Slots 1–3. It can resume a battle even if no manual save slots are used.
+5. The autosave includes the existing save snapshot: map, units, teams, turn, HQs, and family tree records.
+6. If saving to device storage fails, the game remains on the Battle Menu and tells you to make a manual save.
 
-NOTES
-- This is a patch, not a standalone game. Keep all other game assets already in the repository.
-- Space is allocated to family units from nearest walkable, unoccupied tiles to their HQ. If there are no open tiles, new family members will wait for space to free up.
-- The 64×64 maps sprites are static idle frames (facing right, flipped to face left in play).
-- No new marriage system; only existing adult married couple has children.
+UNMODIFIED
+- Lannister portraits and the 64x64 battlefield map sprites.
+- Toddler, teen and adult combat stats, MOV 4 and all gameplay mechanics.
+- Manual save/load slots and map editor data.
 
+INSTALL
+Extract the ZIP and upload its contents to the existing GitHub Pages repository, replacing matching files. Keep other existing game assets. Updated index.html and service-worker.js are included. You may need to refresh/reopen your iPhone Home Screen app to pick up the new service-worker cache.
 
-TWEAK
-- Toddler battlefield sprites have been reduced in on-map display size so they no longer appear adult-sized. This only affects the in-battle render scale; toddler stats and the family-tree portrait art are unchanged.
+NOTE
+The autosave is made when you click Main Menu from the Battle Menu. It does not replace explicit manual saves, and it is stored locally in the browser/device, not across devices.
