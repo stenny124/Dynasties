@@ -1,18 +1,24 @@
-Dynasties — Build v64
+Dynasties — Build v64 (revised with aligned map-unit sprites)
 
 CHANGES
-1. House Lannister gains a living family tree. A new battle starts with exactly three characters: a randomly male/female House Head, adult spouse and one toddler.
-2. All characters age three months per completed battle round. 0–9 toddler, 10–20 teen, 21+ adult; portraits change automatically with age.
-3. Married living adult couples each have a 1-in-50 chance of a child per round. Characters 41 and older face a 1-in-20 old-age death chance per round. The next surviving heir succeeds a deceased head. Family events and deaths remain visible in the chronicle.
-4. Lannister profiles use the exact 22 supplied individual PNG artworks. The Night King uses the supplied 23rd portrait and remains the sole, ageless White Walker leader. No family trees are added for other houses.
-5. v63 combat, game maps, save slot formats, palette sprites, and iOS full-screen handling are retained. Existing v63 Lannister saves are migrated without deleting recorded family members.
+1. House Lannister keeps the v64 living family tree system: new battles begin with exactly three characters (house head, spouse and one toddler), all ageing three months per round with births, old-age deaths, succession and save/load persistence.
+2. The 23 supplied full-size family portrait PNGs remain in assets/family_v64 and still drive the family tree/profile artwork.
+3. A matching 23-file 64x64 sprite set has been added in assets/map_units. Filenames mirror the portrait filenames exactly.
+4. The family tree now shows a small aligned map-unit sprite badge on each character card, and the character profile panel shows both the portrait art and the corresponding 64x64 map sprite.
+5. No combat mechanics, unit balance, or other houses’ dynasty systems were changed. White Walkers still only use the Night King and do not get a family tree.
 
 FILES TO UPLOAD
 - index.html (replacement)
-- service-worker.js (replacement; updated cache)
+- service-worker.js (replacement; updated cache name)
 - README.txt (replacement)
-- assets/family_v64/*.png (23 NEW portrait files)
+- portrait_mapping.json (new helper file)
+- assets/family_v64/*.png (23 portrait files; unchanged set from the previous v64 patch)
+- assets/map_units/*.png (23 NEW aligned 64x64 map unit sprites)
 
-Keep all other existing assets, including assets/commander_parts_v63.png, in your GitHub repository. This ZIP is a PATCH, not a complete stand-alone game. Extract it and upload these files and the assets folder to your existing repository with the same folder structure.
+INSTALL
+Extract the ZIP and upload the files/folders into your existing Dynasties repository, replacing files where prompted. Keep all other existing assets in place.
 
-Note: No marriage system for grown-up children has been introduced; only pre-existing married adult couples may have children.
+NOTES
+- The new 64x64 sprites are kept in their own asset directory and do not replace the portrait images.
+- This revision uses the supplied preview sheet and portrait-to-sprite filename mapping.
+- Existing v63/v64 saves should continue to load; new battles still start with the three-person Lannister household.

@@ -1,0 +1,232 @@
+[
+  {
+    "id": "lannister_adult_male_01",
+    "map_sprite": "map_units/lannister_adult_male_01.png",
+    "portrait_filename": "lannister_adult_male_01.png",
+    "size": [
+      64,
+      64
+    ],
+    "feet_y": 59
+  },
+  {
+    "id": "lannister_adult_male_02",
+    "map_sprite": "map_units/lannister_adult_male_02.png",
+    "portrait_filename": "lannister_adult_male_02.png",
+    "size": [
+      64,
+      64
+    ],
+    "feet_y": 59
+  },
+  {
+    "id": "lannister_adult_male_03",
+    "map_sprite": "map_units/lannister_adult_male_03.png",
+    "portrait_filename": "lannister_adult_male_03.png",
+    "size": [
+      64,
+      64
+    ],
+    "feet_y": 59
+  },
+  {
+    "id": "lannister_adult_male_04",
+    "map_sprite": "map_units/lannister_adult_male_04.png",
+    "portrait_filename": "lannister_adult_male_04.png",
+    "size": [
+      64,
+      64
+    ],
+    "feet_y": 59
+  },
+  {
+    "id": "lannister_adult_male_05",
+    "map_sprite": "map_units/lannister_adult_male_05.png",
+    "portrait_filename": "lannister_adult_male_05.png",
+    "size": [
+      64,
+      64
+    ],
+    "feet_y": 59
+  },
+  {
+    "id": "lannister_adult_male_06",
+    "map_sprite": "map_units/lannister_adult_male_06.png",
+    "portrait_filename": "lannister_adult_male_06.png",
+    "size": [
+      64,
+      64
+    ],
+    "feet_y": 59
+  },
+  {
+    "id": "lannister_adult_male_07",
+    "map_sprite": "map_units/lannister_adult_male_07.png",
+    "portrait_filename": "lannister_adult_male_07.png",
+    "size": [
+      64,
+      64
+    ],
+    "feet_y": 59
+  },
+  {
+    "id": "lannister_adult_female_01",
+    "map_sprite": "map_units/lannister_adult_female_01.png",
+    "portrait_filename": "lannister_adult_female_01.png",
+    "size": [
+      64,
+      64
+    ],
+    "feet_y": 59
+  },
+  {
+    "id": "lannister_adult_female_02",
+    "map_sprite": "map_units/lannister_adult_female_02.png",
+    "portrait_filename": "lannister_adult_female_02.png",
+    "size": [
+      64,
+      64
+    ],
+    "feet_y": 59
+  },
+  {
+    "id": "lannister_adult_female_03",
+    "map_sprite": "map_units/lannister_adult_female_03.png",
+    "portrait_filename": "lannister_adult_female_03.png",
+    "size": [
+      64,
+      64
+    ],
+    "feet_y": 59
+  },
+  {
+    "id": "lannister_adult_female_04",
+    "map_sprite": "map_units/lannister_adult_female_04.png",
+    "portrait_filename": "lannister_adult_female_04.png",
+    "size": [
+      64,
+      64
+    ],
+    "feet_y": 59
+  },
+  {
+    "id": "lannister_adult_female_05",
+    "map_sprite": "map_units/lannister_adult_female_05.png",
+    "portrait_filename": "lannister_adult_female_05.png",
+    "size": [
+      64,
+      64
+    ],
+    "feet_y": 59
+  },
+  {
+    "id": "lannister_adult_female_06",
+    "map_sprite": "map_units/lannister_adult_female_06.png",
+    "portrait_filename": "lannister_adult_female_06.png",
+    "size": [
+      64,
+      64
+    ],
+    "feet_y": 59
+  },
+  {
+    "id": "lannister_adult_female_07",
+    "map_sprite": "map_units/lannister_adult_female_07.png",
+    "portrait_filename": "lannister_adult_female_07.png",
+    "size": [
+      64,
+      64
+    ],
+    "feet_y": 59
+  },
+  {
+    "id": "lannister_teen_female_01",
+    "map_sprite": "map_units/lannister_teen_female_01.png",
+    "portrait_filename": "lannister_teen_female_01.png",
+    "size": [
+      64,
+      64
+    ],
+    "feet_y": 59
+  },
+  {
+    "id": "lannister_teen_female_02",
+    "map_sprite": "map_units/lannister_teen_female_02.png",
+    "portrait_filename": "lannister_teen_female_02.png",
+    "size": [
+      64,
+      64
+    ],
+    "feet_y": 59
+  },
+  {
+    "id": "lannister_teen_female_03",
+    "map_sprite": "map_units/lannister_teen_female_03.png",
+    "portrait_filename": "lannister_teen_female_03.png",
+    "size": [
+      64,
+      64
+    ],
+    "feet_y": 59
+  },
+  {
+    "id": "lannister_teen_male_01",
+    "map_sprite": "map_units/lannister_teen_male_01.png",
+    "portrait_filename": "lannister_teen_male_01.png",
+    "size": [
+      64,
+      64
+    ],
+    "feet_y": 59
+  },
+  {
+    "id": "lannister_teen_male_02",
+    "map_sprite": "map_units/lannister_teen_male_02.png",
+    "portrait_filename": "lannister_teen_male_02.png",
+    "size": [
+      64,
+      64
+    ],
+    "feet_y": 59
+  },
+  {
+    "id": "lannister_teen_male_03",
+    "map_sprite": "map_units/lannister_teen_male_03.png",
+    "portrait_filename": "lannister_teen_male_03.png",
+    "size": [
+      64,
+      64
+    ],
+    "feet_y": 59
+  },
+  {
+    "id": "lannister_toddler_male_01",
+    "map_sprite": "map_units/lannister_toddler_male_01.png",
+    "portrait_filename": "lannister_toddler_male_01.png",
+    "size": [
+      64,
+      64
+    ],
+    "feet_y": 59
+  },
+  {
+    "id": "lannister_toddler_female_01",
+    "map_sprite": "map_units/lannister_toddler_female_01.png",
+    "portrait_filename": "lannister_toddler_female_01.png",
+    "size": [
+      64,
+      64
+    ],
+    "feet_y": 59
+  },
+  {
+    "id": "white_walkers_night_king",
+    "map_sprite": "map_units/white_walkers_night_king.png",
+    "portrait_filename": "white_walkers_night_king.png",
+    "size": [
+      64,
+      64
+    ],
+    "feet_y": 59
+  }
+]

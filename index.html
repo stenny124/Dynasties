@@ -1092,6 +1092,12 @@ html.homeScreenApp body{background:#070a11 url('./assets/dynasties_throne_of_twi
 .familyNode .familyAge{font-size:10px}
 .familyProfileHeader .familyProfilePortrait{width:113px;height:146px;max-width:35%;object-fit:contain;image-rendering:auto;flex:0 0 113px;border:1px solid #a88751;background:#19202b}
 .familyProfileHeader .nightKingProfile{width:113px;height:120px;object-fit:contain;flex:0 0 113px}
+.familyFace .familyMapBadge{position:absolute;right:4px;bottom:4px;width:34px;height:34px;object-fit:contain;image-rendering:pixelated;background:#151b25cc;border:1px solid #a88751;border-radius:4px;padding:1px;box-sizing:border-box;z-index:3}
+.familyFace .familyMapBadge.nightKingBadge{width:38px;height:38px}
+.familyProfileArtStack{display:flex;align-items:flex-end;gap:8px;flex-wrap:nowrap}
+.familyProfileHeader .familyProfileMapSprite{width:64px;height:64px;object-fit:contain;image-rendering:pixelated;flex:0 0 64px;background:#151b25;border:1px solid #a88751;border-radius:4px;padding:2px;box-sizing:border-box}
+.familyProfileHeader .nightKingMapSprite{width:68px;height:68px;flex-basis:68px}
+
 .familyChronicle{align-self:stretch;margin:8px 0 5px;max-height:140px;overflow:auto;font:11px/1.5 Georgia,serif;color:#e4cd9d;border:1px solid #80643f;background:#1d160f;padding:8px;border-radius:5px}
 .familyChronicle div+div{border-top:1px solid #9d805336;margin-top:6px;padding-top:6px}
 @media(max-width:600px){
@@ -1100,6 +1106,7 @@ html.homeScreenApp body{background:#070a11 url('./assets/dynasties_throne_of_twi
  .familyNode{width:calc(50% - 6px);max-width:calc(50% - 6px);min-width:0}
  .familyNode .familyFace{width:100px;height:123px}
  .familyProfileHeader .familyProfilePortrait,.familyProfileHeader .nightKingProfile{width:91px;height:118px;flex:0 0 91px}
+ .familyProfileHeader .familyProfileMapSprite,.familyProfileHeader .nightKingMapSprite{width:52px;height:52px;flex:0 0 52px}
 }
 
 </style>
@@ -1821,6 +1828,7 @@ html.homeScreenApp body{background:#070a11 url('./assets/dynasties_throne_of_twi
   const LANNISTER_MALE_NAMES=['Leomar','Lucen','Damion','Tommenar','Tybalt','Lorent','Garrick','Martyn','Gerion','Roland','Steffon','Lancel','Orren','Alaric'];
   const LANNISTER_FEMALE_NAMES=['Helena','Ceryse','Tayra','Jocelyn','Ellaria','Alysen','Mina','Rosamund','Leona','Tyshara','Janei','Lanna','Damella','Alysanne'];
   const LANNISTER_PORTRAIT_ROOT='./assets/family_v64/';
+  const LANNISTER_MAP_SPRITE_ROOT='./assets/map_units/';
   const familySex=person=>person.sex==='female'?'female':'male';
   const familyYears=person=>Math.floor(Math.max(0,Number(person.ageMonths)||0)/12);
   const familyStage=person=>familyYears(person)<=9?'toddler':familyYears(person)<=20?'teen':'adult';
@@ -1828,6 +1836,11 @@ html.homeScreenApp body{background:#070a11 url('./assets/dynasties_throne_of_twi
     const stage=familyStage(person),n=stage==='adult'?7:stage==='teen'?3:1;
     const seed=Number.isInteger(person.appearance)?person.appearance:legacyCommanderNumber(person);
     return `${LANNISTER_PORTRAIT_ROOT}lannister_${stage}_${familySex(person)}_${String(seed%n+1).padStart(2,'0')}.png`;
+  };
+  const familyMapSprite=person=>{
+    const stage=familyStage(person),n=stage==='adult'?7:stage==='teen'?3:1;
+    const seed=Number.isInteger(person.appearance)?person.appearance:legacyCommanderNumber(person);
+    return `${LANNISTER_MAP_SPRITE_ROOT}lannister_${stage}_${familySex(person)}_${String(seed%n+1).padStart(2,'0')}.png`;
   };
   const familyDescriptionAge=person=>`${familyYears(person)} years, ${Math.max(0,Number(person.ageMonths)||0)%12} months`;
   function familyRandName(sex,people){
@@ -1973,9 +1986,10 @@ html.homeScreenApp body{background:#070a11 url('./assets/dynasties_throne_of_twi
     const artwork=isWw
       ?`<img class="familyFullPortrait nightKingPortrait" src="${LANNISTER_PORTRAIT_ROOT}white_walkers_night_king.png" alt="Night King">`
       :`<img class="familyFullPortrait" src="${familyPortrait(person)}" alt="${escapeHtml(person.name)}">`;
+    const spriteBadge=`<img class="familyMapBadge ${isWw?'nightKingBadge':''}" src="${isWw?`${LANNISTER_MAP_SPRITE_ROOT}white_walkers_night_king.png`:familyMapSprite(person)}" alt="">`;
     const age=isWw?'Immortal':familyDescriptionAge(person);
     const dynasty=gameDynasties[familyHouse];
-    return `<button type="button" class="familyNode ${person.id===familyPersonId?'chosen':''} ${person.alive===false?'familyDead':''}" data-family-person="${escapeHtml(person.id)}" aria-label="Show ${escapeHtml(person.name)}"><span class="familyFace">${artwork}</span><span class="familyName">${escapeHtml(person.name)}</span><span class="familyRole">${escapeHtml(familyPersonRole(person,dynasty))}</span><span class="familyAge">${person.alive===false?'Died at '+person.deathAge:age}</span></button>`;
+    return `<button type="button" class="familyNode ${person.id===familyPersonId?'chosen':''} ${person.alive===false?'familyDead':''}" data-family-person="${escapeHtml(person.id)}" aria-label="Show ${escapeHtml(person.name)}"><span class="familyFace">${artwork}${spriteBadge}</span><span class="familyName">${escapeHtml(person.name)}</span><span class="familyRole">${escapeHtml(familyPersonRole(person,dynasty))}</span><span class="familyAge">${person.alive===false?'Died at '+person.deathAge:age}</span></button>`;
   }
   function renderFamilyProfile(){
     const people=dynastyPeople(familyHouse);
@@ -1987,14 +2001,14 @@ html.homeScreenApp body{background:#070a11 url('./assets/dynasties_throne_of_twi
     const children=people.filter(q=>(q.parents||[]).includes(p.id)).map(q=>q.name);
     if(familyHouse==='white_walkers'){
       document.getElementById('characterProfile').innerHTML=`
-        <div class="familyProfileHeader"><img class="nightKingProfile" src="${LANNISTER_PORTRAIT_ROOT}white_walkers_night_king.png" alt="Night King"><div><strong>Night King</strong><small>Supreme Leader · Ancient · Undead</small></div></div>
+        <div class="familyProfileHeader"><div class="familyProfileArtStack"><img class="nightKingProfile" src="${LANNISTER_PORTRAIT_ROOT}white_walkers_night_king.png" alt="Night King"><img class="familyProfileMapSprite nightKingMapSprite" src="${LANNISTER_MAP_SPRITE_ROOT}white_walkers_night_king.png" alt="Night King map sprite"></div><div><strong>Night King</strong><small>Supreme Leader · Ancient · Undead</small></div></div>
         <div class="familyStats">${DYNASTY_STATS.map(st=>`<div class="familyStat"><b>${p.scores[st]}</b>${st}</div>`).join('')}</div>
         <div class="familyFacts"><b>Status:</b> Eternal sovereign of the White Walkers.<p>The Night King has no spouse, descendants, heirs or family tree.</p></div>`;
       return;
     }
     const status=p.alive===false?`Died of old age in Round ${p.deathTurn||'unknown'}, aged ${p.deathAge||p.age}`:'Alive';
     document.getElementById('characterProfile').innerHTML=`
-      <div class="familyProfileHeader"><img class="familyProfilePortrait" src="${familyPortrait(p)}" alt="${escapeHtml(p.name)}"><div><strong>${escapeHtml(p.name)}</strong><small>${escapeHtml(familyPersonRole(p,family))} · ${familyDescriptionAge(p)} · ${escapeHtml(p.trait||'')}</small></div></div>
+      <div class="familyProfileHeader"><div class="familyProfileArtStack"><img class="familyProfilePortrait" src="${familyPortrait(p)}" alt="${escapeHtml(p.name)}"><img class="familyProfileMapSprite" src="${familyMapSprite(p)}" alt="${escapeHtml(p.name)} map sprite"></div><div><strong>${escapeHtml(p.name)}</strong><small>${escapeHtml(familyPersonRole(p,family))} · ${familyDescriptionAge(p)} · ${escapeHtml(p.trait||'')}</small></div></div>
       <div class="familyStats">${DYNASTY_STATS.map(st=>`<div class="familyStat"><b>${p.scores?.[st]??0}</b>${st}</div>`).join('')}</div>
       <div class="familyFacts"><div><b>House:</b> House Lannister</div>
         <div><b>Parents:</b> ${parents.length?escapeHtml(parents.join(' & ')):'Not recorded'}</div>
