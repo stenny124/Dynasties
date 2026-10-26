@@ -1,4 +1,4 @@
-const CACHE='dynasties-mechanics-v65-family-battle';
+const CACHE='dynasties-mechanics-v65-toddlerfix';
 const STATIC=[
   './assets/map_units/lannister_adult_female_01.png',
   './assets/map_units/lannister_adult_female_02.png',

@@ -21,3 +21,7 @@ NOTES
 - Space is allocated to family units from nearest walkable, unoccupied tiles to their HQ. If there are no open tiles, new family members will wait for space to free up.
 - The 64×64 maps sprites are static idle frames (facing right, flipped to face left in play).
 - No new marriage system; only existing adult married couple has children.
+
+
+TWEAK
+- Toddler battlefield sprites have been reduced in on-map display size so they no longer appear adult-sized. This only affects the in-battle render scale; toddler stats and the family-tree portrait art are unchanged.

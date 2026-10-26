@@ -183,6 +183,11 @@ button{font:inherit}
 }
 .unit.done{filter:saturate(.6) brightness(.77)}
 .unit.dead{display:none}
+/* Toddler family units use the dedicated 64x64 battlefield sprites, but should appear noticeably smaller than adults. */
+.unit.familyToddler img.unitArt{
+  width:62%;height:62%;
+  left:19%;top:20px;
+}
 .unit.cavalry{width:62px;height:76px;transform:translate(1px,-13px)}
 .hp{display:none}
 .hpNumber{position:absolute;right:1px;bottom:4px;z-index:4;
@@ -5248,10 +5253,13 @@ html.homeScreenApp body{background:#070a11 url('./assets/dynasties_throne_of_twi
     Object.values(units).forEach(u=>{
       const el=ensureUnitEl(u);
       setUnitPos(u);
+      const familyPerson=familyMemberForUnit(u);
+      const familyUnitStage=familyPerson?familyStage(familyPerson):null;
       el.classList.toggle('selected',u.id===state.selectedUnitId&&!state.selectedBarracks&&u.alive);
       el.classList.toggle('inspected',u.id===state.inspectedUnitId&&u.team!==state.activeTeam&&u.alive);
       el.classList.toggle('done',u.alive&&u.move===0&&u.attacked);
       el.classList.toggle('dead',!u.alive);
+      el.classList.toggle('familyToddler',familyUnitStage==='toddler');
       const hp=el.querySelector('.hpNumber');
       hp.hidden=!u.alive||u.hp>=u.maxHp;
       hp.textContent=u.hp;
